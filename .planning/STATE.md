@@ -9,10 +9,10 @@
 ## Current Position
 
 **Phase:** 3 of 5 -- Join Flow and Voting Mechanics
-**Plan:** 2 of 3 complete
-**Status:** In progress
-**Last activity:** 2026-01-27 -- Completed 03-02-PLAN.md (participant voting UI + state machine)
-**Progress:** [##############______] Phases 1-2 + plans 03-01, 03-02 done (7/8 plans across phases 1-3)
+**Plan:** 3 of 3 complete
+**Status:** Phase complete
+**Last activity:** 2026-01-27 -- Completed 03-03-PLAN.md (admin controls: QR code, session state machine, question activation, vote progress, SessionResults)
+**Progress:** [################____] Phases 1-3 complete (8/8 plans across phases 1-3)
 
 ## Phase Summary
 
@@ -20,7 +20,7 @@
 |-------|------|--------|
 | 1 | Integration Spike | Complete (2/2 plans done) |
 | 2 | Data Foundation and Session Setup | Complete (3/3 plans done) |
-| 3 | Join Flow and Voting Mechanics | In Progress (2/3 plans done) |
+| 3 | Join Flow and Voting Mechanics | Complete (3/3 plans done) |
 | 4 | Realtime and Live Session Orchestration | Not Started |
 | 5 | Immersive UI and Polish | Not Started |
 
@@ -28,10 +28,10 @@
 
 | Metric | Value |
 |--------|-------|
-| Plans completed | 7 |
+| Plans completed | 8 |
 | Plans failed | 0 |
 | Total requirements | 18 |
-| Requirements done | 10 (SESS-01, SESS-02, SESS-03, VOTE-01, VOTE-02, VOTE-03, VOTE-04, JOIN-02, JOIN-03, JOIN-04) |
+| Requirements done | 11 (SESS-01, SESS-02, SESS-03, VOTE-01, VOTE-02, VOTE-03, VOTE-04, JOIN-01, JOIN-02, JOIN-03, JOIN-04) |
 
 ## Accumulated Context
 
@@ -59,6 +59,10 @@
 - Safe Session type casts admin_token/created_by to empty strings for Zustand store compatibility on participant side
 - Name prompt persisted to sessionStorage (scoped to browser tab), shown once per session for named questions
 - Results view in ParticipantSession is intentional placeholder (Plan 03-03 builds full SessionResults)
+- Anonymous toggle placed as separate Voting Privacy section above QuestionList in draft state (QuestionList/QuestionForm unchanged)
+- Wider layout (max-w-4xl) during live session for admin presentation screen readability
+- AdminQuestionControl fetches and polls votes independently per question (encapsulated data fetching)
+- Question status polling at 3s during active session (temporary bridge until Phase 4 realtime)
 
 ### Research Insights
 - Supabase Realtime has three mechanisms: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
@@ -83,10 +87,10 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-27 -- Completed 03-02-PLAN.md (participant voting UI + state machine with polling bridge)
-**Next action:** Execute 03-03-PLAN.md (admin controls: QR code, session state transitions, question activation, vote progress, SessionResults)
+**Last session:** 2026-01-27 -- Completed 03-03-PLAN.md (admin controls: QR code, session state machine, question activation, vote progress, SessionResults)
+**Next action:** Phase 3 complete. Ready for Phase 4 (Realtime and Live Session Orchestration) -- research, plan, then execute.
 **Resume file:** None
-**Context to preserve:** Phase 3 Wave 2 in progress. Participant voting UI complete (VoteAgreeDisagree, VoteMultipleChoice, VoteConfirmation, Lobby, ParticipantSession state machine). Polling bridge fetches state every 4s. Plan 03-03 (admin controls) is the remaining plan. moddatetime trigger SQL still needs manual execution in Supabase SQL Editor.
+**Context to preserve:** Phase 3 complete. All voting mechanics (participant + admin) work end-to-end via polling. Phase 4 replaces polling with Supabase Realtime subscriptions. Polling intervals: 4s in ParticipantSession, 3s in AdminSession/AdminQuestionControl. moddatetime trigger SQL still needs manual execution in Supabase SQL Editor.
 
 ---
 *State initialized: 2026-01-27*
@@ -99,3 +103,4 @@
 *Updated: 2026-01-27 -- Phase 3 planned (3 plans, 2 waves, research + verification passed)*
 *Updated: 2026-01-27 -- Completed 03-01 (foundation hooks, utilities, store extensions)*
 *Updated: 2026-01-27 -- Completed 03-02 (participant voting UI, state machine, polling bridge)*
+*Updated: 2026-01-27 -- Completed 03-03 (admin controls: QR, state machine, question activation, results) -- Phase 3 complete*
