@@ -66,6 +66,15 @@ export function usePresence(
       joinedAt: new Date().toISOString(),
     });
 
+    // Read current presence state immediately to catch participants who
+    // connected before these listeners were attached (initial sync event
+    // fires on subscribe, which may happen before this effect runs)
+    const currentState = channel.presenceState();
+    const currentKeys = Object.keys(currentState);
+    if (currentKeys.length > 0) {
+      setParticipantCount(currentKeys.length);
+    }
+
     return () => {
       // Clear all grace period timers on cleanup
       leaveTimers.current.forEach((timer) => clearTimeout(timer));
