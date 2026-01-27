@@ -9,9 +9,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Session Management
 
-- [ ] **SESS-01**: Admin can create a session via unique link (no account required)
-- [ ] **SESS-02**: Admin can add, edit, and reorder questions within a session
-- [ ] **SESS-03**: Sessions are persisted in Supabase -- admin can revisit past sessions and results
+- [x] **SESS-01**: Admin can create a session via unique link (no account required)
+- [x] **SESS-02**: Admin can add, edit, and reorder questions within a session
+- [x] **SESS-03**: Sessions are persisted in Supabase -- admin can revisit past sessions and results
 
 ### Voting
 
@@ -81,9 +81,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SESS-01 | Phase 2 | Pending |
-| SESS-02 | Phase 2 | Pending |
-| SESS-03 | Phase 2 | Pending |
+| SESS-01 | Phase 2 | Complete |
+| SESS-02 | Phase 2 | Complete |
+| SESS-03 | Phase 2 | Complete |
 | VOTE-01 | Phase 3 | Pending |
 | VOTE-02 | Phase 3 | Pending |
 | VOTE-03 | Phase 3 | Pending |
@@ -108,4 +108,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-27*
-*Last updated: 2026-01-27 after roadmap revision (phase renumbering)*
+*Last updated: 2026-01-27 -- Phase 2 complete (SESS-01, SESS-02, SESS-03 verified)*

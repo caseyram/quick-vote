@@ -47,9 +47,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md -- Install deps, create DB schema (sessions/questions/votes + RLS), TypeScript types, anonymous auth hook
-- [ ] 02-02-PLAN.md -- React Router v7 setup, Zustand store, session creation flow (Home + AdminSession + ParticipantSession pages)
-- [ ] 02-03-PLAN.md -- Question CRUD (add/edit/delete/reorder) with QuestionForm and QuestionList components
+- [x] 02-01-PLAN.md -- Install deps, create DB schema (sessions/questions/votes + RLS), TypeScript types, anonymous auth hook
+- [x] 02-02-PLAN.md -- React Router v7 setup, Zustand store, session creation flow (Home + AdminSession + ParticipantSession pages)
+- [x] 02-03-PLAN.md -- Question CRUD (add/edit/delete/reorder) with QuestionForm and QuestionList components
 
 **Success Criteria:**
 1. Admin visits the app and creates a new session, receiving a unique admin URL that is not guessable
@@ -120,7 +120,7 @@ Plans:
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
 | 1 | Integration Spike | (none -- infrastructure) | Complete |
-| 2 | Data Foundation and Session Setup | SESS-01, SESS-02, SESS-03 | Planned (3 plans) |
+| 2 | Data Foundation and Session Setup | SESS-01, SESS-02, SESS-03 | Complete |
 | 3 | Join Flow and Voting Mechanics | VOTE-01, VOTE-02, VOTE-03, VOTE-04, JOIN-01, JOIN-02, JOIN-03, JOIN-04 | Not Started |
 | 4 | Realtime and Live Session Orchestration | LIVE-01, LIVE-02, LIVE-03, LIVE-04 | Not Started |
 | 5 | Immersive UI and Polish | UIEX-01, UIEX-02, UIEX-03 | Not Started |
@@ -157,3 +157,4 @@ Plans:
 *Updated: 2026-01-27 -- Phase 1 plans created (2 plans, 2 waves)*
 *Updated: 2026-01-27 -- Phase 1 complete (verified 5/5 success criteria)*
 *Updated: 2026-01-27 -- Phase 2 plans created (3 plans, 3 waves)*
+*Updated: 2026-01-27 -- Phase 2 complete (verified 7/7 must-haves, SESS-01/02/03 satisfied)*
