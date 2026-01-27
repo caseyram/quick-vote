@@ -1,1 +1,8 @@
 @import "tailwindcss";
+
+@theme {
+  --color-surface-dark: oklch(0.145 0.015 264);
+  --color-surface-elevated: oklch(0.205 0.015 264);
+  --color-vote-agree: oklch(0.637 0.18 243);
+  --color-vote-disagree: oklch(0.702 0.17 48);
+}
