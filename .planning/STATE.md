@@ -8,11 +8,11 @@
 
 ## Current Position
 
-**Phase:** 4 of 5 -- Realtime and Live Session Orchestration
-**Plan:** 4 of 4 complete
-**Status:** Phase 4 complete and verified (4/4 success criteria, LIVE-01..04 satisfied)
-**Last activity:** 2026-01-27 -- Completed 04-04 (participant session realtime wiring) -- Phase 4 complete
-**Progress:** [####################] 12/12 plans complete (phases 1-4 done, phase 5 not started)
+**Phase:** 5 of 5 -- Immersive UI and Polish
+**Plan:** 1 of 4 complete
+**Status:** In progress
+**Last activity:** 2026-01-27 -- Completed 05-01 (animation foundation, theme tokens, ConnectionPill)
+**Progress:** [#########################-----] 13/16 plans complete (phases 1-4 done, phase 5: 1/4)
 
 ## Phase Summary
 
@@ -22,16 +22,16 @@
 | 2 | Data Foundation and Session Setup | Complete (3/3 plans done) |
 | 3 | Join Flow and Voting Mechanics | Complete (3/3 plans done) |
 | 4 | Realtime and Live Session Orchestration | Complete (4/4 plans done) |
-| 5 | Immersive UI and Polish | Not Started |
+| 5 | Immersive UI and Polish | In Progress (1/4 plans done) |
 
 ## Performance Metrics
 
 | Metric | Value |
 |--------|-------|
-| Plans completed | 12 |
+| Plans completed | 13 |
 | Plans failed | 0 |
 | Total requirements | 18 |
-| Requirements done | 15 (SESS-01..03, VOTE-01..04, JOIN-01..04, LIVE-01..04) |
+| Requirements done | 16 (SESS-01..03, VOTE-01..04, JOIN-01..04, LIVE-01..04, UIEX-03) |
 
 ## Accumulated Context
 
@@ -78,6 +78,9 @@
 - hasConnectedOnce ref distinguishes initial connect from reconnection for re-fetch logic
 - waitingMessage state provides contextual feedback (waiting, reviewing results, results shown)
 - Crossfade uses CSS opacity transition (300ms) with displayedQuestion buffer state
+- Standard motion import (not LazyMotion) -- 34kb justified for animation-heavy app
+- oklch color space for Tailwind theme tokens -- perceptual uniformity across vote colors
+- ConnectionPill as new component alongside ConnectionBanner -- banner preserved for admin pages
 
 ### Research Insights
 - Supabase Realtime has three mechanisms: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
@@ -94,17 +97,17 @@
 - RLS policies must use (select auth.uid()) wrapped in select for performance
 
 ### TODOs
-- Verify motion vs framer-motion package name at install time
+- (resolved) motion is the correct package name (not framer-motion) -- installed motion@12.29.2, import from "motion/react"
 
 ### Blockers
 (none)
 
 ## Session Continuity
 
-**Last session:** 2026-01-27 -- Phase 4 verified (4/4 success criteria, 15 requirements complete)
-**Next action:** Execute Phase 5 (`/gsd:discuss-phase 5` or `/gsd:plan-phase 5`)
+**Last session:** 2026-01-27 -- Completed 05-01 (animation foundation, theme tokens, ConnectionPill)
+**Next action:** Execute 05-02-PLAN.md (vote interaction animations)
 **Resume file:** None
-**Context to preserve:** Phase 4 complete. All realtime wiring done -- admin broadcasts events (question_activated, voting_closed, results_revealed, session_active, session_ended, session_lobby) and participants receive them instantly via Broadcast listeners. All polling removed from both AdminSession and ParticipantSession. Hooks (useRealtimeChannel, usePresence, useCountdown) and components (BarChart, CountdownTimer, ConnectionBanner, ParticipantCount) fully integrated into both admin and participant pages. Reconnection re-fetch handles missed events. Build passes with zero TS errors.
+**Context to preserve:** Phase 5 started. motion@12.29.2 installed (import from "motion/react"). Tailwind @theme tokens added (surface-dark, surface-elevated, vote-agree, vote-disagree). ConnectionPill component created with animated status dot and conditional text label. ConnectionBanner preserved for admin use. Build passes with zero TS errors.
 
 ---
 *State initialized: 2026-01-27*
@@ -124,3 +127,4 @@
 *Updated: 2026-01-27 -- Completed 04-03 (admin realtime: broadcast commands, live vote streaming, bar chart results, countdown timer, presence)*
 *Updated: 2026-01-27 -- Completed 04-04 (participant realtime: broadcast listeners, presence, timer, reconnection) -- Phase 4 complete*
 *Updated: 2026-01-27 -- Phase 4 verified (4/4 success criteria, 15 requirements complete)*
+*Updated: 2026-01-27 -- Completed 05-01 (animation foundation, theme tokens, ConnectionPill)*
