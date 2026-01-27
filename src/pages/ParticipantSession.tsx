@@ -215,7 +215,7 @@ export default function ParticipantSession() {
   // Realtime channel -- only enabled when we have a sessionId and we're not in error state
   // Presence is configured here so listeners are registered BEFORE subscribe
   const presenceConfig = participantId ? { userId: participantId, role: 'participant' as const } : undefined;
-  const { channelRef, connectionStatus, participantCount } = useRealtimeChannel(
+  const { connectionStatus, participantCount } = useRealtimeChannel(
     sessionId ? `session:${sessionId}` : '',
     setupChannel,
     !!sessionId && view !== 'error',
