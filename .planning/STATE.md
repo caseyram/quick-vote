@@ -9,10 +9,10 @@
 ## Current Position
 
 **Phase:** 5 of 5 -- Immersive UI and Polish
-**Plan:** 3 of 4 complete
-**Status:** In progress
-**Last activity:** 2026-01-27 -- Completed 05-03 (admin light theme and projection layout)
-**Progress:** [###########################---] 15/16 plans complete (phases 1-4 done, phase 5: 3/4)
+**Plan:** 4 of 4 complete
+**Status:** Phase complete (awaiting human verification)
+**Last activity:** 2026-01-27 -- Completed 05-04 (immersive participant experience)
+**Progress:** [##############################] 16/16 plans complete (all phases done)
 
 ## Phase Summary
 
@@ -22,16 +22,16 @@
 | 2 | Data Foundation and Session Setup | Complete (3/3 plans done) |
 | 3 | Join Flow and Voting Mechanics | Complete (3/3 plans done) |
 | 4 | Realtime and Live Session Orchestration | Complete (4/4 plans done) |
-| 5 | Immersive UI and Polish | In Progress (3/4 plans done) |
+| 5 | Immersive UI and Polish | Complete (4/4 plans done) |
 
 ## Performance Metrics
 
 | Metric | Value |
 |--------|-------|
-| Plans completed | 15 |
+| Plans completed | 16 |
 | Plans failed | 0 |
 | Total requirements | 18 |
-| Requirements done | 16 (SESS-01..03, VOTE-01..04, JOIN-01..04, LIVE-01..04, UIEX-03) |
+| Requirements done | 18 (SESS-01..03, VOTE-01..04, JOIN-01..04, LIVE-01..04, UIEX-01..03) |
 
 ## Accumulated Context
 
@@ -77,7 +77,7 @@
 - Mutable refs (viewRef, activeQuestionRef) avoid stale closures in Broadcast callbacks
 - hasConnectedOnce ref distinguishes initial connect from reconnection for re-fetch logic
 - waitingMessage state provides contextual feedback (waiting, reviewing results, results shown)
-- Crossfade uses CSS opacity transition (300ms) with displayedQuestion buffer state
+- Crossfade replaced by AnimatePresence slide-left transitions with spring physics (stiffness 300, damping 30)
 - Standard motion import (not LazyMotion) -- 34kb justified for animation-heavy app
 - oklch color space for Tailwind theme tokens -- perceptual uniformity across vote colors
 - ConnectionPill as new component alongside ConnectionBanner -- banner preserved for admin pages
@@ -88,6 +88,10 @@
 - BarChart size='large' for projection: 400px height, 160px max bar width, rounded-t-xl, bold text
 - projectionMode prop plumbed AdminSession -> AdminQuestionControl -> BarChart size
 - Admin status badges: pastel palette (gray-200, yellow-100, green-100, red-100)
+- Full-screen voting takeover: h-dvh, overflow-hidden, no header/nav -- just question and vote buttons
+- Desktop participant layout: lg:max-w-2xl centered card with rounded-2xl and bg-gray-900/50
+- Tailwind h-dvh/min-h-dvh classes replace all inline style={{ minHeight: '100dvh' }} patterns
+- ConnectionPill replaces ConnectionBanner in all participant views (admin still uses ConnectionBanner)
 
 ### Research Insights
 - Supabase Realtime has three mechanisms: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
@@ -111,10 +115,10 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-27 -- Completed 05-03 (admin light theme and projection layout)
-**Next action:** Execute 05-04-PLAN.md (final polish/responsive)
+**Last session:** 2026-01-27 -- Completed 05-04 (immersive participant experience)
+**Next action:** Human visual verification of complete immersive UI (checkpoint:human-verify)
 **Resume file:** None
-**Context to preserve:** Phase 5 in progress (3/4). Admin pages now use light theme (bg-gray-50, bg-white cards, gray-900 text). BarChart has size prop ('default' | 'large') for projection-optimized display. AdminQuestionControl accepts projectionMode prop to pass size='large' to BarChart. Status badges use pastel colors on light backgrounds. Build passes with zero TS errors.
+**Context to preserve:** All 16 plans across 5 phases complete. All 18 requirements addressed. ParticipantSession.tsx fully refactored with full-screen voting takeover, AnimatePresence slide transitions, ConnectionPill, responsive desktop card layout. Build passes with zero TS errors. Awaiting final human visual verification.
 
 ---
 *State initialized: 2026-01-27*
@@ -137,3 +141,4 @@
 *Updated: 2026-01-27 -- Completed 05-01 (animation foundation, theme tokens, ConnectionPill)*
 *Updated: 2026-01-27 -- Completed 05-02 (vote interaction animations: motion.button, AnimatePresence, pathLength)*
 *Updated: 2026-01-27 -- Completed 05-03 (admin light theme, BarChart size variant, projectionMode)*
+*Updated: 2026-01-27 -- Completed 05-04 (immersive participant experience, slide transitions, responsive layout) -- Phase 5 complete*
