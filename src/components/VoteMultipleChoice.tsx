@@ -1,10 +1,14 @@
 import { useEffect, useCallback } from 'react';
+import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { useDoubleTap } from '../hooks/use-double-tap';
 import { useHaptic } from '../hooks/use-haptic';
 import { useSessionStore } from '../stores/session-store';
+import { MULTI_CHOICE_COLORS } from './BarChart';
 import VoteConfirmation from './VoteConfirmation';
 import type { Question } from '../types/database';
+
+const UNSELECTED = 'rgba(55, 65, 81, 0.5)';
 
 interface VoteMultipleChoiceProps {
   question: Question;
@@ -112,21 +116,23 @@ export default function VoteMultipleChoice({
 
       {/* Option cards */}
       <div className={`flex-1 flex flex-col gap-3 px-4 pb-6 ${isCompact ? 'overflow-y-auto' : ''}`}>
-        {options.map((option) => {
+        {options.map((option, index) => {
           const isSelected = selectedValue === option;
+          const optionColor = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
 
           return (
-            <button
+            <motion.button
               key={option}
               disabled={isLockedIn || submitting}
               onClick={() => handleTap(option)}
-              className={`relative rounded-xl text-white font-semibold transition-all duration-150 text-left ${
+              animate={{
+                backgroundColor: isSelected ? optionColor : UNSELECTED,
+              }}
+              whileTap={!isLockedIn && !submitting ? { scale: 0.97 } : undefined}
+              transition={{ backgroundColor: { duration: 0.15 }, scale: { duration: 0.1 } }}
+              className={`relative rounded-xl text-white font-semibold text-left disabled:opacity-60 disabled:cursor-not-allowed ${
                 isCompact ? 'px-4 py-3 text-base' : 'px-5 py-5 text-lg flex-1'
-              } ${
-                isSelected
-                  ? 'bg-indigo-600 ring-4 ring-indigo-400 scale-[1.01]'
-                  : 'bg-gray-800 hover:bg-gray-700'
-              } ${isLockedIn || submitting ? 'opacity-60 cursor-not-allowed' : ''}`}
+              }`}
               style={{
                 touchAction: 'manipulation',
                 WebkitTapHighlightColor: 'transparent',
@@ -134,11 +140,11 @@ export default function VoteMultipleChoice({
             >
               <span className="block">{option}</span>
               {isSelected && !isLockedIn && (
-                <span className="block text-sm font-normal mt-1 text-indigo-200">
+                <span className="block text-sm font-normal mt-1 text-white/70">
                   Tap again to lock in
                 </span>
               )}
-            </button>
+            </motion.button>
           );
         })}
       </div>
