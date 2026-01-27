@@ -9,17 +9,17 @@
 ## Current Position
 
 **Phase:** 2 of 5 -- Data Foundation and Session Setup (IN PROGRESS)
-**Plan:** 1 of 3 complete
-**Status:** In progress -- 02-01 complete, next is 02-02
-**Last activity:** 2026-01-27 -- Completed 02-01-PLAN.md (deps, schema, types, auth hook)
-**Progress:** [######______________] Phase 1 done, Phase 2 in progress (1/3 plans done)
+**Plan:** 2 of 3 complete
+**Status:** In progress -- 02-02 complete, next is 02-03
+**Last activity:** 2026-01-27 -- Completed 02-02-PLAN.md (router, store, pages)
+**Progress:** [########____________] Phase 1 done, Phase 2 in progress (2/3 plans done)
 
 ## Phase Summary
 
 | Phase | Name | Status |
 |-------|------|--------|
 | 1 | Integration Spike | Complete (2/2 plans done) |
-| 2 | Data Foundation and Session Setup | In Progress (1/3 plans done) |
+| 2 | Data Foundation and Session Setup | In Progress (2/3 plans done) |
 | 3 | Join Flow and Voting Mechanics | Not Started |
 | 4 | Realtime and Live Session Orchestration | Not Started |
 | 5 | Immersive UI and Polish | Not Started |
@@ -28,7 +28,7 @@
 
 | Metric | Value |
 |--------|-------|
-| Plans completed | 3 |
+| Plans completed | 4 |
 | Plans failed | 0 |
 | Total requirements | 18 |
 | Requirements done | 0 |
@@ -47,6 +47,9 @@
 - Manual TypeScript types over Supabase-generated types for simplicity and control
 - useAuth as plain React hook (not Zustand) -- auth state is app-level singleton
 - No error handling that blocks rendering in useAuth -- graceful degradation if auth fails
+- Single Zustand store for session + questions (always used together)
+- Auth gating in App.tsx (not per-page) ensures anonymous auth ready before any Supabase calls
+- Explicit column list in participant queries to never expose admin_token
 
 ### Research Insights
 - Supabase Realtime has three mechanisms: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
@@ -71,13 +74,14 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-27 -- Completed 02-01 (deps, schema, types, auth hook)
-**Next action:** Execute 02-02-PLAN.md (router, store, pages)
+**Last session:** 2026-01-27 -- Completed 02-02 (router, store, pages)
+**Next action:** Execute 02-03-PLAN.md (question CRUD)
 **Resume file:** None
-**Context to preserve:** Phase 2 plan 1 complete. Database schema is live (sessions, questions, votes with RLS). TypeScript types defined. Anonymous auth hook ready. react-router, zustand, nanoid installed. Plans 02-02 and 02-03 are fully autonomous.
+**Context to preserve:** Phase 2 plans 1-2 complete. Database schema live. Types, auth hook, router, store, and all three pages ready. Session creation flow works end-to-end. Admin page ready for question CRUD. Plan 02-03 is fully autonomous.
 
 ---
 *State initialized: 2026-01-27*
 *Updated: 2026-01-27 -- Completed 01-02 integration PoC plan (Phase 1 complete)*
 *Updated: 2026-01-27 -- Phase 2 planned (3 plans, 3 waves, research + verification passed)*
 *Updated: 2026-01-27 -- Completed 02-01 (deps, schema, types, auth hook)*
+*Updated: 2026-01-27 -- Completed 02-02 (router, store, pages)*
