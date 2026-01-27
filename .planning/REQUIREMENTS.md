@@ -22,10 +22,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Live Session
 
-- [ ] **LIVE-01**: Admin can advance questions, close voting, and reveal results
-- [ ] **LIVE-02**: Admin can set an optional countdown timer that auto-closes voting
-- [ ] **LIVE-03**: Results display as a live-updating bar chart as votes arrive
-- [ ] **LIVE-04**: Admin can see how many participants are connected
+- [x] **LIVE-01**: Admin can advance questions, close voting, and reveal results
+- [x] **LIVE-02**: Admin can set an optional countdown timer that auto-closes voting
+- [x] **LIVE-03**: Results display as a live-updating bar chart as votes arrive
+- [x] **LIVE-04**: Admin can see how many participants are connected
 
 ### Participant Joining
 
@@ -88,10 +88,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VOTE-02 | Phase 3 | Complete |
 | VOTE-03 | Phase 3 | Complete |
 | VOTE-04 | Phase 3 | Complete |
-| LIVE-01 | Phase 4 | Pending |
-| LIVE-02 | Phase 4 | Pending |
-| LIVE-03 | Phase 4 | Pending |
-| LIVE-04 | Phase 4 | Pending |
+| LIVE-01 | Phase 4 | Complete |
+| LIVE-02 | Phase 4 | Complete |
+| LIVE-03 | Phase 4 | Complete |
+| LIVE-04 | Phase 4 | Complete |
 | JOIN-01 | Phase 3 | Complete |
 | JOIN-02 | Phase 3 | Complete |
 | JOIN-03 | Phase 3 | Complete |
@@ -108,4 +108,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-27*
-*Last updated: 2026-01-27 -- Phase 3 complete (VOTE-01..04, JOIN-01..04 verified)*
+*Last updated: 2026-01-27 -- Phase 4 complete (LIVE-01..04 verified)*
