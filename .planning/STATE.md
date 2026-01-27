@@ -9,10 +9,10 @@
 ## Current Position
 
 **Phase:** 5 of 5 -- Immersive UI and Polish
-**Plan:** 2 of 4 complete
+**Plan:** 3 of 4 complete
 **Status:** In progress
-**Last activity:** 2026-01-27 -- Completed 05-02 (vote interaction animations)
-**Progress:** [##########################----] 14/16 plans complete (phases 1-4 done, phase 5: 2/4)
+**Last activity:** 2026-01-27 -- Completed 05-03 (admin light theme and projection layout)
+**Progress:** [###########################---] 15/16 plans complete (phases 1-4 done, phase 5: 3/4)
 
 ## Phase Summary
 
@@ -22,13 +22,13 @@
 | 2 | Data Foundation and Session Setup | Complete (3/3 plans done) |
 | 3 | Join Flow and Voting Mechanics | Complete (3/3 plans done) |
 | 4 | Realtime and Live Session Orchestration | Complete (4/4 plans done) |
-| 5 | Immersive UI and Polish | In Progress (2/4 plans done) |
+| 5 | Immersive UI and Polish | In Progress (3/4 plans done) |
 
 ## Performance Metrics
 
 | Metric | Value |
 |--------|-------|
-| Plans completed | 14 |
+| Plans completed | 15 |
 | Plans failed | 0 |
 | Total requirements | 18 |
 | Requirements done | 16 (SESS-01..03, VOTE-01..04, JOIN-01..04, LIVE-01..04, UIEX-03) |
@@ -84,6 +84,10 @@
 - Blue/orange vote colors from BarChart constants (not green/red) for neutral, non-judgmental feel
 - Skip selection pulse for multiple choice -- whileTap + color fill is sufficient feedback
 - Unselected vote buttons use rgba(55,65,81,0.5) for dark-but-visible appearance
+- Admin light theme: bg-gray-50 page, bg-white cards, text-gray-900 primary text (distinct from participant dark)
+- BarChart size='large' for projection: 400px height, 160px max bar width, rounded-t-xl, bold text
+- projectionMode prop plumbed AdminSession -> AdminQuestionControl -> BarChart size
+- Admin status badges: pastel palette (gray-200, yellow-100, green-100, red-100)
 
 ### Research Insights
 - Supabase Realtime has three mechanisms: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
@@ -107,10 +111,10 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-27 -- Completed 05-02 (vote interaction animations)
-**Next action:** Execute 05-03-PLAN.md (question slide transitions / full-screen layout)
+**Last session:** 2026-01-27 -- Completed 05-03 (admin light theme and projection layout)
+**Next action:** Execute 05-04-PLAN.md (final polish/responsive)
 **Resume file:** None
-**Context to preserve:** Phase 5 in progress (2/4). Vote components now use Motion: motion.button with animate (color fill) + whileTap (scale 0.97) in VoteAgreeDisagree and VoteMultipleChoice. VoteConfirmation uses AnimatePresence with scale+opacity entrance and pathLength checkmark draw-in. Blue/orange agree/disagree, 8-color MULTI_CHOICE_COLORS palette. No CSS transition classes remain on vote elements. Build passes with zero TS errors.
+**Context to preserve:** Phase 5 in progress (3/4). Admin pages now use light theme (bg-gray-50, bg-white cards, gray-900 text). BarChart has size prop ('default' | 'large') for projection-optimized display. AdminQuestionControl accepts projectionMode prop to pass size='large' to BarChart. Status badges use pastel colors on light backgrounds. Build passes with zero TS errors.
 
 ---
 *State initialized: 2026-01-27*
@@ -132,3 +136,4 @@
 *Updated: 2026-01-27 -- Phase 4 verified (4/4 success criteria, 15 requirements complete)*
 *Updated: 2026-01-27 -- Completed 05-01 (animation foundation, theme tokens, ConnectionPill)*
 *Updated: 2026-01-27 -- Completed 05-02 (vote interaction animations: motion.button, AnimatePresence, pathLength)*
+*Updated: 2026-01-27 -- Completed 05-03 (admin light theme, BarChart size variant, projectionMode)*
