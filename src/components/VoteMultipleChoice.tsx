@@ -22,7 +22,7 @@ export default function VoteMultipleChoice({
   displayName,
 }: VoteMultipleChoiceProps) {
   const haptic = useHaptic();
-  const { currentVote, setCurrentVote, submitting, setSubmitting } = useSessionStore();
+  const { setCurrentVote, submitting, setSubmitting } = useSessionStore();
   const [pendingSelection, setPendingSelection] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 

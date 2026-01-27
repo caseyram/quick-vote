@@ -69,9 +69,6 @@ export function AdminControlBar({
     : -1;
   const nextPending = pendingQuestions[0] ?? null;
 
-  // No active question and no pending — show quick question input
-  const showQuickInput = isActive && !activeQuestion && !nextPending;
-
   function handleBarQuickSubmit() {
     if (!barQuickText.trim() || quickQuestionLoading) return;
     onQuickQuestion(barQuickText, timerDuration);
