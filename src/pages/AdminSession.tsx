@@ -2,11 +2,15 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { supabase } from '../lib/supabase';
 import { useSessionStore } from '../stores/session-store';
+import QuestionForm from '../components/QuestionForm';
+import QuestionList from '../components/QuestionList';
+import type { Question } from '../types/database';
 
 export default function AdminSession() {
   const { adminToken } = useParams();
-  const { session, questions, setSession, setQuestions, setLoading, setError, loading, error, reset } = useSessionStore();
+  const { session, setSession, setQuestions, setLoading, setError, loading, error, reset } = useSessionStore();
   const [copied, setCopied] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
   useEffect(() => {
     if (!adminToken) return;
@@ -89,6 +93,14 @@ export default function AdminSession() {
     });
   }
 
+  function handleSaved() {
+    setEditingQuestion(null);
+  }
+
+  function handleCancelEdit() {
+    setEditingQuestion(null);
+  }
+
   const statusColors: Record<string, string> = {
     draft: 'bg-gray-700 text-gray-300',
     lobby: 'bg-yellow-700 text-yellow-200',
@@ -99,6 +111,7 @@ export default function AdminSession() {
   return (
     <div className="min-h-screen bg-gray-950 py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
+        {/* Session header */}
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-white">{session.title}</h1>
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[session.status] ?? 'bg-gray-700 text-gray-300'}`}>
@@ -106,6 +119,7 @@ export default function AdminSession() {
           </span>
         </div>
 
+        {/* Participant link */}
         <div className="bg-gray-900 rounded-lg p-4 space-y-3">
           <p className="text-sm text-gray-400 font-medium">Share with participants</p>
           <div className="flex items-center gap-2">
@@ -124,21 +138,23 @@ export default function AdminSession() {
           </div>
         </div>
 
+        {/* Question list */}
         <div className="bg-gray-900 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Questions</h2>
-          {questions.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">
-              No questions yet. Add your first question below.
-            </p>
-          ) : (
-            <ul className="space-y-3">
-              {questions.map((q) => (
-                <li key={q.id} className="bg-gray-800 rounded-lg p-4 text-white">
-                  {q.text}
-                </li>
-              ))}
-            </ul>
-          )}
+          <QuestionList
+            sessionId={session.session_id}
+            onEditQuestion={setEditingQuestion}
+          />
+        </div>
+
+        {/* Question form */}
+        <div className="bg-gray-900 rounded-lg p-6">
+          <QuestionForm
+            sessionId={session.session_id}
+            editingQuestion={editingQuestion ?? undefined}
+            onSaved={handleSaved}
+            onCancel={editingQuestion ? handleCancelEdit : undefined}
+          />
         </div>
       </div>
     </div>
