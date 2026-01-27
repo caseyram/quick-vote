@@ -63,6 +63,10 @@
 - Wider layout (max-w-4xl) during live session for admin presentation screen readability
 - AdminQuestionControl fetches and polls votes independently per question (encapsulated data fetching)
 - Question status polling at 3s during active session (temporary bridge until Phase 4 realtime)
+- useRealtimeChannel excludes setup from deps -- caller must useCallback to avoid reconnect cycles
+- usePresence calls channel.track() directly -- buffers until SUBSCRIBED, no caller coordination needed
+- useCountdown stores onComplete in ref -- avoids stale closures, callers don't need to memoize callback
+- ConnectionStatus type exported from use-realtime-channel and reused in Zustand store (single source of truth)
 - CSS height transitions (0.5s ease-out) for BarChart animation -- simple, zero-dependency approach
 - Blue/orange for agree/disagree, 8-color palette for multiple choice -- neutral, non-judgmental
 - Pill badge with clock SVG for countdown timer -- compact, non-distracting per CONTEXT.md
