@@ -10,26 +10,41 @@ export type ConnectionStatus =
 
 type ChannelSetup = (channel: RealtimeChannel) => void;
 
+export interface PresenceConfig {
+  userId: string;
+  role: 'admin' | 'participant';
+}
+
 /**
  * Central hook for Supabase Realtime channel lifecycle management.
  *
  * Creates a channel, lets the caller configure listeners via `setup`,
  * subscribes, and cleans up on unmount or dependency change.
  *
+ * Optionally handles Presence tracking when `presenceConfig` is provided.
+ * Presence listeners are registered BEFORE subscribe to ensure the initial
+ * sync event is captured.
+ *
  * @param channelName - Unique channel topic (e.g. `session:${sessionId}`)
- * @param setup - Callback to configure Broadcast / Postgres Changes / Presence
- *   listeners on the channel. Must be wrapped in `useCallback` by the caller
+ * @param setup - Callback to configure Broadcast / Postgres Changes listeners
+ *   on the channel. Must be wrapped in `useCallback` by the caller
  *   (intentionally excluded from deps to avoid reconnect cycles).
  * @param enabled - Whether to subscribe. Pass `false` to defer connection.
+ * @param presenceConfig - Optional presence tracking config (userId + role).
  */
 export function useRealtimeChannel(
   channelName: string,
   setup: ChannelSetup,
-  enabled: boolean = true
+  enabled: boolean = true,
+  presenceConfig?: PresenceConfig
 ) {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>('connecting');
+  const [participantCount, setParticipantCount] = useState(0);
+  const leaveTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map()
+  );
 
   useEffect(() => {
     if (!enabled || !channelName) {
@@ -42,13 +57,48 @@ export function useRealtimeChannel(
     const channel = supabase.channel(channelName);
     channelRef.current = channel;
 
-    // Let caller configure listeners before subscribe
+    // Set up presence listeners BEFORE subscribe so the initial
+    // sync event is captured when the server sends presence_state
+    if (presenceConfig) {
+      channel.on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const allKeys = Object.keys(state);
+        setParticipantCount(allKeys.length);
+      });
+
+      channel.on('presence', { event: 'leave' }, ({ key }) => {
+        const timer = setTimeout(() => {
+          leaveTimers.current.delete(key);
+          const state = channel.presenceState();
+          setParticipantCount(Object.keys(state).length);
+        }, 10_000);
+        leaveTimers.current.set(key, timer);
+      });
+
+      channel.on('presence', { event: 'join' }, ({ key }) => {
+        const timer = leaveTimers.current.get(key);
+        if (timer) {
+          clearTimeout(timer);
+          leaveTimers.current.delete(key);
+        }
+      });
+    }
+
+    // Let caller configure Broadcast / Postgres Changes listeners
     setup(channel);
 
     // Subscribe and track connection status
     channel.subscribe((status, err) => {
       if (status === 'SUBSCRIBED') {
         setConnectionStatus('connected');
+        // Track presence after subscribe completes (not buffered)
+        if (presenceConfig) {
+          channel.track({
+            userId: presenceConfig.userId,
+            role: presenceConfig.role,
+            joinedAt: new Date().toISOString(),
+          });
+        }
       } else if (status === 'CHANNEL_ERROR') {
         console.error('Realtime channel error:', err);
         setConnectionStatus('reconnecting');
@@ -59,12 +109,14 @@ export function useRealtimeChannel(
     });
 
     return () => {
+      leaveTimers.current.forEach((timer) => clearTimeout(timer));
+      leaveTimers.current.clear();
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
     // setup intentionally excluded -- caller must use useCallback
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelName, enabled]);
+  }, [channelName, enabled, presenceConfig?.userId, presenceConfig?.role]);
 
-  return { channelRef, connectionStatus };
+  return { channelRef, connectionStatus, participantCount };
 }

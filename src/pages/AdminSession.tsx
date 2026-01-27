@@ -3,7 +3,6 @@ import { useParams } from 'react-router';
 import { supabase } from '../lib/supabase';
 import { useSessionStore } from '../stores/session-store';
 import { useRealtimeChannel } from '../hooks/use-realtime-channel';
-import { usePresence } from '../hooks/use-presence';
 import QuestionForm from '../components/QuestionForm';
 import QuestionList from '../components/QuestionList';
 import { SessionQRCode } from '../components/QRCode';
@@ -192,17 +191,13 @@ export default function AdminSession() {
   const isLive = isLobby || isActive;
 
   // Realtime channel -- only subscribe when session is live (lobby or active)
-  const { channelRef, connectionStatus } = useRealtimeChannel(
+  // Presence is configured here so listeners are registered BEFORE subscribe
+  const presenceConfig = userId ? { userId, role: 'admin' as const } : undefined;
+  const { channelRef, connectionStatus, participantCount } = useRealtimeChannel(
     session?.session_id ? `session:${session.session_id}` : '',
     setupChannel,
-    !!isLive && !!session?.session_id
-  );
-
-  // Presence tracking
-  const { participantCount } = usePresence(
-    channelRef.current,
-    userId,
-    'admin'
+    !!isLive && !!session?.session_id,
+    presenceConfig
   );
 
   if (loading) {

@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { useSessionStore } from '../stores/session-store';
 import { useRealtimeChannel } from '../hooks/use-realtime-channel';
-import { usePresence } from '../hooks/use-presence';
 import { useCountdown } from '../hooks/use-countdown';
 import { ConnectionPill } from '../components/ConnectionPill';
 import { CountdownTimer } from '../components/CountdownTimer';
@@ -214,17 +213,13 @@ export default function ParticipantSession() {
   );
 
   // Realtime channel -- only enabled when we have a sessionId and we're not in error state
-  const { channelRef, connectionStatus } = useRealtimeChannel(
+  // Presence is configured here so listeners are registered BEFORE subscribe
+  const presenceConfig = participantId ? { userId: participantId, role: 'participant' as const } : undefined;
+  const { channelRef, connectionStatus, participantCount } = useRealtimeChannel(
     sessionId ? `session:${sessionId}` : '',
     setupChannel,
     !!sessionId && view !== 'error',
-  );
-
-  // Presence tracking -- only after auth
-  const { participantCount } = usePresence(
-    channelRef.current,
-    participantId ?? '',
-    'participant',
+    presenceConfig,
   );
 
   // Initial load effect
