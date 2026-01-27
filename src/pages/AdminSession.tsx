@@ -735,6 +735,9 @@ export default function AdminSession() {
         </div>
       )}
 
+      {/* QR Code overlay — always visible */}
+      <SessionQRCode url={participantUrl} visible />
+
       {/* Admin Control Bar — always visible */}
       <AdminControlBar
         status={session.status}

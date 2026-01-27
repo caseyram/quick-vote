@@ -24,7 +24,7 @@ export function SessionQRCode({ url, visible, size = 120, mode = 'overlay' }: QR
   }
 
   return (
-    <div className="fixed bottom-4 right-4 bg-white p-3 rounded-xl shadow-lg z-50">
+    <div className="fixed bottom-18 right-4 bg-white p-3 rounded-xl shadow-lg z-50">
       <QRCodeSVG
         value={url}
         size={size}
