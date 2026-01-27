@@ -1,11 +1,9 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { motion, useAnimate } from 'motion/react';
 import { supabase } from '../lib/supabase';
-import { useDoubleTap } from '../hooks/use-double-tap';
 import { useHaptic } from '../hooks/use-haptic';
 import { useSessionStore } from '../stores/session-store';
 import { AGREE_DISAGREE_COLORS } from './BarChart';
-import VoteConfirmation from './VoteConfirmation';
 import type { Question } from '../types/database';
 
 const UNSELECTED = 'rgba(55, 65, 81, 0.5)';
@@ -55,15 +53,16 @@ export default function VoteAgreeDisagree({
   }, [question.id, participantId, setCurrentVote]);
 
   const submitVote = useCallback(
-    async (value: string, lockedIn: boolean) => {
+    async (value: string) => {
       setSubmitting(true);
+      haptic.tap();
       try {
         const payload = {
           question_id: question.id,
           session_id: sessionId,
           participant_id: participantId,
           value,
-          locked_in: lockedIn,
+          locked_in: false,
           display_name: question.anonymous ? null : displayName,
         };
 
@@ -84,28 +83,9 @@ export default function VoteAgreeDisagree({
         setSubmitting(false);
       }
     },
-    [question.id, question.anonymous, sessionId, participantId, displayName, setCurrentVote, setSubmitting],
+    [question.id, question.anonymous, sessionId, participantId, displayName, haptic, setCurrentVote, setSubmitting],
   );
 
-  const onSingleTap = useCallback(
-    (value: string) => {
-      haptic.tap();
-      submitVote(value, false);
-    },
-    [haptic, submitVote],
-  );
-
-  const onDoubleTap = useCallback(
-    (value: string) => {
-      haptic.confirm();
-      submitVote(value, true);
-    },
-    [haptic, submitVote],
-  );
-
-  const handleTap = useDoubleTap(onSingleTap, onDoubleTap);
-
-  const isLockedIn = currentVote?.locked_in === true;
   const selectedValue = currentVote?.value ?? null;
 
   // Trigger pulse animation when selection changes
@@ -121,7 +101,7 @@ export default function VoteAgreeDisagree({
   }, [selectedValue, agreeRef, disagreeRef, animateAgree, animateDisagree]);
 
   return (
-    <div className="relative flex flex-col h-full">
+    <div className="flex flex-col h-full">
       {/* Question text */}
       <div className="px-4 py-6 text-center">
         <h2 className="text-2xl font-bold text-white">{question.text}</h2>
@@ -132,12 +112,12 @@ export default function VoteAgreeDisagree({
         {/* Agree button */}
         <motion.button
           ref={agreeRef}
-          disabled={isLockedIn || submitting}
-          onClick={() => handleTap('agree')}
+          disabled={submitting}
+          onClick={() => submitVote('agree')}
           animate={{
             backgroundColor: selectedValue === 'agree' ? AGREE_DISAGREE_COLORS.agree : UNSELECTED,
           }}
-          whileTap={!isLockedIn && !submitting ? { scale: 0.97 } : undefined}
+          whileTap={!submitting ? { scale: 0.97 } : undefined}
           transition={{ backgroundColor: { duration: 0.15 }, scale: { duration: 0.1 } }}
           className="flex-1 flex flex-col items-center justify-center rounded-2xl text-white text-2xl font-bold disabled:opacity-60 disabled:cursor-not-allowed"
           style={{
@@ -154,20 +134,17 @@ export default function VoteAgreeDisagree({
             />
           </svg>
           Agree
-          {selectedValue === 'agree' && !isLockedIn && (
-            <span className="text-sm font-normal mt-1 text-white/70">Tap again to lock in</span>
-          )}
         </motion.button>
 
         {/* Disagree button */}
         <motion.button
           ref={disagreeRef}
-          disabled={isLockedIn || submitting}
-          onClick={() => handleTap('disagree')}
+          disabled={submitting}
+          onClick={() => submitVote('disagree')}
           animate={{
             backgroundColor: selectedValue === 'disagree' ? AGREE_DISAGREE_COLORS.disagree : UNSELECTED,
           }}
-          whileTap={!isLockedIn && !submitting ? { scale: 0.97 } : undefined}
+          whileTap={!submitting ? { scale: 0.97 } : undefined}
           transition={{ backgroundColor: { duration: 0.15 }, scale: { duration: 0.1 } }}
           className="flex-1 flex flex-col items-center justify-center rounded-2xl text-white text-2xl font-bold disabled:opacity-60 disabled:cursor-not-allowed"
           style={{
@@ -184,14 +161,8 @@ export default function VoteAgreeDisagree({
             />
           </svg>
           Disagree
-          {selectedValue === 'disagree' && !isLockedIn && (
-            <span className="text-sm font-normal mt-1 text-white/70">Tap again to lock in</span>
-          )}
         </motion.button>
       </div>
-
-      {/* Lock-in confirmation overlay */}
-      <VoteConfirmation visible={isLockedIn} value={selectedValue ?? ''} />
     </div>
   );
 }

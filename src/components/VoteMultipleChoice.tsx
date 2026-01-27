@@ -1,11 +1,9 @@
 import { useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
-import { useDoubleTap } from '../hooks/use-double-tap';
 import { useHaptic } from '../hooks/use-haptic';
 import { useSessionStore } from '../stores/session-store';
 import { MULTI_CHOICE_COLORS } from './BarChart';
-import VoteConfirmation from './VoteConfirmation';
 import type { Question } from '../types/database';
 
 const UNSELECTED = 'rgba(55, 65, 81, 0.5)';
@@ -52,15 +50,16 @@ export default function VoteMultipleChoice({
   }, [question.id, participantId, setCurrentVote]);
 
   const submitVote = useCallback(
-    async (value: string, lockedIn: boolean) => {
+    async (value: string) => {
       setSubmitting(true);
+      haptic.tap();
       try {
         const payload = {
           question_id: question.id,
           session_id: sessionId,
           participant_id: participantId,
           value,
-          locked_in: lockedIn,
+          locked_in: false,
           display_name: question.anonymous ? null : displayName,
         };
 
@@ -81,34 +80,15 @@ export default function VoteMultipleChoice({
         setSubmitting(false);
       }
     },
-    [question.id, question.anonymous, sessionId, participantId, displayName, setCurrentVote, setSubmitting],
+    [question.id, question.anonymous, sessionId, participantId, displayName, haptic, setCurrentVote, setSubmitting],
   );
 
-  const onSingleTap = useCallback(
-    (value: string) => {
-      haptic.tap();
-      submitVote(value, false);
-    },
-    [haptic, submitVote],
-  );
-
-  const onDoubleTap = useCallback(
-    (value: string) => {
-      haptic.confirm();
-      submitVote(value, true);
-    },
-    [haptic, submitVote],
-  );
-
-  const handleTap = useDoubleTap(onSingleTap, onDoubleTap);
-
-  const isLockedIn = currentVote?.locked_in === true;
   const selectedValue = currentVote?.value ?? null;
   const options = question.options ?? [];
   const isCompact = options.length > 4;
 
   return (
-    <div className="relative flex flex-col h-full">
+    <div className="flex flex-col h-full">
       {/* Question text */}
       <div className="px-4 py-6 text-center">
         <h2 className="text-2xl font-bold text-white">{question.text}</h2>
@@ -123,12 +103,12 @@ export default function VoteMultipleChoice({
           return (
             <motion.button
               key={option}
-              disabled={isLockedIn || submitting}
-              onClick={() => handleTap(option)}
+              disabled={submitting}
+              onClick={() => submitVote(option)}
               animate={{
                 backgroundColor: isSelected ? optionColor : UNSELECTED,
               }}
-              whileTap={!isLockedIn && !submitting ? { scale: 0.97 } : undefined}
+              whileTap={!submitting ? { scale: 0.97 } : undefined}
               transition={{ backgroundColor: { duration: 0.15 }, scale: { duration: 0.1 } }}
               className={`relative rounded-xl text-white font-semibold text-left disabled:opacity-60 disabled:cursor-not-allowed ${
                 isCompact ? 'px-4 py-3 text-base' : 'px-5 py-5 text-lg flex-1'
@@ -139,18 +119,10 @@ export default function VoteMultipleChoice({
               }}
             >
               <span className="block">{option}</span>
-              {isSelected && !isLockedIn && (
-                <span className="block text-sm font-normal mt-1 text-white/70">
-                  Tap again to lock in
-                </span>
-              )}
             </motion.button>
           );
         })}
       </div>
-
-      {/* Lock-in confirmation overlay */}
-      <VoteConfirmation visible={isLockedIn} value={selectedValue ?? ''} />
     </div>
   );
 }
