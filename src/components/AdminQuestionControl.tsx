@@ -1,14 +1,21 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useSessionStore } from '../stores/session-store';
-import { aggregateVotes, type VoteCount } from '../lib/vote-aggregation';
+import { useCountdown } from '../hooks/use-countdown';
+import { aggregateVotes } from '../lib/vote-aggregation';
+import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from './BarChart';
+import { CountdownTimer } from './CountdownTimer';
 import type { Question, Vote } from '../types/database';
+import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { RefObject } from 'react';
 
 interface AdminQuestionControlProps {
   question: Question;
   sessionId: string;
   isActive: boolean;
   isClosed: boolean;
+  channelRef: RefObject<RealtimeChannel | null>;
+  votes: Vote[];
 }
 
 export default function AdminQuestionControl({
@@ -16,41 +23,42 @@ export default function AdminQuestionControl({
   sessionId,
   isActive,
   isClosed,
+  channelRef,
+  votes,
 }: AdminQuestionControlProps) {
   const updateQuestion = useSessionStore((s) => s.updateQuestion);
   const [loading, setLoading] = useState(false);
-  const [votes, setVotes] = useState<Vote[]>([]);
   const [showBreakdown, setShowBreakdown] = useState(false);
-  const [aggregated, setAggregated] = useState<VoteCount[]>([]);
+  const [timerDuration, setTimerDuration] = useState<number | null>(null);
 
-  const fetchVotes = useCallback(async () => {
-    const { data } = await supabase
-      .from('votes')
-      .select('*')
-      .eq('question_id', question.id);
+  // Compute aggregated vote data from props
+  const aggregated = useMemo(() => aggregateVotes(votes), [votes]);
 
-    if (data) {
-      setVotes(data);
-      setAggregated(aggregateVotes(data));
-    }
-  }, [question.id]);
+  // Compute bar chart data
+  const barData = useMemo(() => {
+    return aggregated.map((vc, index) => {
+      let color: string;
+      if (question.type === 'agree_disagree') {
+        const key = vc.value.toLowerCase() as 'agree' | 'disagree';
+        color = AGREE_DISAGREE_COLORS[key] ?? MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
+      } else {
+        color = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
+      }
+      return {
+        label: vc.value,
+        count: vc.count,
+        percentage: vc.percentage,
+        color,
+      };
+    });
+  }, [aggregated, question.type]);
 
-  // Poll votes every 3 seconds for active questions
-  useEffect(() => {
-    if (!isActive) return;
+  // Timer auto-close handler
+  async function handleTimerComplete() {
+    await handleCloseVoting();
+  }
 
-    fetchVotes();
-
-    const interval = setInterval(fetchVotes, 3000);
-    return () => clearInterval(interval);
-  }, [isActive, fetchVotes]);
-
-  // Fetch votes once for closed/revealed questions
-  useEffect(() => {
-    if (isClosed) {
-      fetchVotes();
-    }
-  }, [isClosed, fetchVotes]);
+  const { remaining, isRunning, start: startCountdown, stop: stopCountdown } = useCountdown(handleTimerComplete);
 
   async function handleActivate() {
     setLoading(true);
@@ -78,6 +86,18 @@ export default function AdminQuestionControl({
 
     if (!error) {
       updateQuestion(question.id, { status: 'active' });
+
+      // Broadcast question activation
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'question_activated',
+        payload: { questionId: question.id, timerSeconds: timerDuration },
+      });
+
+      // Start countdown timer if duration is set
+      if (timerDuration) {
+        startCountdown(timerDuration * 1000);
+      }
     }
 
     setLoading(false);
@@ -86,6 +106,9 @@ export default function AdminQuestionControl({
   async function handleCloseVoting() {
     setLoading(true);
 
+    // Stop countdown if running
+    stopCountdown();
+
     const { error } = await supabase
       .from('questions')
       .update({ status: 'closed' as const })
@@ -93,9 +116,21 @@ export default function AdminQuestionControl({
 
     if (!error) {
       updateQuestion(question.id, { status: 'closed' });
-      // Automatically show results after closing
       setShowBreakdown(true);
-      await fetchVotes();
+
+      // Broadcast voting closed
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'voting_closed',
+        payload: { questionId: question.id },
+      });
+
+      // Auto-reveal results
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'results_revealed',
+        payload: { questionId: question.id },
+      });
     }
 
     setLoading(false);
@@ -104,6 +139,13 @@ export default function AdminQuestionControl({
   const isPending = question.status === 'pending';
   const isRevealed = question.status === 'revealed';
   const showResults = isClosed || isRevealed;
+
+  const timerOptions = [
+    { label: '15s', value: 15 },
+    { label: '30s', value: 30 },
+    { label: '60s', value: 60 },
+    { label: 'No timer', value: null },
+  ] as const;
 
   return (
     <div className="space-y-3">
@@ -135,37 +177,62 @@ export default function AdminQuestionControl({
         </span>
       </div>
 
-      {/* Pending state: Show Start button */}
+      {/* Pending state: Show Start button with timer selection */}
       {isPending && (
-        <button
-          onClick={handleActivate}
-          disabled={loading}
-          className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-green-800 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          {loading ? 'Starting...' : 'Start'}
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={handleActivate}
+            disabled={loading}
+            className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-green-800 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            {loading ? 'Starting...' : 'Start'}
+          </button>
+
+          {/* Timer selection pills */}
+          <div className="flex items-center gap-1.5">
+            {timerOptions.map((opt) => (
+              <button
+                key={opt.label}
+                onClick={() => setTimerDuration(opt.value)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                  timerDuration === opt.value
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-gray-300'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
-      {/* Active state: Show vote count and close button */}
+      {/* Active state: Show vote count, countdown timer, and close button */}
       {isActive && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-300">
-              {showBreakdown ? (
-                <div className="space-y-1">
-                  {aggregated.length === 0 ? (
-                    <p className="text-gray-500">No votes yet</p>
-                  ) : (
-                    aggregated.map((vc) => (
-                      <p key={vc.value}>
-                        {vc.value}: {vc.count} ({vc.percentage}%)
-                      </p>
-                    ))
-                  )}
-                </div>
-              ) : (
-                <p>{votes.length} vote{votes.length !== 1 ? 's' : ''} cast</p>
-              )}
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-gray-300">
+                {showBreakdown ? (
+                  <div className="space-y-1">
+                    {aggregated.length === 0 ? (
+                      <p className="text-gray-500">No votes yet</p>
+                    ) : (
+                      aggregated.map((vc) => (
+                        <p key={vc.value}>
+                          {vc.value}: {vc.count} ({vc.percentage}%)
+                        </p>
+                      ))
+                    )}
+                  </div>
+                ) : (
+                  <p>{votes.length} vote{votes.length !== 1 ? 's' : ''} cast</p>
+                )}
+              </div>
+              <CountdownTimer
+                remainingSeconds={Math.ceil(remaining / 1000)}
+                isRunning={isRunning}
+              />
             </div>
             <button
               onClick={() => setShowBreakdown((prev) => !prev)}
@@ -185,33 +252,13 @@ export default function AdminQuestionControl({
         </div>
       )}
 
-      {/* Closed/Revealed state: Show aggregated results */}
+      {/* Closed/Revealed state: Show bar chart results */}
       {showResults && (
         <div className="space-y-2">
           {aggregated.length === 0 ? (
             <p className="text-gray-500 text-sm">No votes recorded</p>
           ) : (
-            <>
-              {aggregated.map((vc) => (
-                <div key={vc.value} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-300">{vc.value}</span>
-                    <span className="text-gray-400">
-                      {vc.count} ({vc.percentage}%)
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2.5">
-                    <div
-                      className="bg-indigo-500 h-2.5 rounded-full transition-all"
-                      style={{ width: `${vc.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-              <p className="text-xs text-gray-500 mt-1">
-                Total: {votes.length} vote{votes.length !== 1 ? 's' : ''}
-              </p>
-            </>
+            <BarChart data={barData} totalVotes={votes.length} />
           )}
 
           {/* Named votes: show voter names for closed named questions */}

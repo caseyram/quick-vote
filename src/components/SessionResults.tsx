@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { aggregateVotes, type VoteCount } from '../lib/vote-aggregation';
+import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from './BarChart';
 import type { Question, Vote } from '../types/database';
 
 interface SessionResultsProps {
@@ -11,6 +12,24 @@ interface QuestionResult {
   question: Question;
   votes: Vote[];
   aggregated: VoteCount[];
+}
+
+function buildBarData(result: QuestionResult) {
+  return result.aggregated.map((vc, index) => {
+    let color: string;
+    if (result.question.type === 'agree_disagree') {
+      const key = vc.value.toLowerCase() as 'agree' | 'disagree';
+      color = AGREE_DISAGREE_COLORS[key] ?? MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
+    } else {
+      color = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
+    }
+    return {
+      label: vc.value,
+      count: vc.count,
+      percentage: vc.percentage,
+      color,
+    };
+  });
 }
 
 export default function SessionResults({ sessionId }: SessionResultsProps) {
@@ -107,31 +126,15 @@ export default function SessionResults({ sessionId }: SessionResultsProps) {
               </div>
             </div>
 
-            {/* Vote results */}
+            {/* Vote results as bar chart */}
             {result.aggregated.length === 0 ? (
               <p className="text-gray-500 text-sm pl-7">No votes recorded</p>
             ) : (
-              <div className="space-y-2 pl-7">
-                {result.aggregated.map((vc) => (
-                  <div key={vc.value} className="space-y-1">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-300">{vc.value}</span>
-                      <span className="text-gray-400">
-                        {vc.count} ({vc.percentage}%)
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-700 rounded-full h-2.5">
-                      <div
-                        className="bg-indigo-500 h-2.5 rounded-full transition-all"
-                        style={{ width: `${vc.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-                <p className="text-xs text-gray-500 mt-1">
-                  Total: {result.votes.length} vote
-                  {result.votes.length !== 1 ? 's' : ''}
-                </p>
+              <div className="pl-7">
+                <BarChart
+                  data={buildBarData(result)}
+                  totalVotes={result.votes.length}
+                />
               </div>
             )}
           </div>
