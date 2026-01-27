@@ -49,7 +49,7 @@ export default function AdminQuestionControl({
     return aggregated.map((vc, index) => {
       let color: string;
       if (question.type === 'agree_disagree') {
-        const key = vc.value.toLowerCase() as 'agree' | 'disagree';
+        const key = vc.value.toLowerCase() as 'agree' | 'disagree' | 'sometimes';
         color = AGREE_DISAGREE_COLORS[key] ?? MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
       } else {
         color = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];

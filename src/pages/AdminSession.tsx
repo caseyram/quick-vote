@@ -36,6 +36,8 @@ export default function AdminSession() {
   const [transitioning, setTransitioning] = useState(false);
   const [userId, setUserId] = useState('');
   const [sessionVotes, setSessionVotes] = useState<Record<string, Vote[]>>({});
+  const [quickQuestion, setQuickQuestion] = useState('');
+  const [quickQuestionLoading, setQuickQuestionLoading] = useState(false);
 
   // Track session ID in a ref for the channel setup callback
   const sessionIdRef = useRef<string | null>(null);
@@ -284,6 +286,62 @@ export default function AdminSession() {
         payload: { questionId },
       });
     }
+  }
+
+  async function handleQuickQuestion(text: string, timerDuration: number | null) {
+    if (!session || !text.trim()) return;
+    setQuickQuestionLoading(true);
+
+    // Close any active questions first
+    await supabase
+      .from('questions')
+      .update({ status: 'closed' as const })
+      .eq('session_id', session.session_id)
+      .eq('status', 'active');
+
+    for (const q of questions) {
+      if (q.status === 'active') {
+        updateQuestion(q.id, { status: 'closed' });
+      }
+    }
+    stopCountdown();
+
+    // Find next position
+    const nextPosition = questions.length > 0
+      ? Math.max(...questions.map((q) => q.position)) + 1
+      : 0;
+
+    // Create and immediately activate the question
+    const { data, error: insertError } = await supabase
+      .from('questions')
+      .insert({
+        session_id: session.session_id,
+        text: text.trim(),
+        type: 'agree_disagree' as const,
+        options: null,
+        position: nextPosition,
+        status: 'active' as const,
+      })
+      .select()
+      .single();
+
+    if (!insertError && data) {
+      useSessionStore.getState().addQuestion(data);
+
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'question_activated',
+        payload: { questionId: data.id, timerSeconds: timerDuration },
+      });
+
+      if (timerDuration) {
+        startCountdown(timerDuration * 1000);
+      }
+
+      setQuickQuestion('');
+    }
+
+    setQuickQuestionLoading(false);
   }
 
   const participantUrl = session
@@ -581,10 +639,32 @@ export default function AdminSession() {
                 countdownRunning={countdownRunning}
               />
             ) : (
-              <div className="flex items-center justify-center py-24">
-                <p className="text-2xl text-gray-400">
-                  Select a question to activate
+              <div className="flex flex-col items-center justify-center py-16 max-w-xl mx-auto">
+                <p className="text-xl text-gray-400 mb-8">
+                  Type a question to go live
                 </p>
+                <div className="w-full space-y-4">
+                  <textarea
+                    value={quickQuestion}
+                    onChange={(e) => setQuickQuestion(e.target.value)}
+                    placeholder="Enter your question..."
+                    rows={2}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 text-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey && quickQuestion.trim()) {
+                        e.preventDefault();
+                        handleQuickQuestion(quickQuestion, null);
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => handleQuickQuestion(quickQuestion, null)}
+                    disabled={!quickQuestion.trim() || quickQuestionLoading}
+                    className="w-full py-3 bg-green-600 hover:bg-green-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-lg font-semibold rounded-xl transition-colors"
+                  >
+                    {quickQuestionLoading ? 'Going live...' : 'Go Live'}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -601,7 +681,7 @@ export default function AdminSession() {
                     const barData = aggregated.map((vc, index) => {
                       let color: string;
                       if (q.type === 'agree_disagree') {
-                        const key = vc.value.toLowerCase() as 'agree' | 'disagree';
+                        const key = vc.value.toLowerCase() as 'agree' | 'disagree' | 'sometimes';
                         color =
                           AGREE_DISAGREE_COLORS[key] ??
                           MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
@@ -671,6 +751,8 @@ export default function AdminSession() {
         copied={copied}
         onActivateQuestion={handleActivateQuestion}
         onCloseVoting={handleCloseVotingInternal}
+        onQuickQuestion={handleQuickQuestion}
+        quickQuestionLoading={quickQuestionLoading}
       />
     </>
   );
@@ -698,7 +780,7 @@ function ActiveQuestionHero({
     return aggregated.map((vc, index) => {
       let color: string;
       if (question.type === 'agree_disagree') {
-        const key = vc.value.toLowerCase() as 'agree' | 'disagree';
+        const key = vc.value.toLowerCase() as 'agree' | 'disagree' | 'sometimes';
         color =
           AGREE_DISAGREE_COLORS[key] ??
           MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];

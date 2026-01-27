@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, useAnimate } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { useHaptic } from '../hooks/use-haptic';
@@ -24,8 +24,11 @@ export default function VoteAgreeDisagree({
   const haptic = useHaptic();
   const { currentVote, setCurrentVote, submitting, setSubmitting } = useSessionStore();
   const [agreeRef, animateAgree] = useAnimate();
+  const [sometimesRef, animateSometimes] = useAnimate();
   const [disagreeRef, animateDisagree] = useAnimate();
   const prevSelected = useRef<string | null>(null);
+  const [pendingSelection, setPendingSelection] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   // Fetch existing vote on mount or when question changes
   useEffect(() => {
@@ -41,10 +44,14 @@ export default function VoteAgreeDisagree({
 
       if (!cancelled && data) {
         setCurrentVote(data);
+        setPendingSelection(data.value);
+        setSubmitted(true);
       }
     }
 
     setCurrentVote(null);
+    setPendingSelection(null);
+    setSubmitted(false);
     fetchExistingVote();
 
     return () => {
@@ -52,53 +59,58 @@ export default function VoteAgreeDisagree({
     };
   }, [question.id, participantId, setCurrentVote]);
 
-  const submitVote = useCallback(
-    async (value: string) => {
-      setSubmitting(true);
-      haptic.tap();
-      try {
-        const payload = {
-          question_id: question.id,
-          session_id: sessionId,
-          participant_id: participantId,
-          value,
-          locked_in: false,
-          display_name: question.anonymous ? null : displayName,
-        };
+  const submitVote = useCallback(async () => {
+    if (!pendingSelection) return;
+    setSubmitting(true);
+    haptic.tap();
+    try {
+      const payload = {
+        question_id: question.id,
+        session_id: sessionId,
+        participant_id: participantId,
+        value: pendingSelection,
+        locked_in: false,
+        display_name: question.anonymous ? null : displayName,
+      };
 
-        const { data, error } = await supabase
-          .from('votes')
-          .upsert(payload, { onConflict: 'question_id,participant_id' })
-          .select()
-          .single();
+      const { data, error } = await supabase
+        .from('votes')
+        .upsert(payload, { onConflict: 'question_id,participant_id' })
+        .select()
+        .single();
 
-        if (error) {
-          console.error('Vote submission failed:', error);
-        } else if (data) {
-          setCurrentVote(data);
-        }
-      } catch (err) {
-        console.error('Vote submission error:', err);
-      } finally {
-        setSubmitting(false);
+      if (error) {
+        console.error('Vote submission failed:', error);
+      } else if (data) {
+        setCurrentVote(data);
+        setSubmitted(true);
       }
-    },
-    [question.id, question.anonymous, sessionId, participantId, displayName, haptic, setCurrentVote, setSubmitting],
-  );
+    } catch (err) {
+      console.error('Vote submission error:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [pendingSelection, question.id, question.anonymous, sessionId, participantId, displayName, haptic, setCurrentVote, setSubmitting]);
 
-  const selectedValue = currentVote?.value ?? null;
+  function handleSelect(value: string) {
+    setPendingSelection(value);
+    setSubmitted(false);
+    haptic.tap();
+  }
 
   // Trigger pulse animation when selection changes
   useEffect(() => {
-    if (selectedValue && selectedValue !== prevSelected.current) {
-      if (selectedValue === 'agree' && agreeRef.current) {
+    if (pendingSelection && pendingSelection !== prevSelected.current) {
+      if (pendingSelection === 'agree' && agreeRef.current) {
         animateAgree(agreeRef.current, { scale: [1, 1.05, 1] }, { duration: 0.3, ease: 'easeOut' });
-      } else if (selectedValue === 'disagree' && disagreeRef.current) {
+      } else if (pendingSelection === 'sometimes' && sometimesRef.current) {
+        animateSometimes(sometimesRef.current, { scale: [1, 1.05, 1] }, { duration: 0.3, ease: 'easeOut' });
+      } else if (pendingSelection === 'disagree' && disagreeRef.current) {
         animateDisagree(disagreeRef.current, { scale: [1, 1.05, 1] }, { duration: 0.3, ease: 'easeOut' });
       }
     }
-    prevSelected.current = selectedValue;
-  }, [selectedValue, agreeRef, disagreeRef, animateAgree, animateDisagree]);
+    prevSelected.current = pendingSelection;
+  }, [pendingSelection, agreeRef, sometimesRef, disagreeRef, animateAgree, animateSometimes, animateDisagree]);
 
   return (
     <div className="flex flex-col h-full">
@@ -108,24 +120,23 @@ export default function VoteAgreeDisagree({
       </div>
 
       {/* Voting buttons */}
-      <div className="flex-1 flex flex-col gap-4 px-4 pb-6">
+      <div className="flex-1 flex flex-col gap-3 px-4">
         {/* Agree button */}
         <motion.button
           ref={agreeRef}
-          disabled={submitting}
-          onClick={() => submitVote('agree')}
+          onClick={() => handleSelect('agree')}
           animate={{
-            backgroundColor: selectedValue === 'agree' ? AGREE_DISAGREE_COLORS.agree : UNSELECTED,
+            backgroundColor: pendingSelection === 'agree' ? AGREE_DISAGREE_COLORS.agree : UNSELECTED,
           }}
-          whileTap={!submitting ? { scale: 0.97 } : undefined}
+          whileTap={{ scale: 0.97 }}
           transition={{ backgroundColor: { duration: 0.15 }, scale: { duration: 0.1 } }}
-          className="flex-1 flex flex-col items-center justify-center rounded-2xl text-white text-2xl font-bold disabled:opacity-60 disabled:cursor-not-allowed"
+          className="flex-1 flex flex-col items-center justify-center rounded-2xl text-white text-2xl font-bold"
           style={{
             touchAction: 'manipulation',
             WebkitTapHighlightColor: 'transparent',
           }}
         >
-          <svg className="w-16 h-16 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-12 h-12 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -136,23 +147,48 @@ export default function VoteAgreeDisagree({
           Agree
         </motion.button>
 
-        {/* Disagree button */}
+        {/* Sometimes in between button */}
         <motion.button
-          ref={disagreeRef}
-          disabled={submitting}
-          onClick={() => submitVote('disagree')}
+          ref={sometimesRef}
+          onClick={() => handleSelect('sometimes')}
           animate={{
-            backgroundColor: selectedValue === 'disagree' ? AGREE_DISAGREE_COLORS.disagree : UNSELECTED,
+            backgroundColor: pendingSelection === 'sometimes' ? AGREE_DISAGREE_COLORS.sometimes : UNSELECTED,
           }}
-          whileTap={!submitting ? { scale: 0.97 } : undefined}
+          whileTap={{ scale: 0.97 }}
           transition={{ backgroundColor: { duration: 0.15 }, scale: { duration: 0.1 } }}
-          className="flex-1 flex flex-col items-center justify-center rounded-2xl text-white text-2xl font-bold disabled:opacity-60 disabled:cursor-not-allowed"
+          className="flex-1 flex flex-col items-center justify-center rounded-2xl text-white text-xl font-bold"
           style={{
             touchAction: 'manipulation',
             WebkitTapHighlightColor: 'transparent',
           }}
         >
-          <svg className="w-16 h-16 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-10 h-10 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 12h8"
+            />
+          </svg>
+          Sometimes in between
+        </motion.button>
+
+        {/* Disagree button */}
+        <motion.button
+          ref={disagreeRef}
+          onClick={() => handleSelect('disagree')}
+          animate={{
+            backgroundColor: pendingSelection === 'disagree' ? AGREE_DISAGREE_COLORS.disagree : UNSELECTED,
+          }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ backgroundColor: { duration: 0.15 }, scale: { duration: 0.1 } }}
+          className="flex-1 flex flex-col items-center justify-center rounded-2xl text-white text-2xl font-bold"
+          style={{
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          <svg className="w-12 h-12 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -162,6 +198,31 @@ export default function VoteAgreeDisagree({
           </svg>
           Disagree
         </motion.button>
+      </div>
+
+      {/* Submit button */}
+      <div className="px-4 py-4">
+        <button
+          onClick={submitVote}
+          disabled={!pendingSelection || submitting}
+          className={`w-full py-4 rounded-xl text-lg font-bold transition-all ${
+            submitted
+              ? 'bg-green-600 text-white'
+              : pendingSelection
+                ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+          }`}
+          style={{
+            touchAction: 'manipulation',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          {submitting
+            ? 'Submitting...'
+            : submitted
+              ? 'Vote Submitted!'
+              : 'Submit Vote'}
+        </button>
       </div>
     </div>
   );

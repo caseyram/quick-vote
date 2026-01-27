@@ -1,6 +1,7 @@
 export const AGREE_DISAGREE_COLORS = {
   agree: '#3B82F6',
   disagree: '#F97316',
+  sometimes: '#8B5CF6',
 } as const;
 
 export const MULTI_CHOICE_COLORS = [

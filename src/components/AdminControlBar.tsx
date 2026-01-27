@@ -18,6 +18,8 @@ interface AdminControlBarProps {
   copied: boolean;
   onActivateQuestion: (questionId: string, timerDuration: number | null) => void;
   onCloseVoting: (questionId: string) => void;
+  onQuickQuestion: (text: string, timerDuration: number | null) => void;
+  quickQuestionLoading: boolean;
 }
 
 const statusBadgeColors: Record<string, string> = {
@@ -49,8 +51,11 @@ export function AdminControlBar({
   copied,
   onActivateQuestion,
   onCloseVoting,
+  onQuickQuestion,
+  quickQuestionLoading,
 }: AdminControlBarProps) {
   const [timerDuration, setTimerDuration] = useState<number | null>(null);
+  const [barQuickText, setBarQuickText] = useState('');
 
   const isDraft = status === 'draft';
   const isLobby = status === 'lobby';
@@ -64,10 +69,14 @@ export function AdminControlBar({
     : -1;
   const nextPending = pendingQuestions[0] ?? null;
 
-  // Navigation: find prev/next question relative to the active one
-  const closedOrRevealed = questions.filter(
-    (q) => q.status === 'closed' || q.status === 'revealed'
-  );
+  // No active question and no pending — show quick question input
+  const showQuickInput = isActive && !activeQuestion && !nextPending;
+
+  function handleBarQuickSubmit() {
+    if (!barQuickText.trim() || quickQuestionLoading) return;
+    onQuickQuestion(barQuickText, timerDuration);
+    setBarQuickText('');
+  }
 
   return (
     <div className="fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-gray-200 shadow-sm z-40 flex items-center px-4 gap-3">
@@ -106,7 +115,7 @@ export function AdminControlBar({
         )}
 
         {isActive && (
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             {activeQuestion ? (
               <>
                 {/* Current question info */}
@@ -160,11 +169,29 @@ export function AdminControlBar({
                 </button>
               </>
             ) : (
-              <span className="text-sm text-gray-400">
-                {closedOrRevealed.length === questions.length
-                  ? 'All questions completed'
-                  : 'Select a question to activate'}
-              </span>
+              /* Quick question input inline in bar */
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <input
+                  type="text"
+                  value={barQuickText}
+                  onChange={(e) => setBarQuickText(e.target.value)}
+                  placeholder="Type a question..."
+                  className="flex-1 min-w-0 px-2 py-1 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && barQuickText.trim()) {
+                      e.preventDefault();
+                      handleBarQuickSubmit();
+                    }
+                  }}
+                />
+                <button
+                  onClick={handleBarQuickSubmit}
+                  disabled={!barQuickText.trim() || quickQuestionLoading}
+                  className="px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition-colors shrink-0"
+                >
+                  {quickQuestionLoading ? 'Going...' : 'Go Live'}
+                </button>
+              </div>
             )}
           </div>
         )}
