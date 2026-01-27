@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router';
+import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { useSessionStore } from '../stores/session-store';
 import { useRealtimeChannel } from '../hooks/use-realtime-channel';
 import { usePresence } from '../hooks/use-presence';
 import { useCountdown } from '../hooks/use-countdown';
-import { ConnectionBanner } from '../components/ConnectionBanner';
+import { ConnectionPill } from '../components/ConnectionPill';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { ParticipantCount } from '../components/ParticipantCount';
 import VoteAgreeDisagree from '../components/VoteAgreeDisagree';
@@ -14,6 +15,19 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Session, Question, SessionStatus } from '../types/database';
 
 type ParticipantView = 'loading' | 'lobby' | 'voting' | 'waiting' | 'results' | 'error';
+
+// Slide transition variants for question changes (AnimatePresence)
+const questionSlideVariants = {
+  enter: { x: '100%', opacity: 0 },
+  center: { x: 0, opacity: 1 },
+  exit: { x: '-100%', opacity: 0 },
+};
+
+const questionTransition = {
+  x: { type: 'spring' as const, stiffness: 300, damping: 30 },
+  opacity: { duration: 0.2 },
+};
+
 export default function ParticipantSession() {
   const { sessionId } = useParams();
   const { session, setSession, reset } = useSessionStore();
@@ -28,10 +42,6 @@ export default function ParticipantSession() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [waitingMessage, setWaitingMessage] = useState('Waiting for next question...');
 
-  // Crossfade state
-  const [contentVisible, setContentVisible] = useState(true);
-  const [displayedQuestion, setDisplayedQuestion] = useState<Question | null>(null);
-
   // Refs for mutable state accessible from Broadcast callbacks (avoid stale closures)
   const viewRef = useRef<ParticipantView>('loading');
   const activeQuestionRef = useRef<Question | null>(null);
@@ -45,25 +55,6 @@ export default function ParticipantSession() {
   useEffect(() => {
     activeQuestionRef.current = activeQuestion;
   }, [activeQuestion]);
-
-  // Crossfade: when activeQuestion changes, fade out then swap content
-  useEffect(() => {
-    if (activeQuestion?.id !== displayedQuestion?.id) {
-      if (displayedQuestion !== null && activeQuestion !== null) {
-        // Crossfade: fade out, swap, fade in
-        setContentVisible(false);
-        const timer = setTimeout(() => {
-          setDisplayedQuestion(activeQuestion);
-          setContentVisible(true);
-        }, 300);
-        return () => clearTimeout(timer);
-      } else {
-        // No fade for initial question or clearing
-        setDisplayedQuestion(activeQuestion);
-        setContentVisible(true);
-      }
-    }
-  }, [activeQuestion, displayedQuestion]);
 
   // Restore display name from sessionStorage on mount
   useEffect(() => {
@@ -384,10 +375,7 @@ export default function ParticipantSession() {
   // Loading state
   if (view === 'loading') {
     return (
-      <div
-        className="min-h-screen bg-gray-950 flex items-center justify-center"
-        style={{ minHeight: '100dvh' }}
-      >
+      <div className="min-h-dvh bg-gray-950 flex items-center justify-center">
         <p className="text-gray-400 text-lg">Loading session...</p>
       </div>
     );
@@ -396,10 +384,7 @@ export default function ParticipantSession() {
   // Error state
   if (view === 'error') {
     return (
-      <div
-        className="min-h-screen bg-gray-950 flex items-center justify-center"
-        style={{ minHeight: '100dvh' }}
-      >
+      <div className="min-h-dvh bg-gray-950 flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-red-400 text-lg">{errorMessage ?? 'Something went wrong'}</p>
           <a href="/" className="text-indigo-400 hover:text-indigo-300 underline">
@@ -413,8 +398,8 @@ export default function ParticipantSession() {
   // Lobby state
   if (view === 'lobby') {
     return (
-      <div style={{ minHeight: '100dvh' }} className="min-h-screen bg-gray-950 flex flex-col">
-        <ConnectionBanner status={connectionStatus} />
+      <div className="min-h-dvh bg-gray-950 flex flex-col">
+        <ConnectionPill status={connectionStatus} />
         <div className="flex-1 flex flex-col items-center justify-center px-4">
           <h1 className="text-3xl font-bold text-white mb-4 text-center">
             {session?.title ?? 'Session'}
@@ -429,11 +414,8 @@ export default function ParticipantSession() {
   // Waiting between questions / results being shown
   if (view === 'waiting') {
     return (
-      <div
-        className="min-h-screen bg-gray-950 flex flex-col"
-        style={{ minHeight: '100dvh' }}
-      >
-        <ConnectionBanner status={connectionStatus} />
+      <div className="min-h-dvh bg-gray-950 flex flex-col">
+        <ConnectionPill status={connectionStatus} />
         <div className="flex-1 flex items-center justify-center px-4">
           <div className="text-center space-y-4">
             <h1 className="text-2xl font-bold text-white">{session?.title ?? 'Session'}</h1>
@@ -448,11 +430,8 @@ export default function ParticipantSession() {
   // Results state (session complete)
   if (view === 'results') {
     return (
-      <div
-        className="min-h-screen bg-gray-950 flex flex-col"
-        style={{ minHeight: '100dvh' }}
-      >
-        <ConnectionBanner status={connectionStatus} />
+      <div className="min-h-dvh bg-gray-950 flex flex-col">
+        <ConnectionPill status={connectionStatus} />
         <div className="flex-1 py-8 px-4">
           <div className="max-w-lg mx-auto space-y-6">
             <h1 className="text-3xl font-bold text-white text-center">
@@ -485,15 +464,12 @@ export default function ParticipantSession() {
   }
 
   // Voting state
-  if (view === 'voting' && displayedQuestion && participantId) {
+  if (view === 'voting' && activeQuestion && participantId) {
     // Name prompt overlay for named questions
     if (namePromptVisible) {
       return (
-        <div
-          className="min-h-screen bg-gray-950 flex items-center justify-center px-4"
-          style={{ minHeight: '100dvh' }}
-        >
-          <ConnectionBanner status={connectionStatus} />
+        <div className="h-dvh bg-gray-950 flex items-center justify-center px-4">
+          <ConnectionPill status={connectionStatus} />
           <div className="bg-gray-900 rounded-xl p-6 w-full max-w-sm space-y-4">
             <p className="text-gray-300 text-sm font-medium text-center">
               This question shows voter names
@@ -520,41 +496,56 @@ export default function ParticipantSession() {
       );
     }
 
-    // Render voting component based on question type with crossfade
+    // Full-screen voting takeover
     return (
-      <div
-        className="min-h-screen bg-gray-950 flex flex-col"
-        style={{ minHeight: '100dvh' }}
-      >
-        <ConnectionBanner status={connectionStatus} />
-        {/* Top bar with participant count and countdown timer */}
-        <div className="flex items-center justify-between px-4 py-2">
-          <ParticipantCount count={participantCount} />
-          <CountdownTimer
-            remainingSeconds={Math.ceil(remaining / 1000)}
-            isRunning={isRunning}
-          />
-        </div>
-        {/* Voting content with crossfade */}
-        <div
-          className="flex-1 flex flex-col transition-opacity duration-300"
-          style={{ opacity: contentVisible ? 1 : 0 }}
-        >
-          {displayedQuestion.type === 'agree_disagree' ? (
-            <VoteAgreeDisagree
-              question={displayedQuestion}
-              sessionId={sessionId!}
-              participantId={participantId}
-              displayName={participantName || null}
+      <div className="h-dvh bg-gray-950 flex flex-col overflow-hidden">
+        {/* Connection pill - always visible in top-right */}
+        <ConnectionPill status={connectionStatus} />
+
+        {/* Minimal top bar - only timer when active, no header/nav */}
+        {isRunning && (
+          <div className="flex justify-center px-4 py-2">
+            <CountdownTimer
+              remainingSeconds={Math.ceil(remaining / 1000)}
+              isRunning={isRunning}
             />
-          ) : (
-            <VoteMultipleChoice
-              question={displayedQuestion}
-              sessionId={sessionId!}
-              participantId={participantId}
-              displayName={participantName || null}
-            />
-          )}
+          </div>
+        )}
+
+        {/* Full-screen voting area with slide transitions */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Desktop: centered card. Mobile: edge-to-edge */}
+          <div className="flex-1 flex flex-col lg:items-center lg:justify-center lg:p-8">
+            <div className="flex-1 flex flex-col lg:flex-initial lg:w-full lg:max-w-2xl lg:rounded-2xl lg:bg-gray-900/50 lg:overflow-hidden">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={activeQuestion.id}
+                  variants={questionSlideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={questionTransition}
+                  className="flex-1 flex flex-col"
+                >
+                  {activeQuestion.type === 'agree_disagree' ? (
+                    <VoteAgreeDisagree
+                      question={activeQuestion}
+                      sessionId={sessionId!}
+                      participantId={participantId}
+                      displayName={participantName || null}
+                    />
+                  ) : (
+                    <VoteMultipleChoice
+                      question={activeQuestion}
+                      sessionId={sessionId!}
+                      participantId={participantId}
+                      displayName={participantName || null}
+                    />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -562,10 +553,7 @@ export default function ParticipantSession() {
 
   // Fallback
   return (
-    <div
-      className="min-h-screen bg-gray-950 flex items-center justify-center"
-      style={{ minHeight: '100dvh' }}
-    >
+    <div className="min-h-dvh bg-gray-950 flex items-center justify-center">
       <p className="text-gray-400 text-lg">Loading...</p>
     </div>
   );
