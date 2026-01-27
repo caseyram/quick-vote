@@ -244,6 +244,7 @@ export default function AdminSession() {
   }
 
   async function handleStartSession() {
+    if (!session) return;
     setTransitioning(true);
     const { error: err } = await supabase
       .from('sessions')
@@ -264,6 +265,7 @@ export default function AdminSession() {
   }
 
   async function handleBeginVoting() {
+    if (!session) return;
     setTransitioning(true);
     const { error: err } = await supabase
       .from('sessions')
@@ -283,6 +285,7 @@ export default function AdminSession() {
   }
 
   async function handleEndSession() {
+    if (!session) return;
     setTransitioning(true);
 
     // Close any active questions
@@ -525,7 +528,6 @@ export default function AdminSession() {
               <div className="bg-white rounded-lg p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Questions</h2>
                 <QuestionList
-                  sessionId={session.session_id}
                   onEditQuestion={setEditingQuestion}
                 />
               </div>

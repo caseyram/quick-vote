@@ -4,11 +4,10 @@ import { useSessionStore } from '../stores/session-store';
 import type { Question } from '../types/database';
 
 interface QuestionListProps {
-  sessionId: string;
   onEditQuestion: (question: Question) => void;
 }
 
-export default function QuestionList({ sessionId, onEditQuestion }: QuestionListProps) {
+export default function QuestionList({ onEditQuestion }: QuestionListProps) {
   const questions = useSessionStore((s) => s.questions);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
