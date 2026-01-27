@@ -19,6 +19,12 @@ QuickVote delivers a real-time audience voting application where admins pose que
 
 **Requirements:** None (infrastructure validation only)
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md -- Scaffold Vite+React+TS project with Tailwind and Supabase client setup
+- [ ] 01-02-PLAN.md -- Build integration PoC (read/write, Broadcast, Postgres Changes) and deploy to Vercel
+
 **Success Criteria:**
 1. Vite + React + TypeScript project scaffolded with Tailwind CSS
 2. Supabase project connected -- can read/write from a test table
@@ -141,3 +147,4 @@ QuickVote delivers a real-time audience voting application where admins pose que
 ---
 *Roadmap created: 2026-01-27*
 *Revised: 2026-01-27 -- Added Phase 1 integration spike per user feedback, renumbered phases 2-5*
+*Updated: 2026-01-27 -- Phase 1 plans created (2 plans, 2 waves)*
