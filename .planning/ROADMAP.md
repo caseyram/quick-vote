@@ -69,6 +69,13 @@ Plans:
 
 **Requirements:** VOTE-01, VOTE-02, VOTE-03, VOTE-04, JOIN-01, JOIN-02, JOIN-03, JOIN-04
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 03-01-PLAN.md -- Install qrcode.react, create utility hooks (useDoubleTap, useHaptic), vote aggregation helper, extend Zustand store with voting state
+- [ ] 03-02-PLAN.md -- Build participant voting experience (VoteAgreeDisagree, VoteMultipleChoice, Lobby, ParticipantSession state machine with polling bridge)
+- [ ] 03-03-PLAN.md -- Build admin controls (QR code, session state transitions, question activation/close voting, vote progress, SessionResults)
+
 **Success Criteria:**
 1. Admin can display a QR code that participants scan to join the session on their phone
 2. Participants who arrive before the session starts see a lobby/waiting screen
@@ -158,3 +165,4 @@ Plans:
 *Updated: 2026-01-27 -- Phase 1 complete (verified 5/5 success criteria)*
 *Updated: 2026-01-27 -- Phase 2 plans created (3 plans, 3 waves)*
 *Updated: 2026-01-27 -- Phase 2 complete (verified 7/7 must-haves, SESS-01/02/03 satisfied)*
+*Updated: 2026-01-27 -- Phase 3 plans created (3 plans, 2 waves)*
