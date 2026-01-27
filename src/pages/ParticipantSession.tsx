@@ -382,9 +382,7 @@ export default function ParticipantSession() {
       <div className="min-h-dvh bg-gray-950 flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-red-400 text-lg">{errorMessage ?? 'Something went wrong'}</p>
-          <a href="/" className="text-indigo-400 hover:text-indigo-300 underline">
-            Back to Home
-          </a>
+          <p className="text-gray-500 text-sm">Please check the link and try again.</p>
         </div>
       </div>
     );
@@ -447,11 +445,9 @@ export default function ParticipantSession() {
                 </div>
               ))}
             </div>
-            <div className="text-center pt-4">
-              <a href="/" className="text-indigo-400 hover:text-indigo-300 underline">
-                Back to Home
-              </a>
-            </div>
+            <p className="text-center text-gray-500 text-sm pt-4">
+              Thank you for participating!
+            </p>
           </div>
         </div>
       </div>

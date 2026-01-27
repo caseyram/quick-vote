@@ -510,7 +510,7 @@ export default function AdminSession() {
 
   return (
     <AdminPasswordGate>
-      <ConnectionBanner status={connectionStatus} />
+      {!isEnded && <ConnectionBanner status={connectionStatus} />}
 
       {/* Draft View: preserved admin-focused layout */}
       {isDraft && (
@@ -790,6 +790,14 @@ export default function AdminSession() {
         <div className="min-h-screen bg-white pb-20">
           <div className="max-w-4xl mx-auto px-6 py-8">
             <SessionResults sessionId={session.session_id} theme="light" />
+            <div className="text-center mt-8">
+              <a
+                href="/"
+                className="inline-block px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors"
+              >
+                Start New Session
+              </a>
+            </div>
           </div>
         </div>
       )}
