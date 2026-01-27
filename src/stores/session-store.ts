@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Session, Question, Vote } from '../types/database';
+import type { ConnectionStatus } from '../hooks/use-realtime-channel';
 
 interface SessionState {
   session: Session | null;
@@ -25,6 +26,17 @@ interface SessionState {
   setCurrentVote: (vote: Vote | null) => void;
   setQuestionVotes: (votes: Vote[]) => void;
   setSubmitting: (submitting: boolean) => void;
+
+  // Realtime state
+  participantCount: number;
+  connectionStatus: ConnectionStatus;
+  activeQuestionId: string | null;
+  timerEndTime: number | null;
+
+  setParticipantCount: (count: number) => void;
+  setConnectionStatus: (status: ConnectionStatus) => void;
+  setActiveQuestionId: (id: string | null) => void;
+  setTimerEndTime: (endTime: number | null) => void;
 }
 
 export const useSessionStore = create<SessionState>()((set) => ({
@@ -70,6 +82,10 @@ export const useSessionStore = create<SessionState>()((set) => ({
       currentVote: null,
       questionVotes: [],
       submitting: false,
+      participantCount: 0,
+      connectionStatus: 'connecting',
+      activeQuestionId: null,
+      timerEndTime: null,
     }),
 
   // Voting state
@@ -80,4 +96,15 @@ export const useSessionStore = create<SessionState>()((set) => ({
   setCurrentVote: (vote) => set({ currentVote: vote }),
   setQuestionVotes: (votes) => set({ questionVotes: votes }),
   setSubmitting: (submitting) => set({ submitting }),
+
+  // Realtime state
+  participantCount: 0,
+  connectionStatus: 'connecting',
+  activeQuestionId: null,
+  timerEndTime: null,
+
+  setParticipantCount: (count) => set({ participantCount: count }),
+  setConnectionStatus: (status) => set({ connectionStatus: status }),
+  setActiveQuestionId: (id) => set({ activeQuestionId: id }),
+  setTimerEndTime: (endTime) => set({ timerEndTime: endTime }),
 }));
