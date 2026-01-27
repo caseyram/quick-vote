@@ -9,7 +9,6 @@ import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../compone
 import QuestionForm from '../components/QuestionForm';
 import QuestionList from '../components/QuestionList';
 import { SessionQRCode } from '../components/QRCode';
-import AdminQuestionControl from '../components/AdminQuestionControl';
 import SessionResults from '../components/SessionResults';
 import { ConnectionBanner } from '../components/ConnectionBanner';
 import { ParticipantCount } from '../components/ParticipantCount';
