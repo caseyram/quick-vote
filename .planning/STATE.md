@@ -8,18 +8,18 @@
 
 ## Current Position
 
-**Phase:** 1 of 5 -- Integration Spike (COMPLETE)
-**Plan:** 2 of 2 complete
-**Status:** Phase complete
-**Last activity:** 2026-01-27 -- Completed 01-02-PLAN.md (integration PoC)
-**Progress:** [####________________] 2/2 phase 1 plans complete (phase 1 done, 4 phases remaining)
+**Phase:** 2 of 5 -- Data Foundation and Session Setup (IN PROGRESS)
+**Plan:** 1 of 3 complete
+**Status:** In progress -- 02-01 complete, next is 02-02
+**Last activity:** 2026-01-27 -- Completed 02-01-PLAN.md (deps, schema, types, auth hook)
+**Progress:** [######______________] Phase 1 done, Phase 2 in progress (1/3 plans done)
 
 ## Phase Summary
 
 | Phase | Name | Status |
 |-------|------|--------|
 | 1 | Integration Spike | Complete (2/2 plans done) |
-| 2 | Data Foundation and Session Setup | Not Started |
+| 2 | Data Foundation and Session Setup | In Progress (1/3 plans done) |
 | 3 | Join Flow and Voting Mechanics | Not Started |
 | 4 | Realtime and Live Session Orchestration | Not Started |
 | 5 | Immersive UI and Polish | Not Started |
@@ -28,7 +28,7 @@
 
 | Metric | Value |
 |--------|-------|
-| Plans completed | 2 |
+| Plans completed | 3 |
 | Plans failed | 0 |
 | Total requirements | 18 |
 | Requirements done | 0 |
@@ -44,6 +44,9 @@
 - Integration spike before feature work to validate Vercel + Supabase pipeline end-to-end
 - Vercel auto-deploy on push to main (git push, not Vercel CLI)
 - Multiplexed channel pattern validated: single channel handles both Broadcast and Postgres Changes
+- Manual TypeScript types over Supabase-generated types for simplicity and control
+- useAuth as plain React hook (not Zustand) -- auth state is app-level singleton
+- No error handling that blocks rendering in useAuth -- graceful degradation if auth fails
 
 ### Research Insights
 - Supabase Realtime has three mechanisms: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
@@ -53,9 +56,13 @@
 - Mobile viewport: use 100dvh not 100vh
 - Tactile UI is the product identity, not polish -- must ship in v1
 - Tailwind CSS v4 uses CSS-first configuration (no tailwind.config.js), just @import "tailwindcss" in CSS
+- Supabase anonymous auth (signInAnonymously()) is production-ready; must enable in Dashboard
+- @supabase/supabase-js remains at v2 (no v3); installed version 2.93.1 is current
+- React Router v7 uses single package `react-router` (not react-router-dom); declarative mode for Vite SPA
+- Zustand v5 requires create<T>()(fn) with double parentheses
+- RLS policies must use (select auth.uid()) wrapped in select for performance
 
 ### TODOs
-- Verify Supabase anonymous auth API surface before Phase 2 planning
 - Verify motion vs framer-motion package name at install time
 - Test RLS + Realtime Postgres Changes interaction before Phase 4
 
@@ -64,11 +71,13 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-27 -- Completed 01-02 integration PoC plan (Phase 1 complete)
-**Next action:** Begin Phase 2 planning (Data Foundation and Session Setup)
-**Resume file:** None -- Phase 1 complete, Phase 2 not yet planned
-**Context to preserve:** Phase 1 is fully validated. The Vite+React+Supabase+Vercel pipeline works end-to-end on a live URL. Demo.tsx proves DB read/write, Broadcast, and Postgres Changes all work. Phase 2 will build the real data layer (sessions, questions, admin links) on top of this foundation.
+**Last session:** 2026-01-27 -- Completed 02-01 (deps, schema, types, auth hook)
+**Next action:** Execute 02-02-PLAN.md (router, store, pages)
+**Resume file:** None
+**Context to preserve:** Phase 2 plan 1 complete. Database schema is live (sessions, questions, votes with RLS). TypeScript types defined. Anonymous auth hook ready. react-router, zustand, nanoid installed. Plans 02-02 and 02-03 are fully autonomous.
 
 ---
 *State initialized: 2026-01-27*
 *Updated: 2026-01-27 -- Completed 01-02 integration PoC plan (Phase 1 complete)*
+*Updated: 2026-01-27 -- Phase 2 planned (3 plans, 3 waves, research + verification passed)*
+*Updated: 2026-01-27 -- Completed 02-01 (deps, schema, types, auth hook)*
