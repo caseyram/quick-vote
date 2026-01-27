@@ -9,10 +9,10 @@
 ## Current Position
 
 **Phase:** 4 of 5 -- Realtime and Live Session Orchestration
-**Plan:** 2 of 4 complete
-**Status:** In progress (04-01 hooks + 04-02 UI components done, 04-03 admin + 04-04 participant remaining)
-**Last activity:** 2026-01-27 -- Completed 04-02 (realtime UI components and SQL prerequisites)
-**Progress:** [################____] 10/12 plans complete (phases 1-3 done, phase 4 in progress)
+**Plan:** 3 of 4 complete
+**Status:** In progress (04-01 hooks + 04-02 UI components + 04-03 admin realtime done, 04-04 participant remaining)
+**Last activity:** 2026-01-27 -- Completed 04-03 (admin session realtime wiring)
+**Progress:** [##################__] 11/12 plans complete (phases 1-3 done, phase 4 nearly complete)
 
 ## Phase Summary
 
@@ -21,17 +21,17 @@
 | 1 | Integration Spike | Complete (2/2 plans done) |
 | 2 | Data Foundation and Session Setup | Complete (3/3 plans done) |
 | 3 | Join Flow and Voting Mechanics | Complete (3/3 plans done) |
-| 4 | Realtime and Live Session Orchestration | In Progress (2/4 plans done) |
+| 4 | Realtime and Live Session Orchestration | In Progress (3/4 plans done) |
 | 5 | Immersive UI and Polish | Not Started |
 
 ## Performance Metrics
 
 | Metric | Value |
 |--------|-------|
-| Plans completed | 10 |
+| Plans completed | 11 |
 | Plans failed | 0 |
 | Total requirements | 18 |
-| Requirements done | 11 (SESS-01, SESS-02, SESS-03, VOTE-01, VOTE-02, VOTE-03, VOTE-04, JOIN-01, JOIN-02, JOIN-03, JOIN-04) |
+| Requirements done | 15 (SESS-01, SESS-02, SESS-03, VOTE-01, VOTE-02, VOTE-03, VOTE-04, JOIN-01, JOIN-02, JOIN-03, JOIN-04, LIVE-01, LIVE-02, LIVE-03, LIVE-04) |
 
 ## Accumulated Context
 
@@ -61,8 +61,8 @@
 - Results view in ParticipantSession is intentional placeholder (Plan 03-03 builds full SessionResults)
 - Anonymous toggle placed as separate Voting Privacy section above QuestionList in draft state (QuestionList/QuestionForm unchanged)
 - Wider layout (max-w-4xl) during live session for admin presentation screen readability
-- AdminQuestionControl fetches and polls votes independently per question (encapsulated data fetching)
-- Question status polling at 3s during active session (temporary bridge until Phase 4 realtime)
+- AdminQuestionControl receives votes as props from AdminSession (live via Postgres Changes, replacing 3s polling)
+- Question status polling replaced by Postgres Changes subscription in AdminSession (Phase 4 realtime)
 - useRealtimeChannel excludes setup from deps -- caller must useCallback to avoid reconnect cycles
 - usePresence calls channel.track() directly -- buffers until SUBSCRIBED, no caller coordination needed
 - useCountdown stores onComplete in ref -- avoids stale closures, callers don't need to memoize callback
@@ -70,6 +70,9 @@
 - CSS height transitions (0.5s ease-out) for BarChart animation -- simple, zero-dependency approach
 - Blue/orange for agree/disagree, 8-color palette for multiple choice -- neutral, non-judgmental
 - Pill badge with clock SVG for countdown timer -- compact, non-distracting per CONTEXT.md
+- Session-level vote accumulation in AdminSession, passed down as props (all Postgres Changes listeners before subscribe)
+- Auto-reveal results immediately after voting_closed broadcast (per CONTEXT.md auto-close + auto-reveal)
+- Timer duration is ephemeral local state in AdminQuestionControl, communicated via broadcast payload
 
 ### Research Insights
 - Supabase Realtime has three mechanisms: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
@@ -94,10 +97,10 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-27 -- Completed 04-02 (realtime UI components and SQL prerequisites)
-**Next action:** Execute 04-03-PLAN.md (admin session realtime wiring)
+**Last session:** 2026-01-27 -- Completed 04-03 (admin session realtime wiring)
+**Next action:** Execute 04-04-PLAN.md (participant session realtime wiring)
 **Resume file:** None
-**Context to preserve:** Phase 4 plans 01-02 complete. Hooks (useRealtimeChannel, usePresence, useCountdown) and UI components (BarChart, CountdownTimer, ConnectionBanner, ParticipantCount) ready. realtime-publication.sql must be run in Supabase SQL Editor before testing. Plans 03-04 wire these into admin and participant pages respectively. Build passes with zero TS errors.
+**Context to preserve:** Phase 4 plans 01-03 complete. Admin session fully realtime: Postgres Changes for questions/votes, Presence for participant count, Broadcast for all session/question commands, BarChart for results, CountdownTimer for timed questions. All 6 broadcast events (session_lobby, session_active, session_ended, question_activated, voting_closed, results_revealed) are sent from admin. Plan 04-04 wires the participant side to listen for these events. Build passes with zero TS errors.
 
 ---
 *State initialized: 2026-01-27*
@@ -114,3 +117,4 @@
 *Updated: 2026-01-27 -- Phase 3 verified (5/5 success criteria, 8 requirements complete)*
 *Updated: 2026-01-27 -- Completed 04-01 (realtime hooks: useRealtimeChannel, usePresence, useCountdown)*
 *Updated: 2026-01-27 -- Completed 04-02 (realtime UI components: BarChart, CountdownTimer, ConnectionBanner, ParticipantCount)*
+*Updated: 2026-01-27 -- Completed 04-03 (admin realtime: broadcast commands, live vote streaming, bar chart results, countdown timer, presence)*
