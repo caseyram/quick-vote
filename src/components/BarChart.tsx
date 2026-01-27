@@ -25,10 +25,24 @@ interface BarChartProps {
   data: BarChartData[];
   totalVotes?: number;
   size?: 'default' | 'large';
+  theme?: 'dark' | 'light';
 }
 
-export function BarChart({ data, totalVotes, size = 'default' }: BarChartProps) {
+export function BarChart({ data, totalVotes, size = 'default', theme = 'dark' }: BarChartProps) {
   const isLarge = size === 'large';
+  const isLight = theme === 'light';
+
+  const countClass = isLarge
+    ? `text-lg font-bold ${isLight ? 'text-gray-800' : 'text-white'}`
+    : `text-sm font-medium ${isLight ? 'text-gray-800' : 'text-white'}`;
+
+  const labelClass = isLarge
+    ? `text-base font-medium ${isLight ? 'text-gray-600' : 'text-gray-200'}`
+    : `text-sm ${isLight ? 'text-gray-600' : 'text-gray-300'}`;
+
+  const totalClass = isLarge
+    ? `text-sm ${isLight ? 'text-gray-500' : 'text-gray-400'}`
+    : `text-xs ${isLight ? 'text-gray-500' : 'text-gray-500'}`;
 
   return (
     <div>
@@ -42,7 +56,7 @@ export function BarChart({ data, totalVotes, size = 'default' }: BarChartProps) 
             className="flex flex-col items-center h-full"
             style={{ flex: '1 1 0', minWidth: 0, maxWidth: isLarge ? 160 : 120 }}
           >
-            <div className={`${isLarge ? 'text-lg font-bold text-white' : 'text-sm font-medium text-white'} mb-1 whitespace-nowrap`}>
+            <div className={`${countClass} mb-1 whitespace-nowrap`}>
               {item.count} ({item.percentage}%)
             </div>
             <div className="w-full flex-1 flex items-end">
@@ -56,14 +70,14 @@ export function BarChart({ data, totalVotes, size = 'default' }: BarChartProps) 
                 }}
               />
             </div>
-            <div className={`${isLarge ? 'text-base font-medium text-gray-200' : 'text-sm text-gray-300'} text-center mt-2 truncate w-full`}>
+            <div className={`${labelClass} text-center mt-2 truncate w-full`}>
               {item.label}
             </div>
           </div>
         ))}
       </div>
       {totalVotes !== undefined && (
-        <div className={`${isLarge ? 'text-sm text-gray-400' : 'text-xs text-gray-500'} text-center mt-3`}>
+        <div className={`${totalClass} text-center mt-3`}>
           Total: {totalVotes} votes
         </div>
       )}

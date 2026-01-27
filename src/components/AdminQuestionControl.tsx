@@ -17,6 +17,10 @@ interface AdminQuestionControlProps {
   channelRef: RefObject<RealtimeChannel | null>;
   votes: Vote[];
   projectionMode?: boolean;
+  hideControls?: boolean;
+  theme?: 'dark' | 'light';
+  onActivate?: (questionId: string, timerDuration: number | null) => void;
+  onCloseVoting?: (questionId: string) => void;
 }
 
 export default function AdminQuestionControl({
@@ -27,6 +31,10 @@ export default function AdminQuestionControl({
   channelRef,
   votes,
   projectionMode,
+  hideControls,
+  theme = 'dark',
+  onActivate,
+  onCloseVoting,
 }: AdminQuestionControlProps) {
   const updateQuestion = useSessionStore((s) => s.updateQuestion);
   const [loading, setLoading] = useState(false);
@@ -63,6 +71,11 @@ export default function AdminQuestionControl({
   const { remaining, isRunning, start: startCountdown, stop: stopCountdown } = useCountdown(handleTimerComplete);
 
   async function handleActivate() {
+    if (onActivate) {
+      onActivate(question.id, timerDuration);
+      return;
+    }
+
     setLoading(true);
 
     // Close any currently active questions for this session
@@ -106,6 +119,11 @@ export default function AdminQuestionControl({
   }
 
   async function handleCloseVoting() {
+    if (onCloseVoting) {
+      onCloseVoting(question.id);
+      return;
+    }
+
     setLoading(true);
 
     // Stop countdown if running
@@ -180,7 +198,7 @@ export default function AdminQuestionControl({
       </div>
 
       {/* Pending state: Show Start button with timer selection */}
-      {isPending && (
+      {isPending && !hideControls && (
         <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={handleActivate}
@@ -244,13 +262,15 @@ export default function AdminQuestionControl({
             </button>
           </div>
 
-          <button
-            onClick={handleCloseVoting}
-            disabled={loading}
-            className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-red-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            {loading ? 'Closing...' : 'Close Voting'}
-          </button>
+          {!hideControls && (
+            <button
+              onClick={handleCloseVoting}
+              disabled={loading}
+              className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-red-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {loading ? 'Closing...' : 'Close Voting'}
+            </button>
+          )}
         </div>
       )}
 
@@ -260,7 +280,7 @@ export default function AdminQuestionControl({
           {aggregated.length === 0 ? (
             <p className="text-gray-400 text-sm">No votes recorded</p>
           ) : (
-            <BarChart data={barData} totalVotes={votes.length} size={projectionMode ? 'large' : 'default'} />
+            <BarChart data={barData} totalVotes={votes.length} size={projectionMode ? 'large' : 'default'} theme={theme} />
           )}
 
           {/* Named votes: show voter names for closed named questions */}
