@@ -72,9 +72,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- Install qrcode.react, create utility hooks (useDoubleTap, useHaptic), vote aggregation helper, extend Zustand store with voting state
-- [ ] 03-02-PLAN.md -- Build participant voting experience (VoteAgreeDisagree, VoteMultipleChoice, Lobby, ParticipantSession state machine with polling bridge)
-- [ ] 03-03-PLAN.md -- Build admin controls (QR code, session state transitions, question activation/close voting, vote progress, SessionResults)
+- [x] 03-01-PLAN.md -- Install qrcode.react, create utility hooks (useDoubleTap, useHaptic), vote aggregation helper, extend Zustand store with voting state
+- [x] 03-02-PLAN.md -- Build participant voting experience (VoteAgreeDisagree, VoteMultipleChoice, Lobby, ParticipantSession state machine with polling bridge)
+- [x] 03-03-PLAN.md -- Build admin controls (QR code, session state transitions, question activation/close voting, vote progress, SessionResults)
 
 **Success Criteria:**
 1. Admin can display a QR code that participants scan to join the session on their phone
@@ -128,7 +128,7 @@ Plans:
 |-------|------|--------------|--------|
 | 1 | Integration Spike | (none -- infrastructure) | Complete |
 | 2 | Data Foundation and Session Setup | SESS-01, SESS-02, SESS-03 | Complete |
-| 3 | Join Flow and Voting Mechanics | VOTE-01, VOTE-02, VOTE-03, VOTE-04, JOIN-01, JOIN-02, JOIN-03, JOIN-04 | Not Started |
+| 3 | Join Flow and Voting Mechanics | VOTE-01, VOTE-02, VOTE-03, VOTE-04, JOIN-01, JOIN-02, JOIN-03, JOIN-04 | Complete |
 | 4 | Realtime and Live Session Orchestration | LIVE-01, LIVE-02, LIVE-03, LIVE-04 | Not Started |
 | 5 | Immersive UI and Polish | UIEX-01, UIEX-02, UIEX-03 | Not Started |
 
@@ -166,3 +166,4 @@ Plans:
 *Updated: 2026-01-27 -- Phase 2 plans created (3 plans, 3 waves)*
 *Updated: 2026-01-27 -- Phase 2 complete (verified 7/7 must-haves, SESS-01/02/03 satisfied)*
 *Updated: 2026-01-27 -- Phase 3 plans created (3 plans, 2 waves)*
+*Updated: 2026-01-27 -- Phase 3 complete (verified 5/5 success criteria, VOTE-01..04/JOIN-01..04 satisfied)*

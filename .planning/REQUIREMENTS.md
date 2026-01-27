@@ -15,10 +15,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Voting
 
-- [ ] **VOTE-01**: Participants can vote Agree or Disagree on a statement
-- [ ] **VOTE-02**: Participants can pick one option from multiple choices
-- [ ] **VOTE-03**: Participants can change their vote until they explicitly lock in or the admin ends the round
-- [ ] **VOTE-04**: Admin can configure per-question whether voting is anonymous or named
+- [x] **VOTE-01**: Participants can vote Agree or Disagree on a statement
+- [x] **VOTE-02**: Participants can pick one option from multiple choices
+- [x] **VOTE-03**: Participants can change their vote until they explicitly lock in or the admin ends the round
+- [x] **VOTE-04**: Admin can configure per-question whether voting is anonymous or named
 
 ### Live Session
 
@@ -29,10 +29,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Participant Joining
 
-- [ ] **JOIN-01**: Admin can display a QR code that participants scan to join the session
-- [ ] **JOIN-02**: Participants see a lobby/waiting screen until the session starts
-- [ ] **JOIN-03**: Participants who join mid-session land on the current active question
-- [ ] **JOIN-04**: Participants see visual confirmation that their vote was received
+- [x] **JOIN-01**: Admin can display a QR code that participants scan to join the session
+- [x] **JOIN-02**: Participants see a lobby/waiting screen until the session starts
+- [x] **JOIN-03**: Participants who join mid-session land on the current active question
+- [x] **JOIN-04**: Participants see visual confirmation that their vote was received
 
 ### UI/Experience
 
@@ -84,18 +84,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SESS-01 | Phase 2 | Complete |
 | SESS-02 | Phase 2 | Complete |
 | SESS-03 | Phase 2 | Complete |
-| VOTE-01 | Phase 3 | Pending |
-| VOTE-02 | Phase 3 | Pending |
-| VOTE-03 | Phase 3 | Pending |
-| VOTE-04 | Phase 3 | Pending |
+| VOTE-01 | Phase 3 | Complete |
+| VOTE-02 | Phase 3 | Complete |
+| VOTE-03 | Phase 3 | Complete |
+| VOTE-04 | Phase 3 | Complete |
 | LIVE-01 | Phase 4 | Pending |
 | LIVE-02 | Phase 4 | Pending |
 | LIVE-03 | Phase 4 | Pending |
 | LIVE-04 | Phase 4 | Pending |
-| JOIN-01 | Phase 3 | Pending |
-| JOIN-02 | Phase 3 | Pending |
-| JOIN-03 | Phase 3 | Pending |
-| JOIN-04 | Phase 3 | Pending |
+| JOIN-01 | Phase 3 | Complete |
+| JOIN-02 | Phase 3 | Complete |
+| JOIN-03 | Phase 3 | Complete |
+| JOIN-04 | Phase 3 | Complete |
 | UIEX-01 | Phase 5 | Pending |
 | UIEX-02 | Phase 5 | Pending |
 | UIEX-03 | Phase 5 | Pending |
@@ -108,4 +108,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-27*
-*Last updated: 2026-01-27 -- Phase 2 complete (SESS-01, SESS-02, SESS-03 verified)*
+*Last updated: 2026-01-27 -- Phase 3 complete (VOTE-01..04, JOIN-01..04 verified)*
