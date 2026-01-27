@@ -38,6 +38,7 @@ export default function AdminSession() {
   const [sessionVotes, setSessionVotes] = useState<Record<string, Vote[]>>({});
   const [quickQuestion, setQuickQuestion] = useState('');
   const [quickQuestionLoading, setQuickQuestionLoading] = useState(false);
+  const [lastClosedQuestionId, setLastClosedQuestionId] = useState<string | null>(null);
 
   // Track session ID in a ref for the channel setup callback
   const sessionIdRef = useRef<string | null>(null);
@@ -275,6 +276,7 @@ export default function AdminSession() {
 
     if (!error) {
       updateQuestion(questionId, { status: 'active' });
+      setLastClosedQuestionId(null);
 
       channelRef.current?.send({
         type: 'broadcast',
@@ -298,6 +300,7 @@ export default function AdminSession() {
 
     if (!error) {
       updateQuestion(questionId, { status: 'closed' });
+      setLastClosedQuestionId(questionId);
 
       channelRef.current?.send({
         type: 'broadcast',
@@ -352,6 +355,7 @@ export default function AdminSession() {
 
     if (!insertError && data) {
       useSessionStore.getState().addQuestion(data);
+      setLastClosedQuestionId(null);
 
       channelRef.current?.send({
         type: 'broadcast',
@@ -664,11 +668,30 @@ export default function AdminSession() {
                 countdownRunning={countdownRunning}
               />
             ) : (
-              <div className="flex flex-col items-center justify-center py-16 max-w-xl mx-auto">
-                <p className="text-xl text-gray-400 mb-8">
-                  Type a question to go live
-                </p>
-                <div className="w-full space-y-4">
+              <div className="space-y-10">
+                {/* Show last closed question results prominently */}
+                {lastClosedQuestionId && (() => {
+                  const closedQ = questions.find((q) => q.id === lastClosedQuestionId);
+                  if (!closedQ) return null;
+                  const votes = sessionVotes[closedQ.id] ?? [];
+                  const qIndex = questions.findIndex((q) => q.id === closedQ.id);
+                  return (
+                    <ActiveQuestionHero
+                      question={closedQ}
+                      questionIndex={qIndex}
+                      totalQuestions={questions.length}
+                      votes={votes}
+                      countdownRemaining={0}
+                      countdownRunning={false}
+                    />
+                  );
+                })()}
+
+                {/* Quick question input below results */}
+                <div className="max-w-xl mx-auto w-full space-y-4">
+                  <p className="text-lg text-gray-400 text-center">
+                    {lastClosedQuestionId ? 'Next question' : 'Type a question to go live'}
+                  </p>
                   <textarea
                     value={quickQuestion}
                     onChange={(e) => setQuickQuestion(e.target.value)}
