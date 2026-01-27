@@ -8,17 +8,17 @@
 
 ## Current Position
 
-**Phase:** 1 of 5 -- Integration Spike
-**Plan:** 1 of 2 complete
-**Status:** In progress
-**Last activity:** 2026-01-27 -- Completed 01-01-PLAN.md (scaffold)
-**Progress:** [##__________________] 1/2 phase 1 plans complete
+**Phase:** 1 of 5 -- Integration Spike (COMPLETE)
+**Plan:** 2 of 2 complete
+**Status:** Phase complete
+**Last activity:** 2026-01-27 -- Completed 01-02-PLAN.md (integration PoC)
+**Progress:** [####________________] 2/2 phase 1 plans complete (phase 1 done, 4 phases remaining)
 
 ## Phase Summary
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1 | Integration Spike | In Progress (1/2 plans done) |
+| 1 | Integration Spike | Complete (2/2 plans done) |
 | 2 | Data Foundation and Session Setup | Not Started |
 | 3 | Join Flow and Voting Mechanics | Not Started |
 | 4 | Realtime and Live Session Orchestration | Not Started |
@@ -28,7 +28,7 @@
 
 | Metric | Value |
 |--------|-------|
-| Plans completed | 1 |
+| Plans completed | 2 |
 | Plans failed | 0 |
 | Total requirements | 18 |
 | Requirements done | 0 |
@@ -42,6 +42,8 @@
 - Single Supabase channel per session multiplexing Broadcast + Presence + Postgres Changes
 - Idempotent vote insertion (UPSERT with UNIQUE constraint) from day one
 - Integration spike before feature work to validate Vercel + Supabase pipeline end-to-end
+- Vercel auto-deploy on push to main (git push, not Vercel CLI)
+- Multiplexed channel pattern validated: single channel handles both Broadcast and Postgres Changes
 
 ### Research Insights
 - Supabase Realtime has three mechanisms: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
@@ -50,10 +52,10 @@
 - Centralized useRealtimeChannel hook required to prevent subscription leaks
 - Mobile viewport: use 100dvh not 100vh
 - Tactile UI is the product identity, not polish -- must ship in v1
+- Tailwind CSS v4 uses CSS-first configuration (no tailwind.config.js), just @import "tailwindcss" in CSS
 
 ### TODOs
 - Verify Supabase anonymous auth API surface before Phase 2 planning
-- ~~Verify @supabase/supabase-js version (v2 vs v3) at install time~~ -- resolved: installed current version via npm
 - Verify motion vs framer-motion package name at install time
 - Test RLS + Realtime Postgres Changes interaction before Phase 4
 
@@ -62,11 +64,11 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-27 -- Completed 01-01 scaffold plan
-**Next action:** Execute 01-02-PLAN.md (integration proof-of-concept)
-**Resume file:** .planning/phases/01-integration-spike/01-02-PLAN.md
-**Context to preserve:** Phase 1 is infrastructure-only (no requirements). Scaffold is complete; Supabase project exists with test_messages table. Plan 01-02 will build the integration proof on top of this scaffold.
+**Last session:** 2026-01-27 -- Completed 01-02 integration PoC plan (Phase 1 complete)
+**Next action:** Begin Phase 2 planning (Data Foundation and Session Setup)
+**Resume file:** None -- Phase 1 complete, Phase 2 not yet planned
+**Context to preserve:** Phase 1 is fully validated. The Vite+React+Supabase+Vercel pipeline works end-to-end on a live URL. Demo.tsx proves DB read/write, Broadcast, and Postgres Changes all work. Phase 2 will build the real data layer (sessions, questions, admin links) on top of this foundation.
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-27 -- Completed 01-01 scaffold plan*
+*Updated: 2026-01-27 -- Completed 01-02 integration PoC plan (Phase 1 complete)*
