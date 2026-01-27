@@ -20,6 +20,7 @@ export interface Question {
   options: string[] | null;
   position: number;
   anonymous: boolean;
+  reasons_enabled: boolean;
   status: QuestionStatus;
   created_at: string;
 }
@@ -30,6 +31,7 @@ export interface Vote {
   session_id: string;
   participant_id: string;
   value: string;
+  reason: string | null;
   display_name: string | null;
   locked_in: boolean;
   created_at: string;

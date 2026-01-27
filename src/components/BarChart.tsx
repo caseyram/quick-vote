@@ -25,37 +25,42 @@ interface BarChartData {
 interface BarChartProps {
   data: BarChartData[];
   totalVotes?: number;
-  size?: 'default' | 'large';
+  size?: 'default' | 'large' | 'fill';
   theme?: 'dark' | 'light';
 }
 
 export function BarChart({ data, totalVotes, size = 'default', theme = 'dark' }: BarChartProps) {
-  const isLarge = size === 'large';
+  const isLarge = size === 'large' || size === 'fill';
+  const isFill = size === 'fill';
   const isLight = theme === 'light';
 
   const countClass = isLarge
-    ? `text-lg font-bold ${isLight ? 'text-gray-800' : 'text-white'}`
+    ? `text-xl font-bold ${isLight ? 'text-gray-800' : 'text-white'}`
     : `text-sm font-medium ${isLight ? 'text-gray-800' : 'text-white'}`;
 
   const labelClass = isLarge
-    ? `text-base font-medium ${isLight ? 'text-gray-600' : 'text-gray-200'}`
+    ? `text-lg font-semibold ${isLight ? 'text-gray-600' : 'text-gray-200'}`
     : `text-sm ${isLight ? 'text-gray-600' : 'text-gray-300'}`;
 
   const totalClass = isLarge
-    ? `text-sm ${isLight ? 'text-gray-500' : 'text-gray-400'}`
+    ? `text-base ${isLight ? 'text-gray-500' : 'text-gray-400'}`
     : `text-xs ${isLight ? 'text-gray-500' : 'text-gray-500'}`;
 
+  const heightStyle: React.CSSProperties = isFill
+    ? { height: '100%' }
+    : { height: isLarge ? 400 : 300 };
+
   return (
-    <div>
+    <div className={isFill ? 'h-full flex flex-col' : ''}>
       <div
-        className={`flex items-end justify-center ${isLarge ? 'gap-8' : 'gap-6'}`}
-        style={{ height: isLarge ? 400 : 300 }}
+        className={`flex items-end justify-center ${isLarge ? 'gap-8' : 'gap-6'} ${isFill ? 'flex-1 min-h-0' : ''}`}
+        style={isFill ? undefined : heightStyle}
       >
         {data.map((item) => (
           <div
             key={item.label}
             className="flex flex-col items-center h-full"
-            style={{ flex: '1 1 0', minWidth: 0, maxWidth: isLarge ? 160 : 120 }}
+            style={{ flex: '1 1 0', minWidth: 0, maxWidth: isLarge ? 200 : 120 }}
           >
             <div className={`${countClass} mb-1 whitespace-nowrap`}>
               {item.count} ({item.percentage}%)
@@ -78,7 +83,7 @@ export function BarChart({ data, totalVotes, size = 'default', theme = 'dark' }:
         ))}
       </div>
       {totalVotes !== undefined && (
-        <div className={`${totalClass} text-center mt-3`}>
+        <div className={`${totalClass} text-center mt-3 shrink-0`}>
           Total: {totalVotes} votes
         </div>
       )}

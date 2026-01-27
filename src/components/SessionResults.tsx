@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { aggregateVotes, type VoteCount } from '../lib/vote-aggregation';
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from './BarChart';
@@ -155,9 +155,77 @@ export default function SessionResults({ sessionId, theme = 'dark' }: SessionRes
                 />
               </div>
             )}
+
+            {/* Reasons list */}
+            <ReasonsSection
+              question={result.question}
+              votes={result.votes}
+              isLight={isLight}
+            />
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function ReasonsSection({
+  question,
+  votes,
+  isLight,
+}: {
+  question: Question;
+  votes: Vote[];
+  isLight: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const reasons = useMemo(() => {
+    return votes
+      .filter((v) => v.reason && v.reason.trim())
+      .map((v) => {
+        let color: string;
+        if (question.type === 'agree_disagree') {
+          const key = v.value.toLowerCase() as 'agree' | 'disagree' | 'sometimes';
+          color = AGREE_DISAGREE_COLORS[key] ?? '#6B7280';
+        } else {
+          const optIndex = (question.options ?? []).indexOf(v.value);
+          color = MULTI_CHOICE_COLORS[optIndex >= 0 ? optIndex % MULTI_CHOICE_COLORS.length : 0];
+        }
+        return { text: v.reason!, value: v.value, color };
+      });
+  }, [votes, question.type, question.options]);
+
+  if (reasons.length === 0) return null;
+
+  return (
+    <div className="pl-7">
+      <button
+        onClick={() => setExpanded((prev) => !prev)}
+        className={`text-sm font-medium transition-colors ${
+          isLight
+            ? 'text-indigo-600 hover:text-indigo-500'
+            : 'text-indigo-400 hover:text-indigo-300'
+        }`}
+      >
+        {expanded ? 'Hide' : 'Show'} Reasons ({reasons.length})
+        <span className="ml-1">{expanded ? '\u25B2' : '\u25BC'}</span>
+      </button>
+      {expanded && (
+        <div className="mt-2 space-y-1.5 max-h-60 overflow-y-auto">
+          {reasons.map((r, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span
+                className="mt-1.5 w-2.5 h-2.5 rounded-full shrink-0"
+                style={{ backgroundColor: r.color }}
+              />
+              <span className={`text-sm ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
+                {r.text}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

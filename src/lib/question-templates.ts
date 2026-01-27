@@ -6,6 +6,7 @@ export interface QuestionTemplate {
   type: VoteType;
   options: string[] | null;
   anonymous: boolean;
+  reasons_enabled: boolean;
 }
 
 export interface SavedTemplate {
@@ -22,6 +23,7 @@ export function questionsToTemplates(questions: Question[]): QuestionTemplate[] 
     type: q.type,
     options: q.options,
     anonymous: q.anonymous,
+    reasons_enabled: q.reasons_enabled ?? false,
   }));
 }
 
@@ -66,6 +68,7 @@ export function jsonToTemplates(json: string): QuestionTemplate[] {
       type: obj.type as VoteType,
       options,
       anonymous: typeof obj.anonymous === 'boolean' ? obj.anonymous : true,
+      reasons_enabled: typeof obj.reasons_enabled === 'boolean' ? obj.reasons_enabled : false,
     };
   });
 }
@@ -106,6 +109,7 @@ export async function bulkInsertQuestions(
     type: t.type,
     options: t.options,
     anonymous: t.anonymous,
+    reasons_enabled: t.reasons_enabled,
     position: startPosition + i,
     status: 'pending' as const,
   }));

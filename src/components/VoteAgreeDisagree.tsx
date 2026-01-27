@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useHaptic } from '../hooks/use-haptic';
 import { useSessionStore } from '../stores/session-store';
 import { AGREE_DISAGREE_COLORS } from './BarChart';
+import { ReasonInput } from './ReasonInput';
 import type { Question } from '../types/database';
 
 const UNSELECTED = 'rgba(55, 65, 81, 0.5)';
@@ -22,7 +23,7 @@ export default function VoteAgreeDisagree({
   displayName,
 }: VoteAgreeDisagreeProps) {
   const haptic = useHaptic();
-  const { setCurrentVote, submitting, setSubmitting } = useSessionStore();
+  const { currentVote, setCurrentVote, submitting, setSubmitting } = useSessionStore();
   const [agreeRef, animateAgree] = useAnimate();
   const [sometimesRef, animateSometimes] = useAnimate();
   const [disagreeRef, animateDisagree] = useAnimate();
@@ -201,7 +202,7 @@ export default function VoteAgreeDisagree({
       </div>
 
       {/* Submit button */}
-      <div className="px-4 py-4">
+      <div className="px-4 py-4 space-y-3">
         <button
           onClick={submitVote}
           disabled={!pendingSelection || submitting}
@@ -223,6 +224,9 @@ export default function VoteAgreeDisagree({
               ? 'Vote Submitted!'
               : 'Submit Vote'}
         </button>
+        {submitted && (question.reasons_enabled ?? false) && currentVote && (
+          <ReasonInput voteId={currentVote.id} existingReason={currentVote.reason ?? null} />
+        )}
       </div>
     </div>
   );

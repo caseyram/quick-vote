@@ -479,6 +479,18 @@ export default function AdminSession() {
     }
   }
 
+  async function handleToggleReasons(question: Question) {
+    const newValue = !(question.reasons_enabled ?? false);
+    const { error: err } = await supabase
+      .from('questions')
+      .update({ reasons_enabled: newValue })
+      .eq('id', question.id);
+
+    if (!err) {
+      updateQuestion(question.id, { reasons_enabled: newValue });
+    }
+  }
+
   // --- Loading / error states ---
 
   if (loading) {
@@ -543,10 +555,10 @@ export default function AdminSession() {
               </div>
             </div>
 
-            {/* Anonymous/Named voting privacy toggles */}
+            {/* Question settings toggles */}
             {questions.length > 0 && (
               <div className="bg-white rounded-lg p-4">
-                <p className="text-sm text-gray-500 font-medium mb-3">Voting Privacy</p>
+                <p className="text-sm text-gray-500 font-medium mb-3">Question Settings</p>
                 <div className="space-y-2">
                   {questions.map((q, index) => (
                     <div
@@ -557,56 +569,51 @@ export default function AdminSession() {
                         <span className="text-gray-400 font-mono">{index + 1}.</span>{' '}
                         {q.text}
                       </span>
-                      <button
-                        onClick={() => handleToggleAnonymous(q)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors shrink-0 ${
-                          q.anonymous
-                            ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                        }`}
-                        title={
-                          q.anonymous
-                            ? 'Click to make named voting'
-                            : 'Click to make anonymous voting'
-                        }
-                      >
-                        {q.anonymous ? (
-                          <svg
-                            className="w-3 h-3"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                            />
+                      <div className="flex gap-1 shrink-0">
+                        <button
+                          onClick={() => handleToggleReasons(q)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                            q.reasons_enabled
+                              ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                              : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
+                          }`}
+                          title={
+                            q.reasons_enabled
+                              ? 'Click to disable reasons'
+                              : 'Click to enable reasons'
+                          }
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                           </svg>
-                        ) : (
-                          <svg
-                            className="w-3 h-3"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                            />
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                            />
-                          </svg>
-                        )}
-                        {q.anonymous ? 'Anonymous' : 'Named'}
-                      </button>
+                          Reasons
+                        </button>
+                        <button
+                          onClick={() => handleToggleAnonymous(q)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                            q.anonymous
+                              ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                              : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                          }`}
+                          title={
+                            q.anonymous
+                              ? 'Click to make named voting'
+                              : 'Click to make anonymous voting'
+                          }
+                        >
+                          {q.anonymous ? (
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          )}
+                          {q.anonymous ? 'Anonymous' : 'Named'}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -660,14 +667,15 @@ export default function AdminSession() {
 
       {/* Active View: hero question + results for projection */}
       {isActive && (
-        <div className="min-h-screen bg-white pb-20">
+        <div className="bg-white">
           {/* Top header bar */}
-          <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <div className="border-b border-gray-200 px-6 py-3 flex items-center justify-between h-14 shrink-0">
             <h1 className="text-2xl font-bold text-gray-900">{session.title}</h1>
             <ParticipantCount count={participantCount} size="default" />
           </div>
 
-          <div className="max-w-5xl mx-auto px-6 py-8">
+          {/* Hero fills viewport minus header (56px) and control bar (56px) */}
+          <div className="max-w-6xl mx-auto px-6" style={{ height: 'calc(100dvh - 7rem)' }}>
             {/* Hero active question */}
             {activeQuestion ? (
               <ActiveQuestionHero
@@ -679,109 +687,113 @@ export default function AdminSession() {
                 countdownRunning={countdownRunning}
               />
             ) : (
-              <div className="space-y-10">
+              <div className="h-full flex flex-col">
                 {/* Show last closed question results prominently */}
-                {lastClosedQuestionId && (() => {
+                {lastClosedQuestionId ? (() => {
                   const closedQ = questions.find((q) => q.id === lastClosedQuestionId);
                   if (!closedQ) return null;
                   const votes = sessionVotes[closedQ.id] ?? [];
                   const qIndex = questions.findIndex((q) => q.id === closedQ.id);
                   return (
-                    <ActiveQuestionHero
-                      question={closedQ}
-                      questionIndex={qIndex}
-                      totalQuestions={questions.length}
-                      votes={votes}
-                      countdownRemaining={0}
-                      countdownRunning={false}
-                    />
+                    <div className="flex-1 min-h-0">
+                      <ActiveQuestionHero
+                        question={closedQ}
+                        questionIndex={qIndex}
+                        totalQuestions={questions.length}
+                        votes={votes}
+                        countdownRemaining={0}
+                        countdownRunning={false}
+                      />
+                    </div>
                   );
-                })()}
-
-                {/* Quick question input below results */}
-                <div className="max-w-xl mx-auto w-full space-y-4">
-                  <p className="text-lg text-gray-400 text-center">
-                    {lastClosedQuestionId ? 'Next question' : 'Type a question to go live'}
-                  </p>
-                  <textarea
-                    value={quickQuestion}
-                    onChange={(e) => setQuickQuestion(e.target.value)}
-                    placeholder="Enter your question..."
-                    rows={2}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 text-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey && quickQuestion.trim()) {
-                        e.preventDefault();
-                        handleQuickQuestion(quickQuestion, null);
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={() => handleQuickQuestion(quickQuestion, null)}
-                    disabled={!quickQuestion.trim() || quickQuestionLoading}
-                    className="w-full py-3 bg-green-600 hover:bg-green-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-lg font-semibold rounded-xl transition-colors"
-                  >
-                    {quickQuestionLoading ? 'Going live...' : 'Go Live'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Previous results grid */}
-            {closedQuestions.length > 0 && (
-              <div className="mt-12">
-                <h2 className="text-lg font-semibold text-gray-700 mb-4">
-                  Previous Results
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {closedQuestions.map((q) => {
-                    const votes = sessionVotes[q.id] ?? [];
-                    const aggregated = aggregateVotes(votes);
-                    const barData = aggregated.map((vc, index) => {
-                      let color: string;
-                      if (q.type === 'agree_disagree') {
-                        const key = vc.value.toLowerCase() as 'agree' | 'disagree' | 'sometimes';
-                        color =
-                          AGREE_DISAGREE_COLORS[key] ??
-                          MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
-                      } else {
-                        color = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
-                      }
-                      return {
-                        label: vc.value,
-                        count: vc.count,
-                        percentage: vc.percentage,
-                        color,
-                      };
-                    });
-
-                    const qIndex = questions.findIndex((qn) => qn.id === q.id);
-
-                    return (
-                      <div
-                        key={q.id}
-                        className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2"
+                })() : (
+                  /* Quick question input when no results to show */
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="max-w-xl w-full space-y-4">
+                      <p className="text-xl text-gray-400 text-center">
+                        Type a question to go live
+                      </p>
+                      <textarea
+                        value={quickQuestion}
+                        onChange={(e) => setQuickQuestion(e.target.value)}
+                        placeholder="Enter your question..."
+                        rows={2}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 text-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey && quickQuestion.trim()) {
+                            e.preventDefault();
+                            handleQuickQuestion(quickQuestion, null);
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => handleQuickQuestion(quickQuestion, null)}
+                        disabled={!quickQuestion.trim() || quickQuestionLoading}
+                        className="w-full py-3 bg-green-600 hover:bg-green-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-lg font-semibold rounded-xl transition-colors"
                       >
-                        <p className="text-sm text-gray-500">Q{qIndex + 1}</p>
-                        <p className="text-sm font-medium text-gray-800 truncate">
-                          {q.text}
-                        </p>
-                        {aggregated.length > 0 ? (
-                          <BarChart
-                            data={barData}
-                            totalVotes={votes.length}
-                            theme="light"
-                          />
-                        ) : (
-                          <p className="text-xs text-gray-400">No votes</p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                        {quickQuestionLoading ? 'Going live...' : 'Go Live'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
+
+          {/* Previous results grid — scrolls below the fold */}
+          {closedQuestions.length > 0 && (
+            <div className="max-w-5xl mx-auto px-6 py-8 pb-20">
+              <h2 className="text-lg font-semibold text-gray-700 mb-4">
+                Previous Results
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {closedQuestions.map((q) => {
+                  const votes = sessionVotes[q.id] ?? [];
+                  const aggregated = aggregateVotes(votes);
+                  const barData = aggregated.map((vc, index) => {
+                    let color: string;
+                    if (q.type === 'agree_disagree') {
+                      const key = vc.value.toLowerCase() as 'agree' | 'disagree' | 'sometimes';
+                      color =
+                        AGREE_DISAGREE_COLORS[key] ??
+                        MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
+                    } else {
+                      color = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
+                    }
+                    return {
+                      label: vc.value,
+                      count: vc.count,
+                      percentage: vc.percentage,
+                      color,
+                    };
+                  });
+
+                  const qIndex = questions.findIndex((qn) => qn.id === q.id);
+
+                  return (
+                    <div
+                      key={q.id}
+                      className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2"
+                    >
+                      <p className="text-sm text-gray-500">Q{qIndex + 1}</p>
+                      <p className="text-sm font-medium text-gray-800 truncate">
+                        {q.text}
+                      </p>
+                      {aggregated.length > 0 ? (
+                        <BarChart
+                          data={barData}
+                          totalVotes={votes.length}
+                          theme="light"
+                        />
+                      ) : (
+                        <p className="text-xs text-gray-400">No votes</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -845,6 +857,7 @@ function ActiveQuestionHero({
   countdownRemaining: number;
   countdownRunning: boolean;
 }) {
+  const [reasonsExpanded, setReasonsExpanded] = useState(false);
   const aggregated = useMemo(() => aggregateVotes(votes), [votes]);
   const barData = useMemo(() => {
     return aggregated.map((vc, index) => {
@@ -868,32 +881,77 @@ function ActiveQuestionHero({
 
   const isClosed = question.status === 'closed' || question.status === 'revealed';
 
+  // Collect reasons from votes, grouped by value with color
+  const reasons = useMemo(() => {
+    return votes
+      .filter((v) => v.reason && v.reason.trim())
+      .map((v) => {
+        let color: string;
+        if (question.type === 'agree_disagree') {
+          const key = v.value.toLowerCase() as 'agree' | 'disagree' | 'sometimes';
+          color = AGREE_DISAGREE_COLORS[key] ?? '#6B7280';
+        } else {
+          const optIndex = (question.options ?? []).indexOf(v.value);
+          color = MULTI_CHOICE_COLORS[optIndex >= 0 ? optIndex % MULTI_CHOICE_COLORS.length : 0];
+        }
+        return { text: v.reason!, value: v.value, color };
+      });
+  }, [votes, question.type, question.options]);
+
   return (
-    <div className="text-center space-y-6">
-      <p className="text-lg text-gray-500">
-        Question {questionIndex + 1} of {totalQuestions}
-      </p>
+    <div className={`h-full flex flex-col text-center py-4 ${!isClosed ? 'justify-center' : ''}`}>
+      <div className="shrink-0">
+        <p className="text-2xl text-gray-500">
+          Question {questionIndex + 1} of {totalQuestions}
+        </p>
 
-      <h2 className="text-3xl font-bold text-gray-900 max-w-3xl mx-auto">
-        &ldquo;{question.text}&rdquo;
-      </h2>
+        <h2 className="text-5xl font-bold text-gray-900 max-w-4xl mx-auto mt-3 leading-tight">
+          &ldquo;{question.text}&rdquo;
+        </h2>
 
-      <div className="flex items-center justify-center gap-4">
-        <span className="text-xl text-gray-600">
-          {votes.length} vote{votes.length !== 1 ? 's' : ''}
-        </span>
-        <CountdownTimer
-          remainingSeconds={Math.ceil(countdownRemaining / 1000)}
-          isRunning={countdownRunning}
-          size="large"
-          theme="light"
-        />
+        <div className="flex items-center justify-center gap-4 mt-4">
+          <span className="text-2xl text-gray-600">
+            {votes.length} vote{votes.length !== 1 ? 's' : ''}
+          </span>
+          <CountdownTimer
+            remainingSeconds={Math.ceil(countdownRemaining / 1000)}
+            isRunning={countdownRunning}
+            size="large"
+            theme="light"
+          />
+        </div>
       </div>
 
-      {/* Show bar chart when voting is closed */}
+      {/* Bar chart fills remaining space when voting is closed */}
       {isClosed && aggregated.length > 0 && (
-        <div className="mt-8 max-w-2xl mx-auto">
-          <BarChart data={barData} totalVotes={votes.length} size="large" theme="light" />
+        <div className={`mt-4 mx-auto w-full max-w-4xl ${reasonsExpanded ? 'h-48 shrink-0' : 'flex-1 min-h-0'}`}>
+          <BarChart data={barData} totalVotes={votes.length} size="fill" theme="light" />
+        </div>
+      )}
+
+      {/* Expandable reasons panel */}
+      {isClosed && reasons.length > 0 && (
+        <div className="shrink-0 mt-3">
+          <button
+            onClick={() => setReasonsExpanded((prev) => !prev)}
+            className="text-lg font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
+          >
+            {reasonsExpanded ? 'Hide' : 'Show'} Reasons ({reasons.length})
+            <span className="ml-1">{reasonsExpanded ? '\u25B2' : '\u25BC'}</span>
+          </button>
+          {reasonsExpanded && (
+            <div className="mt-2 max-h-[35vh] overflow-y-auto text-left max-w-3xl mx-auto space-y-2 px-2">
+              {reasons.map((r, i) => (
+                <div key={i} className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-3">
+                  <span
+                    className="mt-1.5 w-3 h-3 rounded-full shrink-0"
+                    style={{ backgroundColor: r.color }}
+                  />
+                  <span className="text-xl text-gray-800">{r.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
