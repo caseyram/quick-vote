@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx vercel --yes)",
+      "Bash(npx vercel:*)",
+      "Bash(echo:*)",
+      "Bash(npx:*)",
+      "Bash(ls:*)",
+      "Bash(npm install:*)",
+      "Bash(vercel --version:*)",
+      "Bash(node -e \"const { execSync } = require\\(''child_process''\\); const r = execSync\\(''npx --yes vercel@latest whoami'', { encoding: ''utf8'', stdio: ''pipe'' }\\); console.log\\(''OUTPUT:'', r\\);\")",
+      "Bash(git push:*)",
+      "Bash(python3:*)",
+      "Bash(python:*)",
+      "WebSearch",
+      "Bash(npm ls:*)"
+    ]
+  }
+}
