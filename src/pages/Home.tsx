@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { nanoid } from 'nanoid';
 import { supabase } from '../lib/supabase';
+import { AdminPasswordGate } from '../components/AdminPasswordGate';
+import { PastSessions } from '../components/PastSessions';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -50,43 +52,47 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
-      <div className="w-full max-w-md text-center space-y-8">
-        <div>
-          <h1 className="text-5xl font-bold text-white tracking-tight">
-            QuickVote
-          </h1>
-          <p className="mt-3 text-gray-400 text-lg">
-            Create a live voting session in seconds
-          </p>
+    <AdminPasswordGate>
+      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-4 py-12 gap-12">
+        <div className="w-full max-w-md text-center space-y-8">
+          <div>
+            <h1 className="text-5xl font-bold text-white tracking-tight">
+              QuickVote
+            </h1>
+            <p className="mt-3 text-gray-400 text-lg">
+              Create a live voting session in seconds
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Session title (optional)"
+              className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              disabled={creating}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreateSession();
+              }}
+            />
+
+            <button
+              onClick={handleCreateSession}
+              disabled={creating}
+              className="w-full py-3 px-6 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+            >
+              {creating ? 'Creating...' : 'Create Session'}
+            </button>
+
+            {error && (
+              <p className="text-red-400 text-sm">{error}</p>
+            )}
+          </div>
         </div>
 
-        <div className="space-y-4">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Session title (optional)"
-            className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            disabled={creating}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCreateSession();
-            }}
-          />
-
-          <button
-            onClick={handleCreateSession}
-            disabled={creating}
-            className="w-full py-3 px-6 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
-          >
-            {creating ? 'Creating...' : 'Create Session'}
-          </button>
-
-          {error && (
-            <p className="text-red-400 text-sm">{error}</p>
-          )}
-        </div>
+        <PastSessions />
       </div>
-    </div>
+    </AdminPasswordGate>
   );
 }

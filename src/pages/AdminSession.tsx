@@ -14,6 +14,9 @@ import { ConnectionBanner } from '../components/ConnectionBanner';
 import { ParticipantCount } from '../components/ParticipantCount';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { AdminControlBar } from '../components/AdminControlBar';
+import { AdminPasswordGate } from '../components/AdminPasswordGate';
+import { ImportExportPanel } from '../components/ImportExportPanel';
+import { TemplatePanel } from '../components/TemplatePanel';
 import type { Question, Vote } from '../types/database';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -480,29 +483,33 @@ export default function AdminSession() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500 text-lg">Loading session...</p>
-      </div>
+      <AdminPasswordGate>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <p className="text-gray-500 text-lg">Loading session...</p>
+        </div>
+      </AdminPasswordGate>
     );
   }
 
   if (error || !session) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <p className="text-red-400 text-lg">Session not found</p>
-          <a href="/" className="text-indigo-600 hover:text-indigo-700 underline">
-            Back to Home
-          </a>
+      <AdminPasswordGate>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <p className="text-red-400 text-lg">Session not found</p>
+            <a href="/" className="text-indigo-600 hover:text-indigo-700 underline">
+              Back to Home
+            </a>
+          </div>
         </div>
-      </div>
+      </AdminPasswordGate>
     );
   }
 
   // --- View Layouts ---
 
   return (
-    <>
+    <AdminPasswordGate>
       <ConnectionBanner status={connectionStatus} />
 
       {/* Draft View: preserved admin-focused layout */}
@@ -607,10 +614,14 @@ export default function AdminSession() {
             )}
 
             {/* Question list with edit/delete/reorder */}
-            <div className="bg-white rounded-lg p-6">
+            <div className="bg-white rounded-lg p-6 space-y-4">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Questions</h2>
               <QuestionList onEditQuestion={setEditingQuestion} />
+              <ImportExportPanel sessionId={session.session_id} />
             </div>
+
+            {/* Templates */}
+            <TemplatePanel sessionId={session.session_id} />
 
             {/* Question form */}
             <div className="bg-white rounded-lg p-6">
@@ -805,7 +816,7 @@ export default function AdminSession() {
         onQuickQuestion={handleQuickQuestion}
         quickQuestionLoading={quickQuestionLoading}
       />
-    </>
+    </AdminPasswordGate>
   );
 }
 
