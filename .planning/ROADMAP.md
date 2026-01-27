@@ -95,6 +95,14 @@ Plans:
 
 **Requirements:** LIVE-01, LIVE-02, LIVE-03, LIVE-04
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md -- Create useRealtimeChannel, usePresence, useCountdown hooks and extend Zustand store with realtime state
+- [ ] 04-02-PLAN.md -- Create BarChart, CountdownTimer, ConnectionBanner, ParticipantCount components and SQL publication file
+- [ ] 04-03-PLAN.md -- Rewrite AdminSession and AdminQuestionControl with realtime channel, broadcast, live vote stream, bar chart, timer, presence
+- [ ] 04-04-PLAN.md -- Rewrite ParticipantSession with Broadcast listeners, countdown timer, presence, connection banner, remove all polling
+
 **Success Criteria:**
 1. Admin can advance to the next question and all connected participants see the new question appear without refreshing
 2. Admin can close voting (manually or via countdown timer) and reveal results, with participants seeing the state change in real-time
@@ -167,3 +175,4 @@ Plans:
 *Updated: 2026-01-27 -- Phase 2 complete (verified 7/7 must-haves, SESS-01/02/03 satisfied)*
 *Updated: 2026-01-27 -- Phase 3 plans created (3 plans, 2 waves)*
 *Updated: 2026-01-27 -- Phase 3 complete (verified 5/5 success criteria, VOTE-01..04/JOIN-01..04 satisfied)*
+*Updated: 2026-01-27 -- Phase 4 plans created (4 plans, 2 waves)*
