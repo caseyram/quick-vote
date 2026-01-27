@@ -197,6 +197,31 @@ export default function AdminSession() {
     presenceConfig
   );
 
+  // Poll votes every 3s while session is active (reliable fallback for Postgres Changes)
+  useEffect(() => {
+    if (!isActive || !session?.session_id) return;
+
+    const interval = setInterval(async () => {
+      const { data: votesData } = await supabase
+        .from('votes')
+        .select('*')
+        .eq('session_id', session.session_id);
+
+      if (votesData) {
+        const voteMap: Record<string, Vote[]> = {};
+        for (const vote of votesData) {
+          if (!voteMap[vote.question_id]) {
+            voteMap[vote.question_id] = [];
+          }
+          voteMap[vote.question_id].push(vote);
+        }
+        setSessionVotes(voteMap);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isActive, session?.session_id]);
+
   // Page-level countdown for active questions (used in control bar + hero display)
   const handleCountdownComplete = useCallback(async () => {
     const activeQ = questions.find((q) => q.status === 'active');
