@@ -9,10 +9,10 @@
 ## Current Position
 
 **Phase:** 3 of 5 -- Join Flow and Voting Mechanics
-**Plan:** 1 of 3 complete
+**Plan:** 2 of 3 complete
 **Status:** In progress
-**Last activity:** 2026-01-27 -- Completed 03-01-PLAN.md (foundation hooks, utilities, store)
-**Progress:** [############________] Phases 1-2 + plan 03-01 done (6/8 plans across phases 1-3)
+**Last activity:** 2026-01-27 -- Completed 03-02-PLAN.md (participant voting UI + state machine)
+**Progress:** [##############______] Phases 1-2 + plans 03-01, 03-02 done (7/8 plans across phases 1-3)
 
 ## Phase Summary
 
@@ -20,7 +20,7 @@
 |-------|------|--------|
 | 1 | Integration Spike | Complete (2/2 plans done) |
 | 2 | Data Foundation and Session Setup | Complete (3/3 plans done) |
-| 3 | Join Flow and Voting Mechanics | In Progress (1/3 plans done) |
+| 3 | Join Flow and Voting Mechanics | In Progress (2/3 plans done) |
 | 4 | Realtime and Live Session Orchestration | Not Started |
 | 5 | Immersive UI and Polish | Not Started |
 
@@ -28,10 +28,10 @@
 
 | Metric | Value |
 |--------|-------|
-| Plans completed | 6 |
+| Plans completed | 7 |
 | Plans failed | 0 |
 | Total requirements | 18 |
-| Requirements done | 3 (SESS-01, SESS-02, SESS-03) |
+| Requirements done | 10 (SESS-01, SESS-02, SESS-03, VOTE-01, VOTE-02, VOTE-03, VOTE-04, JOIN-02, JOIN-03, JOIN-04) |
 
 ## Accumulated Context
 
@@ -55,6 +55,10 @@
 - VoteCount interface in vote-aggregation.ts (derived UI type, not DB row -- not in database.ts)
 - Voting state added to existing Zustand store (single store pattern, not separate voting store)
 - 400ms double-tap threshold for forgiving mobile gesture detection
+- ParticipantSession uses local state machine for view derivation (not Zustand) -- page-level UI state
+- Safe Session type casts admin_token/created_by to empty strings for Zustand store compatibility on participant side
+- Name prompt persisted to sessionStorage (scoped to browser tab), shown once per session for named questions
+- Results view in ParticipantSession is intentional placeholder (Plan 03-03 builds full SessionResults)
 
 ### Research Insights
 - Supabase Realtime has three mechanisms: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
@@ -79,10 +83,10 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-27 -- Completed 03-01-PLAN.md (foundation hooks, utilities, store extensions)
-**Next action:** Execute 03-02-PLAN.md (participant voting UI) and 03-03-PLAN.md (admin controls) -- Wave 2 plans
+**Last session:** 2026-01-27 -- Completed 03-02-PLAN.md (participant voting UI + state machine with polling bridge)
+**Next action:** Execute 03-03-PLAN.md (admin controls: QR code, session state transitions, question activation, vote progress, SessionResults)
 **Resume file:** None
-**Context to preserve:** Phase 3 Wave 1 complete. Foundation hooks (useDoubleTap, useHaptic), vote aggregation utility, Zustand voting state, and qrcode.react installed. Wave 2 (plans 03-02 and 03-03) can proceed in parallel. moddatetime trigger SQL needs manual execution in Supabase SQL Editor.
+**Context to preserve:** Phase 3 Wave 2 in progress. Participant voting UI complete (VoteAgreeDisagree, VoteMultipleChoice, VoteConfirmation, Lobby, ParticipantSession state machine). Polling bridge fetches state every 4s. Plan 03-03 (admin controls) is the remaining plan. moddatetime trigger SQL still needs manual execution in Supabase SQL Editor.
 
 ---
 *State initialized: 2026-01-27*
@@ -94,3 +98,4 @@
 *Updated: 2026-01-27 -- Phase 2 verified (7/7 must-haves, 3/3 requirements complete)*
 *Updated: 2026-01-27 -- Phase 3 planned (3 plans, 2 waves, research + verification passed)*
 *Updated: 2026-01-27 -- Completed 03-01 (foundation hooks, utilities, store extensions)*
+*Updated: 2026-01-27 -- Completed 03-02 (participant voting UI, state machine, polling bridge)*
