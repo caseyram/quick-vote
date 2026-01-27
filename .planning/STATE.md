@@ -9,10 +9,10 @@
 ## Current Position
 
 **Phase:** 5 of 5 -- Immersive UI and Polish
-**Plan:** 1 of 4 complete
+**Plan:** 2 of 4 complete
 **Status:** In progress
-**Last activity:** 2026-01-27 -- Completed 05-01 (animation foundation, theme tokens, ConnectionPill)
-**Progress:** [#########################-----] 13/16 plans complete (phases 1-4 done, phase 5: 1/4)
+**Last activity:** 2026-01-27 -- Completed 05-02 (vote interaction animations)
+**Progress:** [##########################----] 14/16 plans complete (phases 1-4 done, phase 5: 2/4)
 
 ## Phase Summary
 
@@ -22,13 +22,13 @@
 | 2 | Data Foundation and Session Setup | Complete (3/3 plans done) |
 | 3 | Join Flow and Voting Mechanics | Complete (3/3 plans done) |
 | 4 | Realtime and Live Session Orchestration | Complete (4/4 plans done) |
-| 5 | Immersive UI and Polish | In Progress (1/4 plans done) |
+| 5 | Immersive UI and Polish | In Progress (2/4 plans done) |
 
 ## Performance Metrics
 
 | Metric | Value |
 |--------|-------|
-| Plans completed | 13 |
+| Plans completed | 14 |
 | Plans failed | 0 |
 | Total requirements | 18 |
 | Requirements done | 16 (SESS-01..03, VOTE-01..04, JOIN-01..04, LIVE-01..04, UIEX-03) |
@@ -81,6 +81,9 @@
 - Standard motion import (not LazyMotion) -- 34kb justified for animation-heavy app
 - oklch color space for Tailwind theme tokens -- perceptual uniformity across vote colors
 - ConnectionPill as new component alongside ConnectionBanner -- banner preserved for admin pages
+- Blue/orange vote colors from BarChart constants (not green/red) for neutral, non-judgmental feel
+- Skip selection pulse for multiple choice -- whileTap + color fill is sufficient feedback
+- Unselected vote buttons use rgba(55,65,81,0.5) for dark-but-visible appearance
 
 ### Research Insights
 - Supabase Realtime has three mechanisms: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
@@ -104,10 +107,10 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-27 -- Completed 05-01 (animation foundation, theme tokens, ConnectionPill)
-**Next action:** Execute 05-02-PLAN.md (vote interaction animations)
+**Last session:** 2026-01-27 -- Completed 05-02 (vote interaction animations)
+**Next action:** Execute 05-03-PLAN.md (question slide transitions / full-screen layout)
 **Resume file:** None
-**Context to preserve:** Phase 5 started. motion@12.29.2 installed (import from "motion/react"). Tailwind @theme tokens added (surface-dark, surface-elevated, vote-agree, vote-disagree). ConnectionPill component created with animated status dot and conditional text label. ConnectionBanner preserved for admin use. Build passes with zero TS errors.
+**Context to preserve:** Phase 5 in progress (2/4). Vote components now use Motion: motion.button with animate (color fill) + whileTap (scale 0.97) in VoteAgreeDisagree and VoteMultipleChoice. VoteConfirmation uses AnimatePresence with scale+opacity entrance and pathLength checkmark draw-in. Blue/orange agree/disagree, 8-color MULTI_CHOICE_COLORS palette. No CSS transition classes remain on vote elements. Build passes with zero TS errors.
 
 ---
 *State initialized: 2026-01-27*
@@ -128,3 +131,4 @@
 *Updated: 2026-01-27 -- Completed 04-04 (participant realtime: broadcast listeners, presence, timer, reconnection) -- Phase 4 complete*
 *Updated: 2026-01-27 -- Phase 4 verified (4/4 success criteria, 15 requirements complete)*
 *Updated: 2026-01-27 -- Completed 05-01 (animation foundation, theme tokens, ConnectionPill)*
+*Updated: 2026-01-27 -- Completed 05-02 (vote interaction animations: motion.button, AnimatePresence, pathLength)*
