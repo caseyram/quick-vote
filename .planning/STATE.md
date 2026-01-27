@@ -8,11 +8,11 @@
 
 ## Current Position
 
-**Phase:** 3 of 5 -- Join Flow and Voting Mechanics (COMPLETE)
-**Plan:** 3 of 3 complete
-**Status:** Phase 3 complete and verified (5/5 success criteria, VOTE-01..04/JOIN-01..04 satisfied)
-**Last activity:** 2026-01-27 -- Phase 3 verified and committed
-**Progress:** [################____] Phases 1-3 complete (8/8 plans across phases 1-3)
+**Phase:** 4 of 5 -- Realtime and Live Session Orchestration
+**Plan:** 2 of 4 complete
+**Status:** In progress (04-01 hooks + 04-02 UI components done, 04-03 admin + 04-04 participant remaining)
+**Last activity:** 2026-01-27 -- Completed 04-02 (realtime UI components and SQL prerequisites)
+**Progress:** [################____] 10/12 plans complete (phases 1-3 done, phase 4 in progress)
 
 ## Phase Summary
 
@@ -21,14 +21,14 @@
 | 1 | Integration Spike | Complete (2/2 plans done) |
 | 2 | Data Foundation and Session Setup | Complete (3/3 plans done) |
 | 3 | Join Flow and Voting Mechanics | Complete (3/3 plans done) |
-| 4 | Realtime and Live Session Orchestration | Not Started |
+| 4 | Realtime and Live Session Orchestration | In Progress (2/4 plans done) |
 | 5 | Immersive UI and Polish | Not Started |
 
 ## Performance Metrics
 
 | Metric | Value |
 |--------|-------|
-| Plans completed | 8 |
+| Plans completed | 10 |
 | Plans failed | 0 |
 | Total requirements | 18 |
 | Requirements done | 11 (SESS-01, SESS-02, SESS-03, VOTE-01, VOTE-02, VOTE-03, VOTE-04, JOIN-01, JOIN-02, JOIN-03, JOIN-04) |
@@ -63,6 +63,9 @@
 - Wider layout (max-w-4xl) during live session for admin presentation screen readability
 - AdminQuestionControl fetches and polls votes independently per question (encapsulated data fetching)
 - Question status polling at 3s during active session (temporary bridge until Phase 4 realtime)
+- CSS height transitions (0.5s ease-out) for BarChart animation -- simple, zero-dependency approach
+- Blue/orange for agree/disagree, 8-color palette for multiple choice -- neutral, non-judgmental
+- Pill badge with clock SVG for countdown timer -- compact, non-distracting per CONTEXT.md
 
 ### Research Insights
 - Supabase Realtime has three mechanisms: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
@@ -87,10 +90,10 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-27 -- Phase 3 verified (5/5 success criteria, 8 requirements complete)
-**Next action:** Execute Phase 4 (`/gsd:discuss-phase 4` or `/gsd:plan-phase 4`)
+**Last session:** 2026-01-27 -- Completed 04-02 (realtime UI components and SQL prerequisites)
+**Next action:** Execute 04-03-PLAN.md (admin session realtime wiring)
 **Resume file:** None
-**Context to preserve:** Phase 3 complete and verified. All voting mechanics (participant + admin) work end-to-end via polling. Phase 4 replaces polling with Supabase Realtime subscriptions. Polling intervals: 4s in ParticipantSession, 3s in AdminSession/AdminQuestionControl. moddatetime trigger SQL still needs manual execution in Supabase SQL Editor. Build passes with zero TS errors.
+**Context to preserve:** Phase 4 plans 01-02 complete. Hooks (useRealtimeChannel, usePresence, useCountdown) and UI components (BarChart, CountdownTimer, ConnectionBanner, ParticipantCount) ready. realtime-publication.sql must be run in Supabase SQL Editor before testing. Plans 03-04 wire these into admin and participant pages respectively. Build passes with zero TS errors.
 
 ---
 *State initialized: 2026-01-27*
@@ -105,3 +108,5 @@
 *Updated: 2026-01-27 -- Completed 03-02 (participant voting UI, state machine, polling bridge)*
 *Updated: 2026-01-27 -- Completed 03-03 (admin controls: QR, state machine, question activation, results) -- Phase 3 complete*
 *Updated: 2026-01-27 -- Phase 3 verified (5/5 success criteria, 8 requirements complete)*
+*Updated: 2026-01-27 -- Completed 04-01 (realtime hooks: useRealtimeChannel, usePresence, useCountdown)*
+*Updated: 2026-01-27 -- Completed 04-02 (realtime UI components: BarChart, CountdownTimer, ConnectionBanner, ParticipantCount)*
