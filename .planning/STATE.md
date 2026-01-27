@@ -8,18 +8,18 @@
 
 ## Current Position
 
-**Phase:** 2 of 5 -- Data Foundation and Session Setup (IN PROGRESS)
-**Plan:** 2 of 3 complete
-**Status:** In progress -- 02-02 complete, next is 02-03
-**Last activity:** 2026-01-27 -- Completed 02-02-PLAN.md (router, store, pages)
-**Progress:** [########____________] Phase 1 done, Phase 2 in progress (2/3 plans done)
+**Phase:** 2 of 5 -- Data Foundation and Session Setup (COMPLETE)
+**Plan:** 3 of 3 complete
+**Status:** Phase 2 complete -- all session setup requirements satisfied
+**Last activity:** 2026-01-27 -- Completed 02-03-PLAN.md (question CRUD)
+**Progress:** [##########__________] Phase 1 + Phase 2 done (5/5 plans across phases 1-2)
 
 ## Phase Summary
 
 | Phase | Name | Status |
 |-------|------|--------|
 | 1 | Integration Spike | Complete (2/2 plans done) |
-| 2 | Data Foundation and Session Setup | In Progress (2/3 plans done) |
+| 2 | Data Foundation and Session Setup | Complete (3/3 plans done) |
 | 3 | Join Flow and Voting Mechanics | Not Started |
 | 4 | Realtime and Live Session Orchestration | Not Started |
 | 5 | Immersive UI and Polish | Not Started |
@@ -28,10 +28,10 @@
 
 | Metric | Value |
 |--------|-------|
-| Plans completed | 4 |
+| Plans completed | 5 |
 | Plans failed | 0 |
 | Total requirements | 18 |
-| Requirements done | 0 |
+| Requirements done | 3 (SESS-01, SESS-02, SESS-03) |
 
 ## Accumulated Context
 
@@ -50,6 +50,8 @@
 - Single Zustand store for session + questions (always used together)
 - Auth gating in App.tsx (not per-page) ensures anonymous auth ready before any Supabase calls
 - Explicit column list in participant queries to never expose admin_token
+- Individual updates for position swap over upsert (avoids NOT NULL column issues in upsert)
+- Edit state managed in AdminSession parent (QuestionList triggers, QuestionForm receives)
 
 ### Research Insights
 - Supabase Realtime has three mechanisms: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
@@ -74,10 +76,10 @@
 
 ## Session Continuity
 
-**Last session:** 2026-01-27 -- Completed 02-02 (router, store, pages)
-**Next action:** Execute 02-03-PLAN.md (question CRUD)
+**Last session:** 2026-01-27 -- Completed 02-03 (question CRUD)
+**Next action:** Plan and execute Phase 3 (Join Flow and Voting Mechanics)
 **Resume file:** None
-**Context to preserve:** Phase 2 plans 1-2 complete. Database schema live. Types, auth hook, router, store, and all three pages ready. Session creation flow works end-to-end. Admin page ready for question CRUD. Plan 02-03 is fully autonomous.
+**Context to preserve:** Phase 2 fully complete. Session creation, question CRUD, and persistence all working. QuestionForm and QuestionList components ready. AdminSession integrates both. ParticipantSession placeholder ready for voting UI. All three SESS requirements satisfied (SESS-01, SESS-02, SESS-03). No blockers for Phase 3.
 
 ---
 *State initialized: 2026-01-27*
@@ -85,3 +87,4 @@
 *Updated: 2026-01-27 -- Phase 2 planned (3 plans, 3 waves, research + verification passed)*
 *Updated: 2026-01-27 -- Completed 02-01 (deps, schema, types, auth hook)*
 *Updated: 2026-01-27 -- Completed 02-02 (router, store, pages)*
+*Updated: 2026-01-27 -- Completed 02-03 (question CRUD) -- Phase 2 complete*
