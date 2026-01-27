@@ -16,6 +16,7 @@ interface AdminQuestionControlProps {
   isClosed: boolean;
   channelRef: RefObject<RealtimeChannel | null>;
   votes: Vote[];
+  projectionMode?: boolean;
 }
 
 export default function AdminQuestionControl({
@@ -25,6 +26,7 @@ export default function AdminQuestionControl({
   isClosed,
   channelRef,
   votes,
+  projectionMode,
 }: AdminQuestionControlProps) {
   const updateQuestion = useSessionStore((s) => s.updateQuestion);
   const [loading, setLoading] = useState(false);
@@ -154,8 +156,8 @@ export default function AdminQuestionControl({
         <span
           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
             question.anonymous
-              ? 'bg-gray-700 text-gray-300'
-              : 'bg-amber-900 text-amber-300'
+              ? 'bg-gray-200 text-gray-700'
+              : 'bg-amber-100 text-amber-700'
           }`}
         >
           {question.anonymous ? (
@@ -183,7 +185,7 @@ export default function AdminQuestionControl({
           <button
             onClick={handleActivate}
             disabled={loading}
-            className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-green-800 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-green-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
           >
             {loading ? 'Starting...' : 'Start'}
           </button>
@@ -197,7 +199,7 @@ export default function AdminQuestionControl({
                 className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                   timerDuration === opt.value
                     ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-gray-300'
+                    : 'bg-gray-200 text-gray-500 hover:bg-gray-300 hover:text-gray-700'
                 }`}
               >
                 {opt.label}
@@ -212,11 +214,11 @@ export default function AdminQuestionControl({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="text-sm text-gray-300">
+              <div className={`${projectionMode ? 'text-base' : 'text-sm'} text-gray-700`}>
                 {showBreakdown ? (
                   <div className="space-y-1">
                     {aggregated.length === 0 ? (
-                      <p className="text-gray-500">No votes yet</p>
+                      <p className="text-gray-400">No votes yet</p>
                     ) : (
                       aggregated.map((vc) => (
                         <p key={vc.value}>
@@ -236,7 +238,7 @@ export default function AdminQuestionControl({
             </div>
             <button
               onClick={() => setShowBreakdown((prev) => !prev)}
-              className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+              className="text-xs text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
             >
               {showBreakdown ? 'Show count' : 'Show breakdown'}
             </button>
@@ -245,7 +247,7 @@ export default function AdminQuestionControl({
           <button
             onClick={handleCloseVoting}
             disabled={loading}
-            className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-red-800 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-red-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
           >
             {loading ? 'Closing...' : 'Close Voting'}
           </button>
@@ -256,22 +258,22 @@ export default function AdminQuestionControl({
       {showResults && (
         <div className="space-y-2">
           {aggregated.length === 0 ? (
-            <p className="text-gray-500 text-sm">No votes recorded</p>
+            <p className="text-gray-400 text-sm">No votes recorded</p>
           ) : (
-            <BarChart data={barData} totalVotes={votes.length} />
+            <BarChart data={barData} totalVotes={votes.length} size={projectionMode ? 'large' : 'default'} />
           )}
 
           {/* Named votes: show voter names for closed named questions */}
           {!question.anonymous && votes.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-gray-700">
-              <p className="text-xs text-gray-400 font-medium mb-2">Voter details</p>
+            <div className="mt-3 pt-3 border-t border-gray-300">
+              <p className="text-xs text-gray-500 font-medium mb-2">Voter details</p>
               <div className="space-y-1">
                 {votes.map((v) => (
                   <div key={v.id} className="flex items-center justify-between text-xs">
-                    <span className="text-gray-400">
+                    <span className="text-gray-500">
                       {v.display_name || 'Anonymous'}
                     </span>
-                    <span className="text-gray-300 font-medium">{v.value}</span>
+                    <span className="text-gray-700 font-medium">{v.value}</span>
                   </div>
                 ))}
               </div>

@@ -207,18 +207,18 @@ export default function AdminSession() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <p className="text-gray-400 text-lg">Loading session...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500 text-lg">Loading session...</p>
       </div>
     );
   }
 
   if (error || !session) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-red-400 text-lg">Session not found</p>
-          <a href="/" className="text-indigo-400 hover:text-indigo-300 underline">
+          <a href="/" className="text-indigo-600 hover:text-indigo-700 underline">
             Back to Home
           </a>
         </div>
@@ -330,20 +330,20 @@ export default function AdminSession() {
   }
 
   const statusColors: Record<string, string> = {
-    draft: 'bg-gray-700 text-gray-300',
-    lobby: 'bg-yellow-700 text-yellow-200',
-    active: 'bg-green-700 text-green-200',
-    ended: 'bg-red-700 text-red-200',
+    draft: 'bg-gray-200 text-gray-700',
+    lobby: 'bg-yellow-100 text-yellow-800',
+    active: 'bg-green-100 text-green-800',
+    ended: 'bg-red-100 text-red-800',
   };
 
   return (
     <>
       <ConnectionBanner status={connectionStatus} />
-      <div className="min-h-screen bg-gray-950 py-8 px-4">
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
         <div className={`mx-auto space-y-6 ${isLive ? 'max-w-4xl' : 'max-w-2xl'}`}>
           {/* Session header */}
           <div className="flex items-center justify-between">
-            <h1 className={`font-bold text-white ${isLive ? 'text-4xl' : 'text-3xl'}`}>
+            <h1 className={`font-bold text-gray-900 ${isLive ? 'text-4xl' : 'text-3xl'}`}>
               {session.title}
             </h1>
             <div className="flex items-center gap-3">
@@ -353,14 +353,14 @@ export default function AdminSession() {
               {isLive && (
                 <button
                   onClick={() => setShowQR((prev) => !prev)}
-                  className="text-sm text-gray-400 hover:text-white transition-colors"
+                  className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
                 >
                   {showQR ? 'Hide QR' : 'Show QR'}
                 </button>
               )}
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  statusColors[session.status] ?? 'bg-gray-700 text-gray-300'
+                  statusColors[session.status] ?? 'bg-gray-200 text-gray-700'
                 }`}
               >
                 {session.status}
@@ -369,16 +369,16 @@ export default function AdminSession() {
           </div>
 
           {/* Session state controls */}
-          <div className="bg-gray-900 rounded-lg p-4">
+          <div className="bg-white rounded-lg p-4">
             {isDraft && (
               <div className="flex items-center justify-between">
-                <p className="text-gray-300">
+                <p className="text-gray-700">
                   Session is in draft. Add questions, then start when ready.
                 </p>
                 <button
                   onClick={handleStartSession}
                   disabled={transitioning}
-                  className="px-6 py-3 bg-yellow-600 hover:bg-yellow-500 disabled:bg-yellow-800 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors text-lg"
+                  className="px-6 py-3 bg-yellow-600 hover:bg-yellow-500 disabled:bg-yellow-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors text-lg"
                 >
                   {transitioning ? 'Starting...' : 'Start Session'}
                 </button>
@@ -387,13 +387,13 @@ export default function AdminSession() {
 
             {isLobby && (
               <div className="flex items-center justify-between">
-                <p className="text-gray-300">
+                <p className="text-gray-700">
                   Participants can join now. Begin voting when ready.
                 </p>
                 <button
                   onClick={handleBeginVoting}
                   disabled={transitioning}
-                  className="px-6 py-3 bg-green-600 hover:bg-green-500 disabled:bg-green-800 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors text-lg"
+                  className="px-6 py-3 bg-green-600 hover:bg-green-500 disabled:bg-green-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors text-lg"
                 >
                   {transitioning ? 'Starting...' : 'Begin Voting'}
                 </button>
@@ -402,13 +402,13 @@ export default function AdminSession() {
 
             {isActive && (
               <div className="flex items-center justify-between">
-                <p className="text-gray-300">
+                <p className="text-gray-700">
                   Voting is live. Activate questions below.
                 </p>
                 <button
                   onClick={handleEndSession}
                   disabled={transitioning}
-                  className="px-6 py-3 bg-red-600 hover:bg-red-500 disabled:bg-red-800 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors text-lg"
+                  className="px-6 py-3 bg-red-600 hover:bg-red-500 disabled:bg-red-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors text-lg"
                 >
                   {transitioning ? 'Ending...' : 'End Session'}
                 </button>
@@ -417,20 +417,20 @@ export default function AdminSession() {
 
             {isEnded && (
               <div className="text-center py-2">
-                <p className="text-gray-400 text-lg font-medium">Session Ended</p>
+                <p className="text-gray-500 text-lg font-medium">Session Ended</p>
               </div>
             )}
           </div>
 
           {/* Participant link */}
-          <div className="bg-gray-900 rounded-lg p-4 space-y-3">
-            <p className="text-sm text-gray-400 font-medium">Share with participants</p>
+          <div className="bg-white rounded-lg p-4 space-y-3">
+            <p className="text-sm text-gray-500 font-medium">Share with participants</p>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 readOnly
                 value={participantUrl}
-                className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-300 text-sm"
+                className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700 text-sm"
               />
               <button
                 onClick={handleCopyLink}
@@ -443,7 +443,7 @@ export default function AdminSession() {
 
           {/* Ended: show session results */}
           {isEnded && (
-            <div className="bg-gray-900 rounded-lg p-6">
+            <div className="bg-white rounded-lg p-6">
               <SessionResults sessionId={session.session_id} />
             </div>
           )}
@@ -453,24 +453,24 @@ export default function AdminSession() {
             <>
               {/* Anonymous/Named voting privacy toggles */}
               {questions.length > 0 && (
-                <div className="bg-gray-900 rounded-lg p-4">
-                  <p className="text-sm text-gray-400 font-medium mb-3">Voting Privacy</p>
+                <div className="bg-white rounded-lg p-4">
+                  <p className="text-sm text-gray-500 font-medium mb-3">Voting Privacy</p>
                   <div className="space-y-2">
                     {questions.map((q, index) => (
                       <div
                         key={q.id}
-                        className="flex items-center justify-between bg-gray-800 rounded-lg px-3 py-2"
+                        className="flex items-center justify-between bg-gray-100 rounded-lg px-3 py-2"
                       >
-                        <span className="text-sm text-gray-300 truncate mr-3">
-                          <span className="text-gray-500 font-mono">{index + 1}.</span>{' '}
+                        <span className="text-sm text-gray-700 truncate mr-3">
+                          <span className="text-gray-400 font-mono">{index + 1}.</span>{' '}
                           {q.text}
                         </span>
                         <button
                           onClick={() => handleToggleAnonymous(q)}
                           className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors shrink-0 ${
                             q.anonymous
-                              ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                              : 'bg-amber-900 text-amber-300 hover:bg-amber-800'
+                              ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                              : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
                           }`}
                           title={
                             q.anonymous
@@ -522,8 +522,8 @@ export default function AdminSession() {
               )}
 
               {/* Question list with edit/delete/reorder */}
-              <div className="bg-gray-900 rounded-lg p-6">
-                <h2 className="text-lg font-semibold text-white mb-4">Questions</h2>
+              <div className="bg-white rounded-lg p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Questions</h2>
                 <QuestionList
                   sessionId={session.session_id}
                   onEditQuestion={setEditingQuestion}
@@ -531,7 +531,7 @@ export default function AdminSession() {
               </div>
 
               {/* Question form - only in draft state */}
-              <div className="bg-gray-900 rounded-lg p-6">
+              <div className="bg-white rounded-lg p-6">
                 <QuestionForm
                   sessionId={session.session_id}
                   editingQuestion={editingQuestion ?? undefined}
@@ -544,10 +544,10 @@ export default function AdminSession() {
 
           {/* Lobby/Active: Question list with activation controls */}
           {isLive && (
-            <div className="bg-gray-900 rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">Questions</h2>
+            <div className="bg-white rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Questions</h2>
               {questions.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
+                <p className="text-gray-400 text-center py-8">
                   No questions in this session.
                 </p>
               ) : (
@@ -557,15 +557,15 @@ export default function AdminSession() {
                       key={q.id}
                       className={`border rounded-lg p-5 space-y-3 ${
                         q.status === 'active'
-                          ? 'bg-gray-800 border-green-600'
+                          ? 'bg-gray-100 border-green-500'
                           : q.status === 'closed' || q.status === 'revealed'
-                            ? 'bg-gray-800 border-gray-600'
-                            : 'bg-gray-800 border-gray-700'
+                            ? 'bg-gray-100 border-gray-400'
+                            : 'bg-gray-100 border-gray-300'
                       }`}
                     >
                       {/* Question header */}
                       <div className="flex items-start gap-3">
-                        <span className="text-gray-400 text-sm font-mono mt-0.5">
+                        <span className="text-gray-500 text-sm font-mono mt-0.5">
                           {index + 1}.
                         </span>
                         <div className="flex-1 min-w-0">
@@ -573,8 +573,8 @@ export default function AdminSession() {
                             <span
                               className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                                 q.type === 'agree_disagree'
-                                  ? 'bg-indigo-900 text-indigo-300'
-                                  : 'bg-emerald-900 text-emerald-300'
+                                  ? 'bg-indigo-100 text-indigo-700'
+                                  : 'bg-emerald-100 text-emerald-700'
                               }`}
                             >
                               {q.type === 'agree_disagree'
@@ -584,16 +584,16 @@ export default function AdminSession() {
                             <span
                               className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                                 q.status === 'active'
-                                  ? 'bg-green-900 text-green-300'
+                                  ? 'bg-green-100 text-green-700'
                                   : q.status === 'closed' || q.status === 'revealed'
-                                    ? 'bg-gray-600 text-gray-300'
-                                    : 'bg-gray-700 text-gray-400'
+                                    ? 'bg-gray-200 text-gray-600'
+                                    : 'bg-gray-100 text-gray-500'
                               }`}
                             >
                               {q.status}
                             </span>
                           </div>
-                          <p className={`font-medium ${q.status === 'active' ? 'text-white text-lg' : 'text-white'}`}>
+                          <p className={`font-medium ${q.status === 'active' ? 'text-gray-900 text-lg' : 'text-gray-900'}`}>
                             {q.text}
                           </p>
                           {q.type === 'multiple_choice' && q.options && (
@@ -601,7 +601,7 @@ export default function AdminSession() {
                               {q.options.map((opt, optIdx) => (
                                 <span
                                   key={optIdx}
-                                  className="px-2 py-0.5 bg-gray-700 text-gray-300 rounded text-xs"
+                                  className="px-2 py-0.5 bg-gray-200 text-gray-600 rounded text-xs"
                                 >
                                   {opt}
                                 </span>
@@ -620,6 +620,7 @@ export default function AdminSession() {
                           isClosed={q.status === 'closed' || q.status === 'revealed'}
                           channelRef={channelRef}
                           votes={sessionVotes[q.id] ?? []}
+                          projectionMode
                         />
                       </div>
                     </li>
