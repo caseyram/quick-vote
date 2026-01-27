@@ -9,10 +9,10 @@
 ## Current Position
 
 **Phase:** 4 of 5 -- Realtime and Live Session Orchestration
-**Plan:** 3 of 4 complete
-**Status:** In progress (04-01 hooks + 04-02 UI components + 04-03 admin realtime done, 04-04 participant remaining)
-**Last activity:** 2026-01-27 -- Completed 04-03 (admin session realtime wiring)
-**Progress:** [##################__] 11/12 plans complete (phases 1-3 done, phase 4 nearly complete)
+**Plan:** 4 of 4 complete
+**Status:** Phase 4 complete (all 4 plans done)
+**Last activity:** 2026-01-27 -- Completed 04-04 (participant session realtime wiring) -- Phase 4 complete
+**Progress:** [####################] 12/12 plans complete (phases 1-4 done, phase 5 not started)
 
 ## Phase Summary
 
@@ -21,14 +21,14 @@
 | 1 | Integration Spike | Complete (2/2 plans done) |
 | 2 | Data Foundation and Session Setup | Complete (3/3 plans done) |
 | 3 | Join Flow and Voting Mechanics | Complete (3/3 plans done) |
-| 4 | Realtime and Live Session Orchestration | In Progress (3/4 plans done) |
+| 4 | Realtime and Live Session Orchestration | Complete (4/4 plans done) |
 | 5 | Immersive UI and Polish | Not Started |
 
 ## Performance Metrics
 
 | Metric | Value |
 |--------|-------|
-| Plans completed | 11 |
+| Plans completed | 12 |
 | Plans failed | 0 |
 | Total requirements | 18 |
 | Requirements done | 15 (SESS-01, SESS-02, SESS-03, VOTE-01, VOTE-02, VOTE-03, VOTE-04, JOIN-01, JOIN-02, JOIN-03, JOIN-04, LIVE-01, LIVE-02, LIVE-03, LIVE-04) |
@@ -73,6 +73,11 @@
 - Session-level vote accumulation in AdminSession, passed down as props (all Postgres Changes listeners before subscribe)
 - Auto-reveal results immediately after voting_closed broadcast (per CONTEXT.md auto-close + auto-reveal)
 - Timer duration is ephemeral local state in AdminQuestionControl, communicated via broadcast payload
+- Participant timer is cosmetic only -- real close comes from admin's voting_closed broadcast
+- Mutable refs (viewRef, activeQuestionRef) avoid stale closures in Broadcast callbacks
+- hasConnectedOnce ref distinguishes initial connect from reconnection for re-fetch logic
+- waitingMessage state provides contextual feedback (waiting, reviewing results, results shown)
+- Crossfade uses CSS opacity transition (300ms) with displayedQuestion buffer state
 
 ### Research Insights
 - Supabase Realtime has three mechanisms: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
@@ -90,17 +95,16 @@
 
 ### TODOs
 - Verify motion vs framer-motion package name at install time
-- Test RLS + Realtime Postgres Changes interaction before Phase 4
 
 ### Blockers
 (none)
 
 ## Session Continuity
 
-**Last session:** 2026-01-27 -- Completed 04-03 (admin session realtime wiring)
-**Next action:** Execute 04-04-PLAN.md (participant session realtime wiring)
+**Last session:** 2026-01-27 -- Completed 04-04 (participant session realtime wiring) -- Phase 4 complete
+**Next action:** Plan and execute Phase 5 (Immersive UI and Polish)
 **Resume file:** None
-**Context to preserve:** Phase 4 plans 01-03 complete. Admin session fully realtime: Postgres Changes for questions/votes, Presence for participant count, Broadcast for all session/question commands, BarChart for results, CountdownTimer for timed questions. All 6 broadcast events (session_lobby, session_active, session_ended, question_activated, voting_closed, results_revealed) are sent from admin. Plan 04-04 wires the participant side to listen for these events. Build passes with zero TS errors.
+**Context to preserve:** Phase 4 complete. All realtime wiring done -- admin broadcasts events (question_activated, voting_closed, results_revealed, session_active, session_ended, session_lobby) and participants receive them instantly via Broadcast listeners. All polling removed from both AdminSession and ParticipantSession. Hooks (useRealtimeChannel, usePresence, useCountdown) and components (BarChart, CountdownTimer, ConnectionBanner, ParticipantCount) fully integrated into both admin and participant pages. Reconnection re-fetch handles missed events. Build passes with zero TS errors.
 
 ---
 *State initialized: 2026-01-27*
@@ -118,3 +122,4 @@
 *Updated: 2026-01-27 -- Completed 04-01 (realtime hooks: useRealtimeChannel, usePresence, useCountdown)*
 *Updated: 2026-01-27 -- Completed 04-02 (realtime UI components: BarChart, CountdownTimer, ConnectionBanner, ParticipantCount)*
 *Updated: 2026-01-27 -- Completed 04-03 (admin realtime: broadcast commands, live vote streaming, bar chart results, countdown timer, presence)*
+*Updated: 2026-01-27 -- Completed 04-04 (participant realtime: broadcast listeners, presence, timer, reconnection) -- Phase 4 complete*
