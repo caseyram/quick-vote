@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Session, Question } from '../types/database';
+import type { Session, Question, Vote } from '../types/database';
 
 interface SessionState {
   session: Session | null;
@@ -16,6 +16,15 @@ interface SessionState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   reset: () => void;
+
+  // Voting state
+  currentVote: Vote | null;
+  questionVotes: Vote[];
+  submitting: boolean;
+
+  setCurrentVote: (vote: Vote | null) => void;
+  setQuestionVotes: (votes: Vote[]) => void;
+  setSubmitting: (submitting: boolean) => void;
 }
 
 export const useSessionStore = create<SessionState>()((set) => ({
@@ -52,5 +61,23 @@ export const useSessionStore = create<SessionState>()((set) => ({
     })),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
-  reset: () => set({ session: null, questions: [], loading: false, error: null }),
+  reset: () =>
+    set({
+      session: null,
+      questions: [],
+      loading: false,
+      error: null,
+      currentVote: null,
+      questionVotes: [],
+      submitting: false,
+    }),
+
+  // Voting state
+  currentVote: null,
+  questionVotes: [],
+  submitting: false,
+
+  setCurrentVote: (vote) => set({ currentVote: vote }),
+  setQuestionVotes: (votes) => set({ questionVotes: votes }),
+  setSubmitting: (submitting) => set({ submitting }),
 }));
