@@ -121,6 +121,14 @@ Plans:
 
 **Requirements:** UIEX-01, UIEX-02, UIEX-03
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 05-01-PLAN.md -- Install motion library, add Tailwind theme tokens, create ConnectionPill component
+- [ ] 05-02-PLAN.md -- Refactor vote components (VoteAgreeDisagree, VoteMultipleChoice, VoteConfirmation) with Motion animations
+- [ ] 05-03-PLAN.md -- Restyle AdminSession to light theme with projection-friendly BarChart layout
+- [ ] 05-04-PLAN.md -- Refactor ParticipantSession with full-screen takeover, slide transitions, ConnectionPill, responsive layout
+
 **Success Criteria:**
 1. Voting UI takes over the full screen on mobile with large tap targets and satisfying press/release animations on vote selection and lock-in
 2. The app works well on both phone screens (participant voting) and desktop screens (admin controls and results display)
@@ -138,7 +146,7 @@ Plans:
 | 2 | Data Foundation and Session Setup | SESS-01, SESS-02, SESS-03 | Complete |
 | 3 | Join Flow and Voting Mechanics | VOTE-01, VOTE-02, VOTE-03, VOTE-04, JOIN-01, JOIN-02, JOIN-03, JOIN-04 | Complete |
 | 4 | Realtime and Live Session Orchestration | LIVE-01, LIVE-02, LIVE-03, LIVE-04 | Complete |
-| 5 | Immersive UI and Polish | UIEX-01, UIEX-02, UIEX-03 | Not Started |
+| 5 | Immersive UI and Polish | UIEX-01, UIEX-02, UIEX-03 | In Progress |
 
 ## Coverage Map
 
@@ -177,3 +185,4 @@ Plans:
 *Updated: 2026-01-27 -- Phase 3 complete (verified 5/5 success criteria, VOTE-01..04/JOIN-01..04 satisfied)*
 *Updated: 2026-01-27 -- Phase 4 plans created (4 plans, 2 waves)*
 *Updated: 2026-01-27 -- Phase 4 complete (verified 4/4 success criteria, LIVE-01..04 satisfied)*
+*Updated: 2026-01-27 -- Phase 5 plans created (4 plans, 3 waves)*
