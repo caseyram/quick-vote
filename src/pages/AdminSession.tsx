@@ -17,7 +17,7 @@ import { AdminControlBar } from '../components/AdminControlBar';
 import { AdminPasswordGate } from '../components/AdminPasswordGate';
 import { ImportExportPanel } from '../components/ImportExportPanel';
 import { TemplatePanel } from '../components/TemplatePanel';
-import type { Question, Vote } from '../types/database';
+import type { Question, Vote, Batch } from '../types/database';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export default function AdminSession() {
@@ -25,8 +25,10 @@ export default function AdminSession() {
   const {
     session,
     questions,
+    batches,
     setSession,
     setQuestions,
+    setBatches,
     setLoading,
     setError,
     updateQuestion,
@@ -91,6 +93,19 @@ export default function AdminSession() {
         setError(questionsError.message);
       } else {
         setQuestions(questionsData ?? []);
+      }
+
+      // Fetch batches for this session
+      const { data: batchesData, error: batchesError } = await supabase
+        .from('batches')
+        .select('*')
+        .eq('session_id', sessionData.session_id)
+        .order('position', { ascending: true });
+
+      if (cancelled) return;
+
+      if (!batchesError && batchesData) {
+        setBatches(batchesData);
       }
 
       // Fetch existing votes for all questions in this session
@@ -182,6 +197,27 @@ export default function AdminSession() {
           }
           return prev;
         });
+      }
+    );
+
+    // Listen for batch changes (INSERT/UPDATE/DELETE) via Postgres Changes
+    channel.on(
+      'postgres_changes' as any,
+      {
+        event: '*',
+        schema: 'public',
+        table: 'batches',
+        filter: `session_id=eq.${sid}`,
+      },
+      (payload: any) => {
+        const newBatch = payload.new as Batch;
+        if (payload.eventType === 'INSERT') {
+          useSessionStore.getState().addBatch(newBatch);
+        } else if (payload.eventType === 'UPDATE') {
+          useSessionStore.getState().updateBatch(newBatch.id, newBatch);
+        } else if (payload.eventType === 'DELETE') {
+          useSessionStore.getState().removeBatch(payload.old.id);
+        }
       }
     );
   }, []);
