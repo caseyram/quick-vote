@@ -8,137 +8,45 @@
 
 ## Current Position
 
-**Phase:** 5 of 5 -- Immersive UI and Polish
-**Plan:** 4 of 4 complete
-**Status:** Phase complete (awaiting human verification)
-**Last activity:** 2026-01-27 -- Completed 05-04 (immersive participant experience)
-**Progress:** [##############################] 16/16 plans complete (all phases done)
+**Milestone:** v1.0 complete, ready for v1.1
+**Phase:** Not started
+**Status:** Between milestones
+**Last activity:** 2026-01-28 -- v1.0 MVP shipped
 
-## Phase Summary
+## Milestone History
 
-| Phase | Name | Status |
-|-------|------|--------|
-| 1 | Integration Spike | Complete (2/2 plans done) |
-| 2 | Data Foundation and Session Setup | Complete (3/3 plans done) |
-| 3 | Join Flow and Voting Mechanics | Complete (3/3 plans done) |
-| 4 | Realtime and Live Session Orchestration | Complete (4/4 plans done) |
-| 5 | Immersive UI and Polish | Complete (4/4 plans done) |
-
-## Performance Metrics
-
-| Metric | Value |
-|--------|-------|
-| Plans completed | 16 |
-| Plans failed | 0 |
-| Total requirements | 18 |
-| Requirements done | 18 (SESS-01..03, VOTE-01..04, JOIN-01..04, LIVE-01..04, UIEX-01..03) |
+| Version | Name | Shipped | Phases |
+|---------|------|---------|--------|
+| v1.0 | MVP | 2026-01-28 | 1-5 (16 plans) |
 
 ## Accumulated Context
 
 ### Key Decisions
-- Zustand over React Context for state management (re-render performance with rapid vote updates)
-- Separate admin_token (UUID) from public session_id (nanoid) for URL security
-- Client-side aggregation for v1 (50-100 users); server-side aggregation deferred
-- Single Supabase channel per session multiplexing Broadcast + Presence + Postgres Changes
-- Idempotent vote insertion (UPSERT with UNIQUE constraint) from day one
-- Integration spike before feature work to validate Vercel + Supabase pipeline end-to-end
-- Vercel auto-deploy on push to main (git push, not Vercel CLI)
-- Multiplexed channel pattern validated: single channel handles both Broadcast and Postgres Changes
-- Manual TypeScript types over Supabase-generated types for simplicity and control
-- useAuth as plain React hook (not Zustand) -- auth state is app-level singleton
-- No error handling that blocks rendering in useAuth -- graceful degradation if auth fails
-- Single Zustand store for session + questions (always used together)
-- Auth gating in App.tsx (not per-page) ensures anonymous auth ready before any Supabase calls
-- Explicit column list in participant queries to never expose admin_token
-- Individual updates for position swap over upsert (avoids NOT NULL column issues in upsert)
-- Edit state managed in AdminSession parent (QuestionList triggers, QuestionForm receives)
-- VoteCount interface in vote-aggregation.ts (derived UI type, not DB row -- not in database.ts)
-- Voting state added to existing Zustand store (single store pattern, not separate voting store)
-- 400ms double-tap threshold for forgiving mobile gesture detection
-- ParticipantSession uses local state machine for view derivation (not Zustand) -- page-level UI state
-- Safe Session type casts admin_token/created_by to empty strings for Zustand store compatibility on participant side
-- Name prompt persisted to sessionStorage (scoped to browser tab), shown once per session for named questions
-- Results view in ParticipantSession is intentional placeholder (Plan 03-03 builds full SessionResults)
-- Anonymous toggle placed as separate Voting Privacy section above QuestionList in draft state (QuestionList/QuestionForm unchanged)
-- Wider layout (max-w-4xl) during live session for admin presentation screen readability
-- AdminQuestionControl receives votes as props from AdminSession (live via Postgres Changes, replacing 3s polling)
-- Question status polling replaced by Postgres Changes subscription in AdminSession (Phase 4 realtime)
-- useRealtimeChannel excludes setup from deps -- caller must useCallback to avoid reconnect cycles
-- usePresence calls channel.track() directly -- buffers until SUBSCRIBED, no caller coordination needed
-- useCountdown stores onComplete in ref -- avoids stale closures, callers don't need to memoize callback
-- ConnectionStatus type exported from use-realtime-channel and reused in Zustand store (single source of truth)
-- CSS height transitions (0.5s ease-out) for BarChart animation -- simple, zero-dependency approach
-- Blue/orange for agree/disagree, 8-color palette for multiple choice -- neutral, non-judgmental
-- Pill badge with clock SVG for countdown timer -- compact, non-distracting per CONTEXT.md
-- Session-level vote accumulation in AdminSession, passed down as props (all Postgres Changes listeners before subscribe)
-- Auto-reveal results immediately after voting_closed broadcast (per CONTEXT.md auto-close + auto-reveal)
-- Timer duration is ephemeral local state in AdminQuestionControl, communicated via broadcast payload
-- Participant timer is cosmetic only -- real close comes from admin's voting_closed broadcast
-- Mutable refs (viewRef, activeQuestionRef) avoid stale closures in Broadcast callbacks
-- hasConnectedOnce ref distinguishes initial connect from reconnection for re-fetch logic
-- waitingMessage state provides contextual feedback (waiting, reviewing results, results shown)
-- Crossfade replaced by AnimatePresence slide-left transitions with spring physics (stiffness 300, damping 30)
-- Standard motion import (not LazyMotion) -- 34kb justified for animation-heavy app
-- oklch color space for Tailwind theme tokens -- perceptual uniformity across vote colors
-- ConnectionPill as new component alongside ConnectionBanner -- banner preserved for admin pages
-- Blue/orange vote colors from BarChart constants (not green/red) for neutral, non-judgmental feel
-- Skip selection pulse for multiple choice -- whileTap + color fill is sufficient feedback
-- Unselected vote buttons use rgba(55,65,81,0.5) for dark-but-visible appearance
-- Admin light theme: bg-gray-50 page, bg-white cards, text-gray-900 primary text (distinct from participant dark)
-- BarChart size='large' for projection: 400px height, 160px max bar width, rounded-t-xl, bold text
-- projectionMode prop plumbed AdminSession -> AdminQuestionControl -> BarChart size
-- Admin status badges: pastel palette (gray-200, yellow-100, green-100, red-100)
-- Full-screen voting takeover: h-dvh, overflow-hidden, no header/nav -- just question and vote buttons
-- Desktop participant layout: lg:max-w-2xl centered card with rounded-2xl and bg-gray-900/50
-- Tailwind h-dvh/min-h-dvh classes replace all inline style={{ minHeight: '100dvh' }} patterns
-- ConnectionPill replaces ConnectionBanner in all participant views (admin still uses ConnectionBanner)
+
+See PROJECT.md for full decision log. Key v1.0 decisions:
+- Zustand for state management
+- Single multiplexed Supabase channel
+- Client-side vote aggregation
+- Immediate vote submission (no lock-in)
+- Admin light / Participant dark themes
 
 ### Research Insights
-- Supabase Realtime has three mechanisms: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
-- Vote submission must be idempotent: UNIQUE(question_id, participant_id) + UPSERT
-- Realtime events are "something changed" signals; DB is always source of truth for counts
-- Centralized useRealtimeChannel hook required to prevent subscription leaks
-- Mobile viewport: use 100dvh not 100vh
-- Tactile UI is the product identity, not polish -- must ship in v1
-- Tailwind CSS v4 uses CSS-first configuration (no tailwind.config.js), just @import "tailwindcss" in CSS
-- Supabase anonymous auth (signInAnonymously()) is production-ready; must enable in Dashboard
-- @supabase/supabase-js remains at v2 (no v3); installed version 2.93.1 is current
-- React Router v7 uses single package `react-router` (not react-router-dom); declarative mode for Vite SPA
-- Zustand v5 requires create<T>()(fn) with double parentheses
-- RLS policies must use (select auth.uid()) wrapped in select for performance
 
-### TODOs
-- (resolved) motion is the correct package name (not framer-motion) -- installed motion@12.29.2, import from "motion/react"
+- Supabase Realtime: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
+- Vote submission must be idempotent: UNIQUE(question_id, participant_id) + UPSERT
+- Mobile viewport: use 100dvh not 100vh
+- Tailwind CSS v4 uses CSS-first configuration
 
 ### Blockers
+
 (none)
 
 ## Session Continuity
 
-**Last session:** 2026-01-27 -- Completed 05-04 (immersive participant experience)
-**Next action:** Human visual verification of complete immersive UI (checkpoint:human-verify)
+**Last session:** 2026-01-28 -- v1.0 milestone completed
+**Next action:** `/gsd:new-milestone` to plan v1.1
 **Resume file:** None
-**Context to preserve:** All 16 plans across 5 phases complete. All 18 requirements addressed. ParticipantSession.tsx fully refactored with full-screen voting takeover, AnimatePresence slide transitions, ConnectionPill, responsive desktop card layout. Build passes with zero TS errors. Awaiting final human visual verification.
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-27 -- Completed 01-02 integration PoC plan (Phase 1 complete)*
-*Updated: 2026-01-27 -- Phase 2 planned (3 plans, 3 waves, research + verification passed)*
-*Updated: 2026-01-27 -- Completed 02-01 (deps, schema, types, auth hook)*
-*Updated: 2026-01-27 -- Completed 02-02 (router, store, pages)*
-*Updated: 2026-01-27 -- Completed 02-03 (question CRUD) -- Phase 2 complete*
-*Updated: 2026-01-27 -- Phase 2 verified (7/7 must-haves, 3/3 requirements complete)*
-*Updated: 2026-01-27 -- Phase 3 planned (3 plans, 2 waves, research + verification passed)*
-*Updated: 2026-01-27 -- Completed 03-01 (foundation hooks, utilities, store extensions)*
-*Updated: 2026-01-27 -- Completed 03-02 (participant voting UI, state machine, polling bridge)*
-*Updated: 2026-01-27 -- Completed 03-03 (admin controls: QR, state machine, question activation, results) -- Phase 3 complete*
-*Updated: 2026-01-27 -- Phase 3 verified (5/5 success criteria, 8 requirements complete)*
-*Updated: 2026-01-27 -- Completed 04-01 (realtime hooks: useRealtimeChannel, usePresence, useCountdown)*
-*Updated: 2026-01-27 -- Completed 04-02 (realtime UI components: BarChart, CountdownTimer, ConnectionBanner, ParticipantCount)*
-*Updated: 2026-01-27 -- Completed 04-03 (admin realtime: broadcast commands, live vote streaming, bar chart results, countdown timer, presence)*
-*Updated: 2026-01-27 -- Completed 04-04 (participant realtime: broadcast listeners, presence, timer, reconnection) -- Phase 4 complete*
-*Updated: 2026-01-27 -- Phase 4 verified (4/4 success criteria, 15 requirements complete)*
-*Updated: 2026-01-27 -- Completed 05-01 (animation foundation, theme tokens, ConnectionPill)*
-*Updated: 2026-01-27 -- Completed 05-02 (vote interaction animations: motion.button, AnimatePresence, pathLength)*
-*Updated: 2026-01-27 -- Completed 05-03 (admin light theme, BarChart size variant, projectionMode)*
-*Updated: 2026-01-27 -- Completed 05-04 (immersive participant experience, slide transitions, responsive layout) -- Phase 5 complete*
+*Updated: 2026-01-28 -- v1.0 milestone completed and archived*
