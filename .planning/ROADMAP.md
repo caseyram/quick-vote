@@ -55,10 +55,11 @@ Plans:
   1. Admin can activate a batch from the session admin view
   2. When batch is activated, participants receive all batch questions simultaneously (not one-at-a-time push)
   3. Admin can see that a batch is currently active
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 07-01: TBD
+- [ ] 07-01-PLAN.md — Database status column and Zustand activeBatchId state
+- [ ] 07-02-PLAN.md — Activation UI and handlers (Activate/Close button, mode exclusion, broadcasts)
 
 ### Phase 8: Participant Batch Experience
 **Goal**: Participants can navigate, answer, review, and submit batch questions at their own pace
@@ -122,11 +123,11 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 1-5 | v1.0 | 16/16 | Complete | 2026-01-28 |
 | 6. Batch Schema & UI | v1.1 | 3/3 | Complete | 2026-01-28 |
-| 7. Batch Activation | v1.1 | 0/TBD | Not started | - |
+| 7. Batch Activation | v1.1 | 0/2 | Planned | - |
 | 8. Participant Batch Experience | v1.1 | 0/TBD | Not started | - |
 | 9. Session Management | v1.1 | 0/TBD | Not started | - |
 | 10. Progress Dashboard & Results Polish | v1.1 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-28*
-*Last updated: 2026-01-28 - Phase 6 complete*
+*Last updated: 2026-01-28 - Phase 7 planned*
