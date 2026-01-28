@@ -12,13 +12,13 @@ Requirements for batch questions and polish milestone. Each maps to roadmap phas
 - [x] **BATCH-01**: Admin can create questions on-the-fly and group them into a named batch
 - [x] **BATCH-02**: Admin can create multiple batches within a single session
 - [x] **BATCH-03**: Admin can activate a batch (all questions delivered to participants at once)
-- [ ] **BATCH-04**: Participant sees all batch questions and can navigate with Next/Previous buttons
-- [ ] **BATCH-05**: Participant sees progress indicator ("Question 3 of 10")
-- [ ] **BATCH-06**: Participant answers persist when navigating between questions
-- [ ] **BATCH-07**: Participant can submit/complete the batch when finished
-- [ ] **BATCH-08**: Participant can use arrow keys to navigate batch questions (desktop)
-- [ ] **BATCH-09**: Participant sees visual answer review before final submit
-- [ ] **BATCH-10**: Participant sees completion animation per question answered
+- [x] **BATCH-04**: Participant sees all batch questions and can navigate with Next/Previous buttons
+- [x] **BATCH-05**: Participant sees progress indicator ("Question 3 of 10")
+- [x] **BATCH-06**: Participant answers persist when navigating between questions
+- [x] **BATCH-07**: Participant can submit/complete the batch when finished
+- [x] **BATCH-08**: Participant can use arrow keys to navigate batch questions (desktop)
+- [x] **BATCH-09**: Participant sees visual answer review before final submit
+- [x] **BATCH-10**: Participant sees completion animation per question answered
 
 ### Session Management
 
@@ -81,13 +81,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BATCH-01 | Phase 6 | Complete |
 | BATCH-02 | Phase 6 | Complete |
 | BATCH-03 | Phase 7 | Complete |
-| BATCH-04 | Phase 8 | Pending |
-| BATCH-05 | Phase 8 | Pending |
-| BATCH-06 | Phase 8 | Pending |
-| BATCH-07 | Phase 8 | Pending |
-| BATCH-08 | Phase 8 | Pending |
-| BATCH-09 | Phase 8 | Pending |
-| BATCH-10 | Phase 8 | Pending |
+| BATCH-04 | Phase 8 | Complete |
+| BATCH-05 | Phase 8 | Complete |
+| BATCH-06 | Phase 8 | Complete |
+| BATCH-07 | Phase 8 | Complete |
+| BATCH-08 | Phase 8 | Complete |
+| BATCH-09 | Phase 8 | Complete |
+| BATCH-10 | Phase 8 | Complete |
 | SESS-01 | Phase 9 | Pending |
 | SESS-02 | Phase 9 | Pending |
 | SESS-03 | Phase 9 | Pending |
@@ -109,4 +109,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-28*
-*Last updated: 2026-01-28 - BATCH-03 complete (Phase 7)*
+*Last updated: 2026-01-28 - BATCH-04 to BATCH-10 complete (Phase 8)*

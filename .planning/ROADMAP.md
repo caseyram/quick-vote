@@ -79,7 +79,7 @@ Plans:
 - [x] 08-01-PLAN.md — Wire batch_activated/batch_closed listeners in ParticipantSession
 - [x] 08-02-PLAN.md — Create BatchVotingCarousel with Next/Previous navigation and progress indicator
 - [x] 08-03-PLAN.md — Add keyboard navigation and completion animation
-- [ ] 08-04-PLAN.md — Gap closure: Add answer review screen before batch completion
+- [x] 08-04-PLAN.md — Gap closure: Add answer review screen before batch completion
 
 ### Phase 9: Session Management
 **Goal**: Admin has a global entry point to manage all sessions with review and export capabilities
@@ -125,10 +125,10 @@ Plans:
 | 1-5 | v1.0 | 16/16 | Complete | 2026-01-28 |
 | 6. Batch Schema & UI | v1.1 | 3/3 | Complete | 2026-01-28 |
 | 7. Batch Activation | v1.1 | 2/2 | Complete | 2026-01-28 |
-| 8. Participant Batch Experience | v1.1 | 3/4 | Gap closure | - |
+| 8. Participant Batch Experience | v1.1 | 4/4 | Complete | 2026-01-28 |
 | 9. Session Management | v1.1 | 0/TBD | Not started | - |
 | 10. Progress Dashboard & Results Polish | v1.1 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-28*
-*Last updated: 2026-01-28 - Phase 8 gap closure plan added*
+*Last updated: 2026-01-28 - Phase 8 complete (4/4 plans)*
