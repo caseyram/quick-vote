@@ -73,12 +73,12 @@ Plans:
   5. Participant sees visual answer review before final submit showing all their responses
   6. Participant can submit/complete the batch when finished answering
   7. Participant sees completion animation when answering each question
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 08-01: TBD
-- [ ] 08-02: TBD
-- [ ] 08-03: TBD
+- [ ] 08-01-PLAN.md — Wire batch_activated/batch_closed listeners in ParticipantSession
+- [ ] 08-02-PLAN.md — Create BatchVotingCarousel with Next/Previous navigation and progress indicator
+- [ ] 08-03-PLAN.md — Add keyboard navigation and completion animation
 
 ### Phase 9: Session Management
 **Goal**: Admin has a global entry point to manage all sessions with review and export capabilities
@@ -124,10 +124,10 @@ Plans:
 | 1-5 | v1.0 | 16/16 | Complete | 2026-01-28 |
 | 6. Batch Schema & UI | v1.1 | 3/3 | Complete | 2026-01-28 |
 | 7. Batch Activation | v1.1 | 2/2 | Complete | 2026-01-28 |
-| 8. Participant Batch Experience | v1.1 | 0/TBD | Not started | - |
+| 8. Participant Batch Experience | v1.1 | 0/3 | Planned | - |
 | 9. Session Management | v1.1 | 0/TBD | Not started | - |
 | 10. Progress Dashboard & Results Polish | v1.1 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-28*
-*Last updated: 2026-01-28 - Phase 7 complete*
+*Last updated: 2026-01-28 - Phase 8 planned*
