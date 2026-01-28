@@ -31,7 +31,19 @@ Participants can instantly vote on questions in a way that feels immersive and t
 
 ### Active
 
-(See REQUIREMENTS.md for next milestone)
+**Current Milestone: v1.1 — Batch Questions & Polish**
+
+**Goal:** Enable self-paced batch voting with collections, plus admin/results UX improvements.
+
+**Target features:**
+- Question collections (named, reusable groups)
+- Self-paced batch mode (participants work through questions at own pace)
+- On-the-fly batch creation from existing questions
+- Collection import/export (JSON)
+- Admin progress dashboard for batch completion
+- Participant batch review with left/right navigation
+- Results view: mark reasons as read, consistent column ordering, reduce scrolling
+- Session overview improvements
 
 ### Out of Scope
 
@@ -63,4 +75,4 @@ Participants can instantly vote on questions in a way that feels immersive and t
 | Admin light / Participant dark themes | Projection readability vs immersive voting | ✓ Good |
 
 ---
-*Last updated: 2026-01-28 after v1.0 milestone*
+*Last updated: 2026-01-28 after starting v1.1 milestone*

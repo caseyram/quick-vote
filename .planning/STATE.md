@@ -8,10 +8,10 @@
 
 ## Current Position
 
-**Milestone:** v1.0 complete, ready for v1.1
-**Phase:** Not started
-**Status:** Between milestones
-**Last activity:** 2026-01-28 -- v1.0 MVP shipped
+**Milestone:** v1.1 — Batch Questions & Polish
+**Phase:** Not started (defining requirements)
+**Status:** Defining requirements
+**Last activity:** 2026-01-28 — Milestone v1.1 started
 
 ## Milestone History
 
@@ -43,10 +43,10 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 
 ## Session Continuity
 
-**Last session:** 2026-01-28 -- v1.0 milestone completed
-**Next action:** `/gsd:new-milestone` to plan v1.1
+**Last session:** 2026-01-28 — v1.1 milestone started
+**Next action:** Define requirements and roadmap
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-28 -- v1.0 milestone completed and archived*
+*Updated: 2026-01-28 — v1.1 milestone started*
