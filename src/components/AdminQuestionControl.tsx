@@ -288,7 +288,7 @@ export default function AdminQuestionControl({
 
           {/* Named votes: show voter names for closed named questions */}
           {!question.anonymous && votes.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-gray-300 lg:max-w-2xl">
+            <div className="mt-3 pt-3 border-t border-gray-300">
               <p className="text-xs text-gray-500 font-medium mb-2">Voter details</p>
               <div className="space-y-1">
                 {sortedVotes.map((v) => (

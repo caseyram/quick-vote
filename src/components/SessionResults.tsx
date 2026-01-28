@@ -210,7 +210,7 @@ function ReasonsSection({
         <span className="ml-1">{expanded ? '\u25B2' : '\u25BC'}</span>
       </button>
       {expanded && (
-        <div className="mt-2 max-h-60 overflow-y-auto lg:max-w-3xl">
+        <div className="mt-2 max-h-60 overflow-y-auto">
           <div className="flex gap-4">
             {reasonsByColumn.map((col) => (
               <div key={col.label} className="flex-1 min-w-0 space-y-1.5">

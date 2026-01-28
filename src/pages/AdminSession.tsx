@@ -883,13 +883,15 @@ function ActiveQuestionHero({
   const isClosed = question.status === 'closed' || question.status === 'revealed';
 
   // Group reasons by vote value, aligned with barData columns
+  // Sort by id for stable ordering (prevents reordering while reading aloud)
   const reasonsByColumn = useMemo(() => {
+    const sortedVotes = [...votes].sort((a, b) => a.id.localeCompare(b.id));
     return barData.map((bar) => ({
       label: bar.label,
       color: bar.color,
-      reasons: votes
+      reasons: sortedVotes
         .filter((v) => v.value === bar.label && v.reason && v.reason.trim())
-        .map((v) => v.reason!),
+        .map((v) => ({ id: v.id, text: v.reason! })),
     }));
   }, [barData, votes]);
 
@@ -938,12 +940,11 @@ function ActiveQuestionHero({
           </button>
           {reasonsExpanded && (
             <div className="mt-3 max-h-[35vh] overflow-y-auto">
-              <div className="flex gap-6 justify-center max-w-4xl mx-auto px-2">
+              <div className="flex gap-6 justify-center max-w-6xl mx-auto px-4">
                 {reasonsByColumn.map((col) => (
                   <div
                     key={col.label}
                     className="flex-1 min-w-0 space-y-2"
-                    style={{ maxWidth: 200 }}
                   >
                     <p
                       className="text-base font-semibold text-center"
@@ -951,13 +952,13 @@ function ActiveQuestionHero({
                     >
                       {col.label} ({col.reasons.length})
                     </p>
-                    {col.reasons.map((text, i) => (
+                    {col.reasons.map((reason) => (
                       <div
-                        key={i}
+                        key={reason.id}
                         className="bg-gray-50 rounded-lg px-3 py-2 text-left"
                         style={{ borderLeft: `3px solid ${col.color}` }}
                       >
-                        <span className="text-lg text-gray-800">{text}</span>
+                        <span className="text-lg text-gray-800">{reason.text}</span>
                       </div>
                     ))}
                     {col.reasons.length === 0 && (
