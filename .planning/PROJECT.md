@@ -33,17 +33,16 @@ Participants can instantly vote on questions in a way that feels immersive and t
 
 **Current Milestone: v1.1 — Batch Questions & Polish**
 
-**Goal:** Enable self-paced batch voting with collections, plus admin/results UX improvements.
+**Goal:** Enable self-paced batch voting with on-the-fly batch creation, session management, and results polish.
 
 **Target features:**
-- Question collections (named, reusable groups)
-- Self-paced batch mode (participants work through questions at own pace)
-- On-the-fly batch creation from existing questions
-- Collection import/export (JSON)
+- On-the-fly batch creation (group questions into named batches within sessions)
+- Multiple batches per session
+- Self-paced batch mode (participants navigate at own pace)
+- Global admin URL (/admin) with session list
+- Session review and export/import (JSON with batch groupings)
 - Admin progress dashboard for batch completion
-- Participant batch review with left/right navigation
-- Results view: mark reasons as read, consistent column ordering, reduce scrolling
-- Session overview improvements
+- Results view: mark reasons as read, consistent column ordering, reduce scrolling, question navigation
 
 ### Out of Scope
 
