@@ -36,9 +36,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### UI/Experience
 
-- [ ] **UIEX-01**: Voting UI is full-screen and tactile with large tap targets and satisfying animations
-- [ ] **UIEX-02**: Responsive design works on phones (participants) and desktop (admin)
-- [ ] **UIEX-03**: Connection status indicator shows if participant is connected or disconnected
+- [x] **UIEX-01**: Voting UI is full-screen and tactile with large tap targets and satisfying animations
+- [x] **UIEX-02**: Responsive design works on phones (participants) and desktop (admin)
+- [x] **UIEX-03**: Connection status indicator shows if participant is connected or disconnected
 
 ## v2 Requirements
 
@@ -96,9 +96,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | JOIN-02 | Phase 3 | Complete |
 | JOIN-03 | Phase 3 | Complete |
 | JOIN-04 | Phase 3 | Complete |
-| UIEX-01 | Phase 5 | Pending |
-| UIEX-02 | Phase 5 | Pending |
-| UIEX-03 | Phase 5 | Pending |
+| UIEX-01 | Phase 5 | Complete |
+| UIEX-02 | Phase 5 | Complete |
+| UIEX-03 | Phase 5 | Complete |
 
 **Coverage:**
 - v1 requirements: 18 total
@@ -108,4 +108,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-27*
-*Last updated: 2026-01-27 -- Phase 4 complete (LIVE-01..04 verified)*
+*Last updated: 2026-01-28 -- Phase 5 complete (UIEX-01..03 verified), all 18/18 v1 requirements satisfied*
