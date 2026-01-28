@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useSessionStore } from './session-store';
-import type { Question, Vote, Session } from '../types/database';
+import type { Question, Vote, Session, Batch } from '../types/database';
 
 function makeQuestion(overrides: Partial<Question> = {}): Question {
   return {
@@ -13,6 +13,7 @@ function makeQuestion(overrides: Partial<Question> = {}): Question {
     anonymous: true,
     status: 'pending',
     created_at: new Date().toISOString(),
+    batch_id: null,
     ...overrides,
   };
 }
@@ -47,6 +48,17 @@ function makeVote(overrides: Partial<Vote> = {}): Vote {
   };
 }
 
+function makeBatch(overrides: Partial<Batch> = {}): Batch {
+  return {
+    id: crypto.randomUUID(),
+    session_id: 's1',
+    name: 'Test Batch',
+    position: 0,
+    created_at: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
 describe('useSessionStore', () => {
   beforeEach(() => {
     useSessionStore.getState().reset();
@@ -57,6 +69,7 @@ describe('useSessionStore', () => {
       const state = useSessionStore.getState();
       expect(state.session).toBeNull();
       expect(state.questions).toEqual([]);
+      expect(state.batches).toEqual([]);
       expect(state.loading).toBe(false);
       expect(state.error).toBeNull();
       expect(state.currentVote).toBeNull();
@@ -200,11 +213,56 @@ describe('useSessionStore', () => {
     });
   });
 
+  describe('batch management', () => {
+    it('setBatches sorts by position', () => {
+      const b1 = makeBatch({ id: 'a', position: 2 });
+      const b2 = makeBatch({ id: 'b', position: 0 });
+      const b3 = makeBatch({ id: 'c', position: 1 });
+      useSessionStore.getState().setBatches([b1, b2, b3]);
+      const batches = useSessionStore.getState().batches;
+      expect(batches.map((b) => b.id)).toEqual(['b', 'c', 'a']);
+    });
+
+    it('addBatch inserts and sorts', () => {
+      const b1 = makeBatch({ id: 'a', position: 0 });
+      const b2 = makeBatch({ id: 'b', position: 2 });
+      useSessionStore.getState().setBatches([b1, b2]);
+      useSessionStore.getState().addBatch(makeBatch({ id: 'c', position: 1 }));
+      const ids = useSessionStore.getState().batches.map((b) => b.id);
+      expect(ids).toEqual(['a', 'c', 'b']);
+    });
+
+    it('updateBatch applies partial updates', () => {
+      const b = makeBatch({ id: 'b1', name: 'Original' });
+      useSessionStore.getState().setBatches([b]);
+      useSessionStore.getState().updateBatch('b1', { name: 'Updated' });
+      expect(useSessionStore.getState().batches[0].name).toBe('Updated');
+    });
+
+    it('updateBatch ignores unknown id', () => {
+      const b = makeBatch({ id: 'b1' });
+      useSessionStore.getState().setBatches([b]);
+      useSessionStore.getState().updateBatch('nonexistent', { name: 'X' });
+      expect(useSessionStore.getState().batches).toHaveLength(1);
+      expect(useSessionStore.getState().batches[0].name).toBe(b.name);
+    });
+
+    it('removeBatch filters by id', () => {
+      const b1 = makeBatch({ id: 'b1' });
+      const b2 = makeBatch({ id: 'b2' });
+      useSessionStore.getState().setBatches([b1, b2]);
+      useSessionStore.getState().removeBatch('b1');
+      expect(useSessionStore.getState().batches).toHaveLength(1);
+      expect(useSessionStore.getState().batches[0].id).toBe('b2');
+    });
+  });
+
   describe('reset', () => {
     it('resets all state to defaults', () => {
       const store = useSessionStore.getState();
       store.setSession(makeSession());
       store.setQuestions([makeQuestion()]);
+      store.setBatches([makeBatch()]);
       store.setLoading(true);
       store.setError('err');
       store.setCurrentVote(makeVote());
@@ -219,6 +277,7 @@ describe('useSessionStore', () => {
       const state = useSessionStore.getState();
       expect(state.session).toBeNull();
       expect(state.questions).toEqual([]);
+      expect(state.batches).toEqual([]);
       expect(state.loading).toBe(false);
       expect(state.error).toBeNull();
       expect(state.currentVote).toBeNull();

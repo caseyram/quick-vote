@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import type { Session, Question, Vote } from '../types/database';
+import type { Session, Question, Vote, Batch } from '../types/database';
 import type { ConnectionStatus } from '../hooks/use-realtime-channel';
 
 interface SessionState {
   session: Session | null;
   questions: Question[];
+  batches: Batch[];
   loading: boolean;
   error: string | null;
 
@@ -14,6 +15,10 @@ interface SessionState {
   updateQuestion: (id: string, updates: Partial<Question>) => void;
   removeQuestion: (id: string) => void;
   reorderQuestions: (orderedIds: string[]) => void;
+  setBatches: (batches: Batch[]) => void;
+  addBatch: (batch: Batch) => void;
+  updateBatch: (id: string, updates: Partial<Batch>) => void;
+  removeBatch: (id: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   reset: () => void;
@@ -42,6 +47,7 @@ interface SessionState {
 export const useSessionStore = create<SessionState>()((set) => ({
   session: null,
   questions: [],
+  batches: [],
   loading: false,
   error: null,
 
@@ -71,12 +77,29 @@ export const useSessionStore = create<SessionState>()((set) => ({
         })
         .filter((q): q is Question => q !== null),
     })),
+  setBatches: (batches) =>
+    set({ batches: [...batches].sort((a, b) => a.position - b.position) }),
+  addBatch: (batch) =>
+    set((state) => ({
+      batches: [...state.batches, batch].sort((a, b) => a.position - b.position),
+    })),
+  updateBatch: (id, updates) =>
+    set((state) => ({
+      batches: state.batches.map((b) =>
+        b.id === id ? { ...b, ...updates } : b
+      ),
+    })),
+  removeBatch: (id) =>
+    set((state) => ({
+      batches: state.batches.filter((b) => b.id !== id),
+    })),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   reset: () =>
     set({
       session: null,
       questions: [],
+      batches: [],
       loading: false,
       error: null,
       currentVote: null,
