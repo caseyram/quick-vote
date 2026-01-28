@@ -37,11 +37,13 @@ interface SessionState {
   connectionStatus: ConnectionStatus;
   activeQuestionId: string | null;
   timerEndTime: number | null;
+  activeBatchId: string | null;
 
   setParticipantCount: (count: number) => void;
   setConnectionStatus: (status: ConnectionStatus) => void;
   setActiveQuestionId: (id: string | null) => void;
   setTimerEndTime: (endTime: number | null) => void;
+  setActiveBatchId: (id: string | null) => void;
 }
 
 export const useSessionStore = create<SessionState>()((set) => ({
@@ -109,6 +111,7 @@ export const useSessionStore = create<SessionState>()((set) => ({
       connectionStatus: 'connecting',
       activeQuestionId: null,
       timerEndTime: null,
+      activeBatchId: null,
     }),
 
   // Voting state
@@ -125,9 +128,11 @@ export const useSessionStore = create<SessionState>()((set) => ({
   connectionStatus: 'connecting',
   activeQuestionId: null,
   timerEndTime: null,
+  activeBatchId: null,
 
   setParticipantCount: (count) => set({ participantCount: count }),
   setConnectionStatus: (status) => set({ connectionStatus: status }),
   setActiveQuestionId: (id) => set({ activeQuestionId: id }),
   setTimerEndTime: (endTime) => set({ timerEndTime: endTime }),
+  setActiveBatchId: (id) => set({ activeBatchId: id }),
 }));
