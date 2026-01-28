@@ -10,11 +10,11 @@
 
 **Milestone:** v1.1 — Batch Questions & Polish
 **Phase:** 6 of 10 (Batch Schema & UI)
-**Plan:** 01 of TBD complete
+**Plan:** 02 of 3 complete
 **Status:** Executing Phase 6
-**Last activity:** 2026-01-28 — Completed 06-01-PLAN.md (Batch Schema & Store)
+**Last activity:** 2026-01-28 — Completed 06-02-PLAN.md (Batch UI Components)
 
-Progress: [##########*.........] 51% (v1.0 complete, v1.1 plan 1 done)
+Progress: [##########**........] 52% (v1.0 complete, v1.1 plans 1-2 done)
 
 ## Milestone History
 
@@ -27,7 +27,7 @@ Progress: [##########*.........] 51% (v1.0 complete, v1.1 plan 1 done)
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 6 | Batch Schema & UI | BATCH-01, BATCH-02 | In progress (1 plan done) |
+| 6 | Batch Schema & UI | BATCH-01, BATCH-02 | In progress (2 plans done) |
 | 7 | Batch Activation | BATCH-03 | Not started |
 | 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | Not started |
 | 9 | Session Management | SESS-01 to SESS-05 | Not started |
@@ -41,7 +41,7 @@ Progress: [##########*.........] 51% (v1.0 complete, v1.1 plan 1 done)
 - Total execution time: ~6.5 hours
 
 **v1.1 Metrics:**
-- Plans completed: 1
+- Plans completed: 2
 - Total phases: 5
 - Requirements: 23
 
@@ -66,6 +66,9 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 - Zod v4 recommended for JSON import validation
 - Motion v12 gestures sufficient for navigation (no new dependencies needed)
 - Collections feature deprioritized to future milestone
+- dnd-kit for drag-and-drop (utilities v3.2.2 is latest, not v4.x)
+- Drag handle only pattern - listeners on grip icon, not entire card
+- Accordion state local to BatchList (not global store)
 
 ### Blockers
 
@@ -73,10 +76,10 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 
 ## Session Continuity
 
-**Last session:** 2026-01-28 — Completed 06-01-PLAN.md
-**Next action:** Execute next Phase 6 plan (06-02)
+**Last session:** 2026-01-28 — Completed 06-02-PLAN.md
+**Next action:** Execute next Phase 6 plan (06-03)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-28 — Completed 06-01-PLAN.md (Batch Schema & Store)*
+*Updated: 2026-01-28 — Completed 06-02-PLAN.md (Batch UI Components)*
