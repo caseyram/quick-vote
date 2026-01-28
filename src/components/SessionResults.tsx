@@ -181,12 +181,14 @@ function ReasonsSection({
   const [expanded, setExpanded] = useState(false);
 
   const reasonsByColumn = useMemo(() => {
+    // Sort votes by id for stable ordering
+    const sortedVotes = [...votes].sort((a, b) => a.id.localeCompare(b.id));
     return barData.map((bar) => ({
       label: bar.label,
       color: bar.color,
-      reasons: votes
+      reasons: sortedVotes
         .filter((v) => v.value === bar.label && v.reason && v.reason.trim())
-        .map((v) => v.reason!),
+        .map((v) => ({ id: v.id, text: v.reason! })),
     }));
   }, [barData, votes]);
 
@@ -208,26 +210,26 @@ function ReasonsSection({
         <span className="ml-1">{expanded ? '\u25B2' : '\u25BC'}</span>
       </button>
       {expanded && (
-        <div className="mt-2 max-h-60 overflow-y-auto">
+        <div className="mt-2 max-h-60 overflow-y-auto lg:max-w-3xl">
           <div className="flex gap-4">
             {reasonsByColumn.map((col) => (
               <div key={col.label} className="flex-1 min-w-0 space-y-1.5">
                 <p
-                  className="text-xs font-semibold text-center"
+                  className="text-xs lg:text-sm font-semibold text-center"
                   style={{ color: col.color }}
                 >
                   {col.label} ({col.reasons.length})
                 </p>
-                {col.reasons.map((text, i) => (
+                {col.reasons.map((reason) => (
                   <div
-                    key={i}
+                    key={reason.id}
                     className={`rounded px-2 py-1 text-left ${
                       isLight ? 'bg-gray-50' : 'bg-gray-800'
                     }`}
                     style={{ borderLeft: `2px solid ${col.color}` }}
                   >
-                    <span className={`text-sm ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
-                      {text}
+                    <span className={`text-sm lg:text-base ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
+                      {reason.text}
                     </span>
                   </div>
                 ))}

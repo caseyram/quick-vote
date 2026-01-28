@@ -44,6 +44,9 @@ export default function AdminQuestionControl({
   // Compute aggregated vote data from props
   const aggregated = useMemo(() => aggregateVotes(votes), [votes]);
 
+  // Sort votes by id for stable rendering order (prevents reordering while reading)
+  const sortedVotes = useMemo(() => [...votes].sort((a, b) => a.id.localeCompare(b.id)), [votes]);
+
   // Compute bar chart data
   const barData = useMemo(() => {
     return aggregated.map((vc, index) => {
@@ -285,11 +288,11 @@ export default function AdminQuestionControl({
 
           {/* Named votes: show voter names for closed named questions */}
           {!question.anonymous && votes.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-gray-300">
+            <div className="mt-3 pt-3 border-t border-gray-300 lg:max-w-2xl">
               <p className="text-xs text-gray-500 font-medium mb-2">Voter details</p>
               <div className="space-y-1">
-                {votes.map((v) => (
-                  <div key={v.id} className="flex items-center justify-between text-xs">
+                {sortedVotes.map((v) => (
+                  <div key={v.id} className="flex items-center justify-between text-xs lg:text-sm gap-4">
                     <span className="text-gray-500">
                       {v.display_name || 'Anonymous'}
                     </span>
