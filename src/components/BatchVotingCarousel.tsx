@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import VoteAgreeDisagree from './VoteAgreeDisagree';
 import VoteMultipleChoice from './VoteMultipleChoice';
@@ -34,6 +34,33 @@ export function BatchVotingCarousel({
   onComplete,
 }: BatchVotingCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Keyboard navigation (desktop only)
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      // Don't navigate if user is typing in input/textarea
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      if (event.key === 'ArrowRight') {
+        // Use functional update to avoid stale closure
+        setCurrentIndex(prev => Math.min(prev + 1, questions.length - 1));
+      } else if (event.key === 'ArrowLeft') {
+        setCurrentIndex(prev => Math.max(prev - 1, 0));
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup to prevent memory leaks
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [questions.length]); // Re-attach if question count changes
 
   const currentQuestion = questions[currentIndex];
   const isFirstQuestion = currentIndex === 0;
