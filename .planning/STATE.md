@@ -9,12 +9,12 @@
 ## Current Position
 
 **Milestone:** v1.1 — Batch Questions & Polish
-**Phase:** 8 of 10 (Participant Batch Experience) - In progress
-**Plan:** 2 of 3 complete
-**Status:** Executing Phase 8
-**Last activity:** 2026-01-28 — Completed 08-02-PLAN.md
+**Phase:** 8 of 10 (Participant Batch Experience) - Complete
+**Plan:** 3 of 3 complete
+**Status:** Phase 8 complete, ready for Phase 9
+**Last activity:** 2026-01-28 — Completed 08-03-PLAN.md
 
-Progress: [###############.....] 75% (v1.0 complete, Phase 7 complete, 08-02 complete)
+Progress: [################....] 80% (v1.0 complete, Phases 6-8 complete)
 
 ## Milestone History
 
@@ -29,7 +29,7 @@ Progress: [###############.....] 75% (v1.0 complete, Phase 7 complete, 08-02 com
 |-------|------|--------------|--------|
 | 6 | Batch Schema & UI | BATCH-01, BATCH-02 | Verified |
 | 7 | Batch Activation | BATCH-03 | Verified |
-| 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | In progress (2/3 plans) |
+| 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | Complete (3/3 plans) |
 | 9 | Session Management | SESS-01 to SESS-05 | Not started |
 | 10 | Progress Dashboard & Results Polish | PROG-01 to PROG-04, RESL-01 to RESL-04 | Not started |
 
@@ -41,7 +41,7 @@ Progress: [###############.....] 75% (v1.0 complete, Phase 7 complete, 08-02 com
 - Total execution time: ~6.5 hours
 
 **v1.1 Metrics:**
-- Plans completed: 7
+- Plans completed: 8
 - Total phases: 5
 - Requirements: 23
 
@@ -70,14 +70,14 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 - Drag handle only pattern - listeners on grip icon, not entire card
 - Accordion state local to BatchList (not global store)
 
-### From 08-02 Summary
+### From 08-03 Summary
 
-Batch voting carousel:
-- BatchVotingCarousel with local currentIndex state for navigation
-- Reuses VoteAgreeDisagree/VoteMultipleChoice (no UI duplication)
-- Previous disabled on first question, Complete Batch replaces Next on last
-- Progress indicator: "Question X of Y" at top
-- AnimatePresence slide transitions matching live mode
+Keyboard navigation and completion feedback:
+- Arrow keys navigate batch questions on desktop (ArrowRight/ArrowLeft)
+- Input/textarea focus check prevents conflicts with reason field
+- Event listener cleanup prevents memory leaks
+- onVoteSubmit callback added to VoteAgreeDisagree and VoteMultipleChoice
+- Progress indicator pulses (scale 1.1x) on vote submission using useAnimate
 
 ### Blockers
 
@@ -85,10 +85,10 @@ Batch voting carousel:
 
 ## Session Continuity
 
-**Last session:** 2026-01-28 — Completed 08-02-PLAN.md
-**Next action:** Execute 08-03-PLAN.md (Swipe gestures - optional enhancement)
+**Last session:** 2026-01-28 — Completed 08-03-PLAN.md
+**Next action:** Initialize Phase 9 (Session Management)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-28 — 08-02 complete*
+*Updated: 2026-01-28 — Phase 8 complete*
