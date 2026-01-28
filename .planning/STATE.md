@@ -9,12 +9,12 @@
 ## Current Position
 
 **Milestone:** v1.1 — Batch Questions & Polish
-**Phase:** 6 of 10 (Batch Schema & UI)
-**Plan:** 02 of 3 complete
-**Status:** Executing Phase 6
-**Last activity:** 2026-01-28 — Completed 06-02-PLAN.md (Batch UI Components)
+**Phase:** 6 of 10 (Batch Schema & UI) - COMPLETE
+**Plan:** 03 of 3 complete
+**Status:** Phase 6 complete, ready for Phase 7
+**Last activity:** 2026-01-28 — Completed 06-03-PLAN.md (Batch UI Integration)
 
-Progress: [##########**........] 52% (v1.0 complete, v1.1 plans 1-2 done)
+Progress: [###########*........] 57% (v1.0 complete, Phase 6 complete)
 
 ## Milestone History
 
@@ -27,7 +27,7 @@ Progress: [##########**........] 52% (v1.0 complete, v1.1 plans 1-2 done)
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 6 | Batch Schema & UI | BATCH-01, BATCH-02 | In progress (2 plans done) |
+| 6 | Batch Schema & UI | BATCH-01, BATCH-02 | Complete (3 plans) |
 | 7 | Batch Activation | BATCH-03 | Not started |
 | 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | Not started |
 | 9 | Session Management | SESS-01 to SESS-05 | Not started |
@@ -41,7 +41,7 @@ Progress: [##########**........] 52% (v1.0 complete, v1.1 plans 1-2 done)
 - Total execution time: ~6.5 hours
 
 **v1.1 Metrics:**
-- Plans completed: 2
+- Plans completed: 3
 - Total phases: 5
 - Requirements: 23
 
@@ -70,16 +70,23 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 - Drag handle only pattern - listeners on grip icon, not entire card
 - Accordion state local to BatchList (not global store)
 
+### From 06-03 Summary
+
+Batch CRUD handlers wired to Supabase, realtime subscription, inline question creation.
+- Inline form approach: QuestionForm expands inside BatchCard
+- BatchList manages accordion + adding state
+- ON DELETE SET NULL refreshes questions to show unbatched state
+
 ### Blockers
 
 (none)
 
 ## Session Continuity
 
-**Last session:** 2026-01-28 — Completed 06-02-PLAN.md
-**Next action:** Execute next Phase 6 plan (06-03)
+**Last session:** 2026-01-28 — Completed 06-03-PLAN.md
+**Next action:** Plan and execute Phase 7 (Batch Activation)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-28 — Completed 06-02-PLAN.md (Batch UI Components)*
+*Updated: 2026-01-28 — Completed 06-03-PLAN.md (Batch UI Integration)*
