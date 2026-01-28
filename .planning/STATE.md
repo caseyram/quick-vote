@@ -9,12 +9,12 @@
 ## Current Position
 
 **Milestone:** v1.1 — Batch Questions & Polish
-**Phase:** 6 of 10 (Batch Schema & UI) - COMPLETE ✓
-**Plan:** All 3 plans executed and verified
-**Status:** Phase 6 verified, ready for Phase 7
-**Last activity:** 2026-01-28 — Phase 6 verified and complete
+**Phase:** 7 of 10 (Batch Activation) - COMPLETE
+**Plan:** All 2 plans executed
+**Status:** Phase 7 complete, ready for Phase 8
+**Last activity:** 2026-01-28 — Completed Phase 7
 
-Progress: [############........] 60% (v1.0 complete, Phase 6 verified)
+Progress: [#############.......] 65% (v1.0 complete, Phase 7 complete)
 
 ## Milestone History
 
@@ -28,7 +28,7 @@ Progress: [############........] 60% (v1.0 complete, Phase 6 verified)
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
 | 6 | Batch Schema & UI | BATCH-01, BATCH-02 | ✓ Verified |
-| 7 | Batch Activation | BATCH-03 | Not started |
+| 7 | Batch Activation | BATCH-03 | Complete |
 | 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | Not started |
 | 9 | Session Management | SESS-01 to SESS-05 | Not started |
 | 10 | Progress Dashboard & Results Polish | PROG-01 to PROG-04, RESL-01 to RESL-04 | Not started |
@@ -41,7 +41,7 @@ Progress: [############........] 60% (v1.0 complete, Phase 6 verified)
 - Total execution time: ~6.5 hours
 
 **v1.1 Metrics:**
-- Plans completed: 3
+- Plans completed: 5
 - Total phases: 5
 - Requirements: 23
 
@@ -70,12 +70,13 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 - Drag handle only pattern - listeners on grip icon, not entire card
 - Accordion state local to BatchList (not global store)
 
-### From 06-03 Summary
+### From 07-02 Summary
 
-Batch CRUD handlers wired to Supabase, realtime subscription, inline question creation.
-- Inline form approach: QuestionForm expands inside BatchCard
-- BatchList manages accordion + adding state
-- ON DELETE SET NULL refreshes questions to show unbatched state
+Batch activation UI with mode exclusion enforcement:
+- Activate/Close buttons on BatchCard with visual state (green border when active)
+- handleActivateBatch/handleCloseBatch broadcast events for participant sync
+- Push question buttons disabled when batch mode active
+- canActivate computed based on status, questions, and mode exclusion
 
 ### Blockers
 
@@ -83,10 +84,10 @@ Batch CRUD handlers wired to Supabase, realtime subscription, inline question cr
 
 ## Session Continuity
 
-**Last session:** 2026-01-28 — Phase 6 verified and complete
-**Next action:** Plan Phase 7 (Batch Activation)
+**Last session:** 2026-01-28 — Phase 7 complete
+**Next action:** Plan Phase 8 (Participant Batch Experience)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-28 — Phase 6 verified and complete*
+*Updated: 2026-01-28 — Phase 7 complete*
