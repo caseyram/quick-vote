@@ -24,7 +24,7 @@ export default function VoteMultipleChoice({
   reasonsEnabled = false,
 }: VoteMultipleChoiceProps) {
   const haptic = useHaptic();
-  const { currentVote, setCurrentVote, submitting, setSubmitting } = useSessionStore();
+  const { setCurrentVote, submitting, setSubmitting } = useSessionStore();
   const [pendingSelection, setPendingSelection] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [reason, setReason] = useState('');

@@ -24,7 +24,7 @@ export default function VoteAgreeDisagree({
   reasonsEnabled = false,
 }: VoteAgreeDisagreeProps) {
   const haptic = useHaptic();
-  const { currentVote, setCurrentVote, submitting, setSubmitting } = useSessionStore();
+  const { setCurrentVote, submitting, setSubmitting } = useSessionStore();
   const [agreeRef, animateAgree] = useAnimate();
   const [sometimesRef, animateSometimes] = useAnimate();
   const [disagreeRef, animateDisagree] = useAnimate();
