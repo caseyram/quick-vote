@@ -2,6 +2,14 @@ export type VoteType = 'agree_disagree' | 'multiple_choice';
 export type SessionStatus = 'draft' | 'lobby' | 'active' | 'ended';
 export type QuestionStatus = 'pending' | 'active' | 'closed' | 'revealed';
 
+export interface Batch {
+  id: string;
+  session_id: string;
+  name: string;
+  position: number;
+  created_at: string;
+}
+
 export interface Session {
   id: string;
   session_id: string;
@@ -23,6 +31,7 @@ export interface Question {
   anonymous: boolean;
   status: QuestionStatus;
   created_at: string;
+  batch_id: string | null;
 }
 
 export interface Vote {
