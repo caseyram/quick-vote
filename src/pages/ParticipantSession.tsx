@@ -13,7 +13,7 @@ import VoteMultipleChoice from '../components/VoteMultipleChoice';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Session, Question, SessionStatus } from '../types/database';
 
-type ParticipantView = 'loading' | 'lobby' | 'voting' | 'waiting' | 'results' | 'error';
+type ParticipantView = 'loading' | 'lobby' | 'voting' | 'waiting' | 'results' | 'error' | 'batch-voting';
 
 // Slide transition variants for question changes (AnimatePresence)
 const questionSlideVariants = {
@@ -29,7 +29,7 @@ const questionTransition = {
 
 export default function ParticipantSession() {
   const { sessionId } = useParams();
-  const { session, setSession, reset } = useSessionStore();
+  const { session, setSession, reset, setBatchQuestions, setActiveBatchId, batchQuestions } = useSessionStore();
 
   const [view, setView] = useState<ParticipantView>('loading');
   const [activeQuestion, setActiveQuestion] = useState<Question | null>(null);
@@ -208,8 +208,40 @@ export default function ParticipantSession() {
         stopCountdown();
         setView('lobby');
       });
+
+      // 7. batch_activated: admin activated a batch of questions
+      channel.on('broadcast', { event: 'batch_activated' }, async ({ payload }) => {
+        const { batchId, questionIds } = payload as { batchId: string; questionIds: string[] };
+
+        // Validate non-empty
+        if (!questionIds || questionIds.length === 0) {
+          console.warn('Batch activated with no questions');
+          return;
+        }
+
+        // Fetch questions by ID array, ordered by position
+        const { data: batchQs } = await supabase
+          .from('questions')
+          .select('*')
+          .in('id', questionIds)
+          .order('position');
+
+        if (batchQs && batchQs.length > 0) {
+          setBatchQuestions(batchQs);
+          setActiveBatchId(batchId);
+          setView('batch-voting');
+        }
+      });
+
+      // 8. batch_closed: admin closed the active batch
+      channel.on('broadcast', { event: 'batch_closed' }, () => {
+        setBatchQuestions([]);
+        setActiveBatchId(null);
+        setView('waiting');
+        setWaitingMessage('Batch completed');
+      });
     },
-    [sessionId, startCountdown, stopCountdown],
+    [sessionId, startCountdown, stopCountdown, setBatchQuestions, setActiveBatchId],
   );
 
   // Realtime channel -- only enabled when we have a sessionId and we're not in error state
@@ -449,6 +481,18 @@ export default function ParticipantSession() {
               Thank you for participating!
             </p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Batch voting state (placeholder)
+  if (view === 'batch-voting' && batchQuestions.length > 0 && participantId) {
+    return (
+      <div className="min-h-dvh bg-gray-950 flex flex-col">
+        <ConnectionPill status={connectionStatus} />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-white text-xl">Batch voting mode - {batchQuestions.length} questions</p>
         </div>
       </div>
     );
