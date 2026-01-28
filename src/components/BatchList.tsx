@@ -7,6 +7,8 @@ interface BatchListProps {
   sessionId: string;
   batches: Batch[];
   questions: Question[];
+  activeBatchId: string | null;
+  activeQuestionId: string | null;
   onEditQuestion: (question: Question) => void;
   onDeleteQuestion: (question: Question) => void;
   onBatchNameChange: (batchId: string, name: string) => void;
@@ -14,6 +16,8 @@ interface BatchListProps {
   onAddQuestionToBatch: (batchId: string) => void;
   onCreateBatch: () => void;
   onDeleteBatch: (batchId: string) => void;
+  onActivateBatch: (batchId: string) => void;
+  onCloseBatch: (batchId: string) => void;
 }
 
 type ListItem =
@@ -24,6 +28,8 @@ export function BatchList({
   sessionId,
   batches,
   questions,
+  activeBatchId,
+  activeQuestionId,
   onEditQuestion,
   onDeleteQuestion,
   onBatchNameChange,
@@ -31,6 +37,8 @@ export function BatchList({
   onAddQuestionToBatch,
   onCreateBatch,
   onDeleteBatch,
+  onActivateBatch,
+  onCloseBatch,
 }: BatchListProps) {
   const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
   const [addingToBatchId, setAddingToBatchId] = useState<string | null>(null);
@@ -68,6 +76,16 @@ export function BatchList({
   // Get questions for a specific batch
   function getBatchQuestions(batchId: string): Question[] {
     return questions.filter((q) => q.batch_id === batchId);
+  }
+
+  // Compute whether a specific batch can be activated
+  const isLiveQuestionActive = activeQuestionId !== null;
+  function canActivateBatch(batch: Batch): boolean {
+    if (batch.status !== 'pending') return false;
+    if (isLiveQuestionActive) return false;
+    if (activeBatchId && activeBatchId !== batch.id) return false;
+    const batchQuestions = getBatchQuestions(batch.id);
+    return batchQuestions.length > 0;
   }
 
   function handleBatchToggle(batchId: string) {
@@ -114,6 +132,8 @@ export function BatchList({
               questions={getBatchQuestions(item.batch.id)}
               isExpanded={expandedBatchId === item.batch.id}
               isAddingQuestion={addingToBatchId === item.batch.id}
+              isActive={activeBatchId === item.batch.id}
+              canActivate={canActivateBatch(item.batch)}
               onToggle={() => handleBatchToggle(item.batch.id)}
               onNameChange={(name) => onBatchNameChange(item.batch.id, name)}
               onQuestionReorder={(ids) => onQuestionReorder(item.batch.id, ids)}
@@ -126,6 +146,8 @@ export function BatchList({
               }}
               onAddQuestionDone={() => setAddingToBatchId(null)}
               onDeleteBatch={() => onDeleteBatch(item.batch.id)}
+              onActivate={onActivateBatch}
+              onClose={onCloseBatch}
             />
           );
         }

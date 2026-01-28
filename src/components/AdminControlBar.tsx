@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CountdownTimer } from './CountdownTimer';
+import { useSessionStore } from '../stores/session-store';
 import type { Question } from '../types/database';
 import type { SessionStatus } from '../types/database';
 
@@ -56,6 +57,10 @@ export function AdminControlBar({
 }: AdminControlBarProps) {
   const [timerDuration, setTimerDuration] = useState<number | null>(null);
   const [barQuickText, setBarQuickText] = useState('');
+
+  // Subscribe to activeBatchId for mode exclusion
+  const activeBatchId = useSessionStore((state) => state.activeBatchId);
+  const batchModeActive = activeBatchId !== null;
 
   const isDraft = status === 'draft';
   const isLobby = status === 'lobby';
@@ -146,11 +151,12 @@ export function AdminControlBar({
                     <button
                       key={opt.label}
                       onClick={() => setTimerDuration(opt.value)}
+                      disabled={batchModeActive}
                       className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
                         timerDuration === opt.value
                           ? 'bg-indigo-600 text-white'
                           : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                      }`}
+                      } ${batchModeActive ? 'opacity-60 cursor-not-allowed' : ''}`}
                     >
                       {opt.label}
                     </button>
@@ -160,7 +166,13 @@ export function AdminControlBar({
                 {/* Activate next question */}
                 <button
                   onClick={() => onActivateQuestion(nextPending.id, timerDuration)}
-                  className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-medium rounded-lg transition-colors shrink-0"
+                  disabled={batchModeActive}
+                  className={`px-3 py-1.5 text-white text-xs font-medium rounded-lg transition-colors shrink-0 ${
+                    batchModeActive
+                      ? 'bg-gray-400 cursor-not-allowed opacity-60'
+                      : 'bg-green-600 hover:bg-green-500'
+                  }`}
+                  title={batchModeActive ? 'Close active batch before pushing questions' : undefined}
                 >
                   Activate Q{questions.findIndex((q) => q.id === nextPending.id) + 1}
                 </button>
@@ -168,26 +180,34 @@ export function AdminControlBar({
             ) : (
               /* Quick question input inline in bar */
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <input
-                  type="text"
-                  value={barQuickText}
-                  onChange={(e) => setBarQuickText(e.target.value)}
-                  placeholder="Type a question..."
-                  className="flex-1 min-w-0 px-2 py-1 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && barQuickText.trim()) {
-                      e.preventDefault();
-                      handleBarQuickSubmit();
-                    }
-                  }}
-                />
-                <button
-                  onClick={handleBarQuickSubmit}
-                  disabled={!barQuickText.trim() || quickQuestionLoading}
-                  className="px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition-colors shrink-0"
-                >
-                  {quickQuestionLoading ? 'Going...' : 'Go Live'}
-                </button>
+                {batchModeActive ? (
+                  <span className="text-sm text-gray-500 italic">
+                    Batch mode active - close batch to push questions
+                  </span>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      value={barQuickText}
+                      onChange={(e) => setBarQuickText(e.target.value)}
+                      placeholder="Type a question..."
+                      className="flex-1 min-w-0 px-2 py-1 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && barQuickText.trim()) {
+                          e.preventDefault();
+                          handleBarQuickSubmit();
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={handleBarQuickSubmit}
+                      disabled={!barQuickText.trim() || quickQuestionLoading}
+                      className="px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition-colors shrink-0"
+                    >
+                      {quickQuestionLoading ? 'Going...' : 'Go Live'}
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
