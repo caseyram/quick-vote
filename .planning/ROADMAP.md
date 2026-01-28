@@ -40,11 +40,12 @@ See git history for v1.0 implementation details. Milestone delivered:
   2. Admin can add questions to a batch on-the-fly (create question and assign to batch in one flow)
   3. Admin can create multiple batches within the same session
   4. Admin can see which questions belong to which batch
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: TBD
-- [ ] 06-02: TBD
+- [ ] 06-01-PLAN.md — Database schema & types (batches table, Batch type, store methods)
+- [ ] 06-02-PLAN.md — Batch UI components (BatchCard, BatchList, drag-and-drop with dnd-kit)
+- [ ] 06-03-PLAN.md — Admin session integration (wire components to Supabase, inline question creation)
 
 ### Phase 7: Batch Activation
 **Goal**: Admin can activate a batch so participants receive all questions at once for self-paced voting
@@ -120,7 +121,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1-5 | v1.0 | 16/16 | Complete | 2026-01-28 |
-| 6. Batch Schema & UI | v1.1 | 0/TBD | Not started | - |
+| 6. Batch Schema & UI | v1.1 | 0/3 | Planning complete | - |
 | 7. Batch Activation | v1.1 | 0/TBD | Not started | - |
 | 8. Participant Batch Experience | v1.1 | 0/TBD | Not started | - |
 | 9. Session Management | v1.1 | 0/TBD | Not started | - |
