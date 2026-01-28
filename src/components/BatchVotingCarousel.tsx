@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence, useAnimate } from 'motion/react';
 import VoteAgreeDisagree from './VoteAgreeDisagree';
 import VoteMultipleChoice from './VoteMultipleChoice';
 import type { Question } from '../types/database';
@@ -34,6 +34,18 @@ export function BatchVotingCarousel({
   onComplete,
 }: BatchVotingCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [progressRef, animateProgress] = useAnimate();
+
+  const handleVoteSubmit = useCallback(() => {
+    // Subtle pulse on progress indicator as completion feedback
+    if (progressRef.current) {
+      animateProgress(
+        progressRef.current,
+        { scale: [1, 1.1, 1] },
+        { duration: 0.3, ease: 'easeOut' }
+      );
+    }
+  }, [animateProgress, progressRef]);
 
   // Keyboard navigation (desktop only)
   useEffect(() => {
@@ -89,7 +101,7 @@ export function BatchVotingCarousel({
   return (
     <div className="h-dvh bg-gray-950 flex flex-col overflow-hidden">
       {/* Progress indicator - text counter at top */}
-      <div className="px-4 py-3 text-center">
+      <div ref={progressRef} className="px-4 py-3 text-center">
         <p className="text-gray-400 text-sm font-medium">
           Question {currentIndex + 1} of {questions.length}
         </p>
@@ -116,6 +128,7 @@ export function BatchVotingCarousel({
                     participantId={participantId}
                     displayName={displayName}
                     reasonsEnabled={reasonsEnabled}
+                    onVoteSubmit={handleVoteSubmit}
                   />
                 ) : (
                   <VoteMultipleChoice
@@ -124,6 +137,7 @@ export function BatchVotingCarousel({
                     participantId={participantId}
                     displayName={displayName}
                     reasonsEnabled={reasonsEnabled}
+                    onVoteSubmit={handleVoteSubmit}
                   />
                 )}
               </motion.div>
