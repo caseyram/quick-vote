@@ -1,12 +1,14 @@
 export type VoteType = 'agree_disagree' | 'multiple_choice';
 export type SessionStatus = 'draft' | 'lobby' | 'active' | 'ended';
 export type QuestionStatus = 'pending' | 'active' | 'closed' | 'revealed';
+export type BatchStatus = 'pending' | 'active' | 'closed';
 
 export interface Batch {
   id: string;
   session_id: string;
   name: string;
   position: number;
+  status: BatchStatus;
   created_at: string;
 }
 
