@@ -1,704 +1,825 @@
-# Architecture Patterns: Real-Time Voting System (QuickVote)
+# Architecture: Batch Questions and Collections Integration
 
-**Domain:** Real-time voting / audience polling web application
-**Researched:** 2026-01-27
-**Overall confidence:** MEDIUM (based on training data; WebSearch/WebFetch unavailable for live verification)
-
----
-
-## Recommended Architecture
-
-QuickVote is a **real-time broadcast-and-collect system**: the admin pushes state changes (new question, close voting, reveal results) and participants react (submit votes). The data flows are asymmetric -- one admin broadcasts to many participants, many participants write votes that aggregate back to the admin's view.
-
-### High-Level System Diagram
-
-```
-+------------------+       +-------------------+       +------------------+
-|  Admin Client    | <---> |   Supabase        | <---> | Participant      |
-|  (React SPA)     |       |                   |       | Clients (React)  |
-|                  |       |  - Database (PG)  |       |                  |
-|  Creates session |       |  - Realtime       |       |  Joins via QR    |
-|  Pushes questions|       |    (WebSocket)    |       |  Sees questions  |
-|  Views results   |       |  - Auth (anon)    |       |  Submits votes   |
-|                  |       |  - Edge Functions |       |                  |
-+------------------+       +-------------------+       +------------------+
-        |                          |                          |
-        |    Vercel (hosting)      |    Supabase (backend)    |
-        +--------------------------+--------------------------+
-```
-
-### Core Insight: Two Realtime Mechanisms, Different Purposes
-
-Supabase Realtime offers three channel types. QuickVote should use **two** of them strategically:
-
-| Mechanism | Use In QuickVote | Why |
-|-----------|------------------|-----|
-| **Broadcast** | Admin pushing session state (current question, voting open/closed, reveal results) | Low-latency, ephemeral, no database write needed for state transitions. Admin sends, all participants receive instantly. |
-| **Postgres Changes** | Vote aggregation -- admin sees live vote counts as participants submit | Votes are persisted to DB; listening to inserts gives live tallies without extra plumbing. |
-| **Presence** | Participant count / "who's here" in lobby | Shows admin how many people have joined before starting. |
-
-**Confidence: MEDIUM** -- This three-mechanism split is well-documented in Supabase's architecture as of my training data (early 2025). Verify against current Supabase Realtime docs that Broadcast, Presence, and Postgres Changes are still the three primitives.
+**Project:** QuickVote v1.1
+**Focus:** How batch questions and collections integrate with existing architecture
+**Researched:** 2026-01-28
+**Confidence:** HIGH (builds on verified v1.0 architecture)
 
 ---
 
-## Component Boundaries
+## Executive Summary
 
-### Component 1: Session Management
+Batch questions and collections introduce **two new concepts** to QuickVote:
 
-**Responsibility:** Create sessions, generate unique admin links, generate participant join codes/QR URLs.
+1. **Collections** - Named, reusable groups of questions (library feature)
+2. **Batches** - Runtime activation of multiple questions for self-paced voting
 
-| Aspect | Detail |
-|--------|--------|
-| **Data** | `sessions` table: id (UUID), admin_token (unique), join_code (short string), mode (live/self-paced), created_at, status (lobby/active/ended) |
-| **Who writes** | Admin client on session creation |
-| **Who reads** | Admin client (via admin_token), Participant client (via join_code) |
-| **Realtime** | None needed -- session is created once, rarely updated |
+These concepts are orthogonal: collections are a storage/organization feature; batches are a runtime/session-mode feature. The architecture adds one new table (`collections`), two new columns on `questions`, and a new participant state tracking mechanism. The existing realtime channel can be extended with new broadcast events without structural changes.
 
-**Key decision:** The admin_token in the URL is the sole authentication for the admin. No accounts, no passwords. This means the session URL IS the credential. Treat it like a bearer token.
+**Key insight:** Self-paced batch mode is a *different state machine* than live mode, not just a different UI. Participants control their own progression, so the admin no longer broadcasts per-question state changes. Instead, participants track their own progress locally and sync completion status back to the server.
 
-### Component 2: Question Engine
+---
 
-**Responsibility:** Store questions, manage question ordering, track which question is "current" in a live session.
+## Current Architecture (v1.0 Baseline)
 
-| Aspect | Detail |
-|--------|--------|
-| **Data** | `questions` table: id, session_id (FK), text, type (agree_disagree/multiple_choice), options (JSONB for MC), position (ordering), anonymous (boolean), status (pending/active/closed) |
-| **Who writes** | Admin client (creates questions, changes status) |
-| **Who reads** | Both admin and participant clients |
-| **Realtime** | **Broadcast** for live mode: admin advances question, broadcast tells all participants "show question X now" |
+### Existing Schema
 
-### Component 3: Vote Collection
+```sql
+-- Sessions: admin creates, controls flow
+sessions (
+  id UUID PRIMARY KEY,
+  session_id TEXT UNIQUE,      -- human-readable join code
+  admin_token UUID UNIQUE,     -- admin access credential
+  title TEXT,
+  status TEXT,                 -- 'draft' | 'lobby' | 'active' | 'ended'
+  reasons_enabled BOOLEAN,
+  created_by UUID,
+  created_at TIMESTAMPTZ
+)
 
-**Responsibility:** Accept and store individual votes, enforce one-vote-per-participant-per-question.
+-- Questions: belong to a session
+questions (
+  id UUID PRIMARY KEY,
+  session_id TEXT,             -- FK to sessions.session_id
+  text TEXT,
+  type TEXT,                   -- 'agree_disagree' | 'multiple_choice'
+  options JSONB,               -- for multiple choice
+  position INTEGER,            -- ordering
+  anonymous BOOLEAN,
+  status TEXT,                 -- 'pending' | 'active' | 'closed' | 'revealed'
+  created_at TIMESTAMPTZ
+)
 
-| Aspect | Detail |
-|--------|--------|
-| **Data** | `votes` table: id, question_id (FK), session_id (FK), participant_id (client-generated UUID stored in localStorage), value (text -- the choice), display_name (nullable, for named votes), created_at |
-| **Who writes** | Participant clients |
-| **Who reads** | Admin client (for results), participant client (to check "did I already vote?") |
-| **Realtime** | **Postgres Changes** -- admin subscribes to INSERT on votes table filtered by session_id. Each new vote triggers a live tally update on admin's results view. |
-| **Constraint** | UNIQUE(question_id, participant_id) prevents double-voting. Handle conflict at DB level (ON CONFLICT DO NOTHING or upsert). |
-
-### Component 4: Results Aggregation
-
-**Responsibility:** Compute and display vote tallies in real time.
-
-| Aspect | Detail |
-|--------|--------|
-| **Data** | Derived from `votes` table -- COUNT grouped by value per question |
-| **Computation** | Client-side aggregation from Postgres Changes stream, OR a database view/function |
-| **Who reads** | Admin client (always), Participant client (when results are revealed) |
-| **Realtime** | Rides on Component 3's Postgres Changes subscription. Each INSERT triggers re-aggregation client-side. |
-
-**Architecture decision: Client-side vs server-side aggregation.**
-
-For v1 (50-100 participants), **client-side aggregation is correct**:
-- Each vote INSERT arrives via Postgres Changes
-- Admin client maintains a local count map: `{ [choiceValue]: count }`
-- On each new vote event, increment the relevant counter
-- Chart re-renders reactively
-
-At 50-100 concurrent voters, this is well within client capacity. Server-side aggregation (Supabase Edge Function or DB view) becomes worthwhile above ~500 concurrent voters per question.
-
-### Component 5: Session State Machine (Live Mode)
-
-**Responsibility:** Orchestrate the flow of a live presentation session.
-
-```
-LOBBY --> QUESTION_ACTIVE --> VOTING_CLOSED --> RESULTS_REVEALED
-  ^                                                    |
-  |                                                    v
-  +-------- NEXT_QUESTION (loops) --------<-----------+
-                                                       |
-                                                  SESSION_ENDED
+-- Votes: participant responses
+votes (
+  id UUID PRIMARY KEY,
+  question_id UUID,            -- FK to questions.id
+  session_id TEXT,             -- denormalized for efficient filtering
+  participant_id UUID,         -- client-generated, stored in localStorage
+  value TEXT,
+  reason TEXT,
+  display_name TEXT,
+  locked_in BOOLEAN,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
+  UNIQUE(question_id, participant_id)
+)
 ```
 
-| State | What Admin Sees | What Participants See |
-|-------|-----------------|----------------------|
-| LOBBY | Waiting screen with participant count, QR code | "Waiting for host to start..." |
-| QUESTION_ACTIVE | Question + live vote count streaming in | Question + voting buttons (full-screen tactile UI) |
-| VOTING_CLOSED | Question + final tally | "Voting closed" or their submitted answer |
-| RESULTS_REVEALED | Chart/visualization of results | Chart/visualization of results (same view) |
-| SESSION_ENDED | Summary of all questions/results | "Thanks for participating" |
+### Existing Realtime Architecture
 
-**Realtime mechanism:** The admin client **Broadcasts** state transitions on a channel named by session ID. All participant clients subscribe to that channel and render the appropriate view based on the broadcast payload.
+Single multiplexed Supabase channel per session: `session:{sessionId}`
 
-**Broadcast payload structure:**
+| Feature | Mechanism | Direction | Purpose |
+|---------|-----------|-----------|---------|
+| Admin commands | Broadcast | Admin -> Participants | `question_activated`, `voting_closed`, `session_ended` |
+| Vote streaming | Postgres Changes | Participants -> Admin | Live vote count updates |
+| Participant count | Presence | Bidirectional | Show connected user count |
+
+### Existing State Machine (Live Mode)
+
+```
+Session: draft -> lobby -> active -> ended
+
+Question (within active session):
+  pending -> active -> closed -> revealed
+             ^                      |
+             +---- admin control ---+
+```
+
+Admin controls all transitions via Broadcast. Participants are passive receivers.
+
+---
+
+## New Concepts for v1.1
+
+### Concept 1: Collections (Storage/Library)
+
+**What:** Named groups of questions that exist independently of sessions. Admin can import a collection into a session, or create a collection from session questions.
+
+**Purpose:**
+- Reuse question sets across sessions
+- Share collections (export/import JSON)
+- Build a question library over time
+
+**Relationship to sessions:** Many-to-many. A collection can be imported into multiple sessions. A session can have questions from multiple collections (or no collection).
+
+### Concept 2: Batches (Runtime/Session Mode)
+
+**What:** A set of questions activated together for self-paced participant voting. Participants see all batch questions and navigate freely (previous/next). Admin sees aggregate completion progress.
+
+**Purpose:**
+- Allow participants to answer at their own pace
+- Admin activates 3-5 questions as a batch, then reviews results after
+- Different UX from the "one question at a time, admin controls" live mode
+
+**Relationship to live mode:** Mutually exclusive within an active session. Session is either in "live mode" (admin controls per-question) or "batch mode" (admin activates batch, participants self-pace).
+
+---
+
+## Schema Changes
+
+### New Table: `collections`
+
+```sql
+CREATE TABLE collections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT,
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_collections_created_by ON collections(created_by);
+```
+
+**RLS Policies:**
+```sql
+ALTER TABLE collections ENABLE ROW LEVEL SECURITY;
+
+-- Creator can manage their collections
+CREATE POLICY "Creator can CRUD own collections"
+  ON collections FOR ALL TO authenticated
+  USING ((select auth.uid()) = created_by)
+  WITH CHECK ((select auth.uid()) = created_by);
+
+-- Anyone can read collections (for import feature)
+CREATE POLICY "Anyone can read collections"
+  ON collections FOR SELECT TO authenticated
+  USING (true);
+```
+
+### New Table: `collection_questions`
+
+Junction table for collection -> question templates (not linked to sessions).
+
+```sql
+CREATE TABLE collection_questions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  collection_id UUID NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+  text TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('agree_disagree', 'multiple_choice')),
+  options JSONB,
+  anonymous BOOLEAN NOT NULL DEFAULT true,
+  position INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_collection_questions_collection_id ON collection_questions(collection_id);
+```
+
+**RLS Policies:**
+```sql
+ALTER TABLE collection_questions ENABLE ROW LEVEL SECURITY;
+
+-- Inherit from collection ownership
+CREATE POLICY "Collection owner can manage collection_questions"
+  ON collection_questions FOR ALL TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM collections
+      WHERE collections.id = collection_questions.collection_id
+      AND collections.created_by = (select auth.uid())
+    )
+  );
+
+-- Anyone can read (for import)
+CREATE POLICY "Anyone can read collection_questions"
+  ON collection_questions FOR SELECT TO authenticated
+  USING (true);
+```
+
+### Modified Table: `questions` (New Columns)
+
+```sql
+-- Add batch tracking to questions
+ALTER TABLE questions ADD COLUMN batch_id UUID;
+ALTER TABLE questions ADD COLUMN source_collection_id UUID REFERENCES collections(id) ON DELETE SET NULL;
+
+CREATE INDEX idx_questions_batch_id ON questions(batch_id);
+```
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| `batch_id` | UUID | Groups questions into a batch. NULL = not part of any batch (live mode question). Same `batch_id` = same batch. |
+| `source_collection_id` | UUID | Tracks which collection this question was imported from (for attribution). NULL = created directly. |
+
+**Design decision:** `batch_id` is a simple UUID, not a foreign key to a batches table. Batches are ephemeral groupings created on-the-fly, not first-class entities requiring their own table. This keeps the schema simple. The batch_id is generated client-side when admin selects questions to batch-activate.
+
+### Modified Table: `sessions` (New Column)
+
+```sql
+-- Add mode tracking to sessions
+ALTER TABLE sessions ADD COLUMN mode TEXT NOT NULL DEFAULT 'live' CHECK (mode IN ('live', 'batch'));
+ALTER TABLE sessions ADD COLUMN active_batch_id UUID;
+```
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| `mode` | TEXT | 'live' (admin controls per-question) or 'batch' (self-paced voting on batch) |
+| `active_batch_id` | UUID | When mode='batch', which batch is currently active. NULL when mode='live'. |
+
+### New Table: `batch_progress` (Participant Progress Tracking)
+
+```sql
+CREATE TABLE batch_progress (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id TEXT NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
+  batch_id UUID NOT NULL,
+  participant_id UUID NOT NULL,
+  question_id UUID NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+  answered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(batch_id, participant_id, question_id)
+);
+
+CREATE INDEX idx_batch_progress_batch_participant ON batch_progress(batch_id, participant_id);
+CREATE INDEX idx_batch_progress_session ON batch_progress(session_id);
+```
+
+**Purpose:** Track which questions each participant has answered in a batch. This enables:
+- Participant UI: show answered/unanswered state, enable review navigation
+- Admin UI: show completion percentage per participant, aggregate progress
+
+**RLS Policies:**
+```sql
+ALTER TABLE batch_progress ENABLE ROW LEVEL SECURITY;
+
+-- Participants track their own progress
+CREATE POLICY "Participants can insert own progress"
+  ON batch_progress FOR INSERT TO authenticated
+  WITH CHECK ((select auth.uid()) = participant_id);
+
+-- Anyone can read progress (admin sees all, participant sees own)
+CREATE POLICY "Anyone can read progress"
+  ON batch_progress FOR SELECT TO authenticated
+  USING (true);
+```
+
+**Alternative considered:** Track progress implicitly via votes table (if vote exists for question_id + participant_id, question is answered). This is simpler but doesn't distinguish between "in this batch" and "in a previous session or re-vote scenario." Explicit progress tracking is cleaner and supports the "review answered questions" UX.
+
+---
+
+## State Machine Changes
+
+### Session State Machine (Unchanged)
+
+```
+draft -> lobby -> active -> ended
+```
+
+No changes. The `mode` column is orthogonal to `status`.
+
+### Question State Machine (Batch Mode)
+
+In batch mode, questions don't go through `pending -> active -> closed` individually. Instead:
+
+```
+Batch mode question states:
+  pending (not in active batch)
+  batch_active (part of currently active batch)
+  batch_closed (batch ended, results available)
+```
+
+**Implementation:** The existing `status` column semantics change based on session mode:
+
+| Session Mode | Question Status Meaning |
+|--------------|-------------------------|
+| `live` | `pending` -> `active` -> `closed` -> `revealed` (admin controls each transition) |
+| `batch` | All questions in batch have status `active` simultaneously. When admin ends batch, all become `closed`. |
+
+**Design decision:** Reuse the existing `status` column rather than adding a separate `batch_status`. This keeps the schema simpler and the admin UI can handle the different semantics based on `session.mode`.
+
+### Participant State Machine (New for Batch Mode)
+
+Participants in batch mode have local state tracking their position in the batch:
+
+```
+Participant batch state:
+  current_question_index: number (0 to batch.length - 1)
+  answered_questions: Set<questionId>
+  review_mode: boolean (true after answering all)
+```
+
+This is **client-side state**, not stored in the database. The `batch_progress` table is the source of truth for what's answered, but the current index is ephemeral (resets on page reload, which is fine).
+
+---
+
+## Realtime Changes
+
+### New Broadcast Events
+
+| Event | Payload | Direction | When |
+|-------|---------|-----------|------|
+| `batch_activated` | `{ batchId, questionIds }` | Admin -> Participants | Admin activates a batch |
+| `batch_ended` | `{ batchId }` | Admin -> Participants | Admin closes the batch |
+| `participant_progress` | `{ participantId, answeredCount, totalCount }` | Participants -> Admin | Participant completes a question (for progress dashboard) |
+
+### Broadcast: `batch_activated`
+
 ```typescript
-type SessionBroadcast = {
-  type: 'STATE_CHANGE';
-  state: 'lobby' | 'question_active' | 'voting_closed' | 'results_revealed' | 'ended';
-  questionId?: string;       // which question is active
-  questionData?: Question;   // full question object (so participant doesn't need extra fetch)
-  results?: AggregatedResult; // included when results_revealed
-};
+// Admin side
+channel.send({
+  type: 'broadcast',
+  event: 'batch_activated',
+  payload: {
+    batchId: generatedUUID,
+    questionIds: ['q1', 'q2', 'q3'],
+  },
+});
+
+// Participant side
+channel.on('broadcast', { event: 'batch_activated' }, async ({ payload }) => {
+  const { batchId, questionIds } = payload;
+  // Fetch all questions in batch
+  const { data: questions } = await supabase
+    .from('questions')
+    .select('*')
+    .in('id', questionIds)
+    .order('position');
+
+  setBatchQuestions(questions);
+  setCurrentQuestionIndex(0);
+  setView('batch_voting');
+});
 ```
 
-**Why Broadcast (not Postgres Changes) for state:**
-- State transitions are ephemeral commands -- "show this now"
-- Writing state to DB and relying on Postgres Changes adds unnecessary latency (write to PG -> WAL -> Realtime -> client vs. direct WebSocket broadcast)
-- Broadcast is lower latency for this "command" pattern
-- BUT: also write current state to DB as source of truth for late joiners (they fetch via REST on connect, then listen to broadcast for updates)
+### Broadcast: `batch_ended`
 
-### Component 6: Participant Identity
+```typescript
+// Admin side (after updating session.active_batch_id = null)
+channel.send({
+  type: 'broadcast',
+  event: 'batch_ended',
+  payload: { batchId },
+});
 
-**Responsibility:** Track participants without accounts.
+// Participant side
+channel.on('broadcast', { event: 'batch_ended' }, () => {
+  setView('waiting'); // or 'batch_results' if we want to show summary
+});
+```
 
-| Aspect | Detail |
-|--------|--------|
-| **Mechanism** | Generate a UUID on first visit, store in `localStorage`. This is the `participant_id`. |
-| **For named votes** | Prompt for display name, also stored in `localStorage` and sent with vote. |
-| **Supabase Auth** | Use Supabase anonymous auth (signInAnonymously). This gives a Supabase user ID that can be used for RLS policies without requiring email/password. |
-| **Persistence** | Same device + same browser = same participant. Different device = new participant. This is acceptable for v1. |
+### Broadcast: `participant_progress`
 
-**Confidence: MEDIUM** -- Supabase anonymous auth was available as of early 2025. Verify it is still the recommended approach and check for any API changes.
+This is **participant-to-admin** communication for the progress dashboard. Two options:
 
-### Component 7: QR Code / Join Flow
+**Option A: Postgres Changes on `batch_progress` table**
+Admin subscribes to INSERT on `batch_progress` where `session_id=eq.{sessionId}`. Each progress insert triggers a re-aggregation.
 
-**Responsibility:** Get participants from "I'm in the room" to "I see the current question."
+**Option B: Explicit Broadcast from participant**
+After inserting progress, participant broadcasts their updated count.
 
-| Step | What Happens |
-|------|-------------|
-| 1 | Admin shares URL or displays QR code (encodes `https://quickvote.app/join/{joinCode}`) |
-| 2 | Participant scans QR / clicks link |
-| 3 | App loads, checks `localStorage` for existing participant_id, generates one if needed |
-| 4 | App fetches current session state via REST: `GET /sessions?join_code=eq.{code}` |
-| 5 | App subscribes to Broadcast channel for this session |
-| 6 | App renders the view matching current session state (lobby, active question, etc.) |
-| 7 | If Presence is enabled, participant announces themselves on the Presence channel |
+**Recommendation: Option A (Postgres Changes)**
+Reasons:
+- Consistent with how vote streaming works
+- No additional broadcast logic needed
+- `batch_progress` table already captures the event
+- Admin can query aggregate on demand or incrementally update from changes
+
+```typescript
+// Admin subscribes to batch_progress
+channel.on(
+  'postgres_changes',
+  {
+    event: 'INSERT',
+    schema: 'public',
+    table: 'batch_progress',
+    filter: `session_id=eq.${sessionId}`,
+  },
+  (payload) => {
+    const { participant_id, question_id } = payload.new;
+    // Update local progress tracking
+    updateParticipantProgress(participant_id, question_id);
+  }
+);
+```
+
+### Publication Setup
+
+```sql
+-- Add batch_progress to realtime publication
+ALTER PUBLICATION supabase_realtime ADD TABLE batch_progress;
+```
+
+### Channel Structure (Unchanged)
+
+The existing single-channel-per-session pattern continues to work. All new events are just additional listeners on the same channel.
 
 ---
 
 ## Data Flow Diagrams
 
-### Flow 1: Admin Creates Session and First Question
+### Flow 1: Admin Creates Collection
 
 ```
 Admin Client                    Supabase DB
     |                               |
-    |-- INSERT session ------------>|
-    |<---- session row (with id, ---|
-    |      admin_token, join_code)  |
+    |-- INSERT collection --------->|
+    |<---- collection row ----------|
     |                               |
-    |-- INSERT question ----------->|
-    |      (session_id, text,       |
-    |       type, options)          |
-    |<---- question row ------------|
+    |-- INSERT collection_questions -->|
+    |   (batch insert all questions)   |
+    |<---- collection_questions rows --|
+```
+
+No realtime involved. Standard CRUD.
+
+### Flow 2: Admin Imports Collection into Session
+
+```
+Admin Client                    Supabase DB
     |                               |
-    |-- Generate QR code locally ---|
-    |   (from join URL)             |
+    |-- SELECT collection_questions ->|
+    |<---- question templates --------|
+    |                               |
+    |-- INSERT questions ----------->|
+    |   (copy from templates,        |
+    |    set session_id,             |
+    |    set source_collection_id)   |
+    |<---- new question rows --------|
 ```
 
-### Flow 2: Participant Joins (Late Join)
+Questions are copied, not linked. Changes to collection don't affect session questions.
+
+### Flow 3: Admin Activates Batch (Self-Paced Mode)
 
 ```
-Participant Client              Supabase               Broadcast Channel
+Admin Client                    Supabase DB             Broadcast Channel
     |                               |                        |
-    |-- GET session (join_code) --->|                        |
-    |<---- session + current -------|                        |
-    |      state (REST)             |                        |
+    |-- Generate batch_id (UUID) ---|                        |
     |                               |                        |
-    |-- Subscribe to channel -------|----------------------->|
-    |   (session:{sessionId})       |                        |
+    |-- UPDATE questions ---------->|                        |
+    |   SET batch_id, status='active'                        |
+    |   WHERE id IN (selected)      |                        |
     |                               |                        |
-    |-- Join Presence (optional) ---|----------------------->|
+    |-- UPDATE session ------------>|                        |
+    |   SET mode='batch',           |                        |
+    |   active_batch_id             |                        |
     |                               |                        |
-    |   [Render current state       |                        |
-    |    based on REST response]    |                        |
+    |-- Broadcast: batch_activated ->----------------------->|
+    |   { batchId, questionIds }    |                   [All participants
+    |                               |                    receive, switch
+    |                               |                    to batch view]
 ```
 
-### Flow 3: Admin Pushes New Question (Live Mode)
+### Flow 4: Participant Answers Question in Batch
 
 ```
-Admin Client                Broadcast Channel         Participant Clients
-    |                            |                          |
-    |-- UPDATE question -------->|                          |
-    |   status='active'          |                          |
-    |   (DB write for            |                          |
-    |    persistence)            |                          |
-    |                            |                          |
-    |-- Broadcast: ------------->|-- delivers to all ------>|
-    |   { type: STATE_CHANGE,    |   subscribers            |
-    |     state: question_active,|                          |
-    |     questionId: X,         |                    [Render question UI]
-    |     questionData: {...} }  |                          |
+Participant Client              Supabase DB              Admin Client
+    |                               |                        |
+    |-- UPSERT vote --------------->|                        |
+    |   (same as live mode)         |                        |
+    |                               |-- Postgres Changes --->|
+    |                               |   (vote stream)        |
+    |                               |                        |
+    |-- INSERT batch_progress ----->|                        |
+    |   (batchId, participantId,    |                        |
+    |    questionId)                |-- Postgres Changes --->|
+    |                               |   (progress stream)    |
+    |                               |                        |
+    |-- Local: advance to next -----|                   [Update progress
+    |   question or enter review    |                    dashboard]
 ```
 
-### Flow 4: Participant Submits Vote and Admin Sees Live Results
+### Flow 5: Admin Views Progress Dashboard
 
 ```
-Participant Client          Supabase DB              Admin Client
-    |                            |                        |
-    |-- INSERT vote ------------>|                        |
-    |   (question_id,            |                        |
-    |    participant_id,         |-- Postgres Changes --->|
-    |    value)                  |   (INSERT on votes     |
-    |                            |    where session_id=X) |
-    |<--- 201 Created -----------|                        |
-    |                            |                  [Increment local
-    |   [Show "vote submitted"   |                   tally, re-render
-    |    confirmation]           |                   chart]
+Admin Client                    Supabase DB
+    |                               |
+    |-- SELECT batch_progress ----->|
+    |   WHERE batch_id = X          |
+    |   GROUP BY participant_id     |
+    |<---- aggregate counts --------|
+    |                               |
+    |   [Also receiving live        |
+    |    Postgres Changes for       |
+    |    incremental updates]       |
 ```
 
-### Flow 5: Admin Reveals Results
+### Flow 6: Admin Ends Batch
 
 ```
-Admin Client                Broadcast Channel         Participant Clients
-    |                            |                          |
-    |-- Broadcast: ------------->|-- delivers to all ------>|
-    |   { type: STATE_CHANGE,    |                          |
-    |     state: results_revealed|                    [Render results
-    |     results: {             |                     chart -- same view
-    |       agree: 23,           |                     as admin]
-    |       disagree: 14         |                          |
-    |     }                      |                          |
-    |   }                        |                          |
+Admin Client                    Supabase DB             Broadcast Channel
+    |                               |                        |
+    |-- UPDATE questions ---------->|                        |
+    |   SET status='closed'         |                        |
+    |   WHERE batch_id = X          |                        |
+    |                               |                        |
+    |-- UPDATE session ------------>|                        |
+    |   SET mode='live',            |                        |
+    |   active_batch_id=NULL        |                        |
+    |                               |                        |
+    |-- Broadcast: batch_ended ---->------------------------>|
+    |                               |                   [Participants
+    |                               |                    exit batch view]
 ```
 
 ---
 
-## Supabase Channel Strategy
+## Component Boundaries
 
-**Recommendation: One channel per session, multiplexing message types.**
+### New Components
+
+| Component | Responsibility | Communicates With |
+|-----------|----------------|-------------------|
+| `CollectionManager` | CRUD for collections, import/export JSON | Supabase DB only |
+| `BatchActivator` | UI for selecting questions, creating batch | session-store, Broadcast |
+| `BatchVotingView` | Participant multi-question navigation | session-store, Supabase DB |
+| `BatchProgressDashboard` | Admin view of participant completion | Postgres Changes, session-store |
+
+### Modified Components
+
+| Component | Changes |
+|-----------|---------|
+| `session-store.ts` | Add: `batchQuestions`, `currentBatchIndex`, `batchProgress`, `sessionMode` |
+| `AdminSession.tsx` | Add: mode toggle, batch activation UI, progress dashboard |
+| `ParticipantSession.tsx` | Add: batch view with navigation (prev/next), review mode |
+| `QuestionList.tsx` | Add: batch selection checkboxes, source collection indicator |
+
+### Store Shape Changes
 
 ```typescript
-// Channel name pattern
-const channel = supabase.channel(`session:${sessionId}`);
+// Additions to SessionState
+interface SessionState {
+  // ... existing fields ...
 
-// Broadcast (admin -> participants)
-channel.on('broadcast', { event: 'state_change' }, (payload) => {
-  // Handle state transitions
-});
+  // Batch mode state
+  sessionMode: 'live' | 'batch';
+  activeBatchId: string | null;
+  batchQuestions: Question[];
+  currentBatchIndex: number;
+  answeredQuestionIds: Set<string>;
 
-// Presence (participant count)
-channel.on('presence', { event: 'sync' }, () => {
-  const state = channel.presenceState();
-  // Update participant count
-});
-
-// Postgres Changes (vote stream for admin)
-channel.on(
-  'postgres_changes',
-  { event: 'INSERT', schema: 'public', table: 'votes', filter: `session_id=eq.${sessionId}` },
-  (payload) => {
-    // Update live tally
-  }
-);
-
-channel.subscribe();
+  // Progress tracking (admin)
+  batchProgress: Record<string, number>; // participantId -> answered count
+}
 ```
-
-**Why one channel, not separate ones:**
-- Simpler connection management (one WebSocket subscription per session)
-- Supabase channels multiplex naturally over a single WebSocket connection
-- Reduces complexity of subscribe/unsubscribe lifecycle
-- Each feature (broadcast, presence, postgres_changes) is a separate listener on the same channel
-
-**Confidence: MEDIUM** -- This multiplexing pattern was supported as of Supabase JS v2. Verify that the current `@supabase/supabase-js` version supports combining broadcast + presence + postgres_changes on a single channel. If not, use two channels: one for broadcast+presence, one for postgres_changes.
 
 ---
 
-## Database Schema (Recommended)
+## Integration Points
+
+### 1. Collection Import into Session
+
+**Trigger:** Admin clicks "Import from Collection" in draft session
+**Integration:**
+- Fetch collection_questions for selected collection
+- Copy each template into questions table with session_id and source_collection_id
+- Append to existing questions (maintain position ordering)
+
+**Code location:** New `lib/collection-import.ts`
+
+### 2. Batch Activation
+
+**Trigger:** Admin selects questions and clicks "Start Batch"
+**Prerequisites:**
+- Session must be in `active` status
+- Session mode must be `live` (switching to batch)
+- Selected questions must have status `pending`
+
+**Integration:**
+- Generate batch_id (UUID)
+- Update selected questions: `batch_id = X, status = 'active'`
+- Update session: `mode = 'batch', active_batch_id = X`
+- Broadcast `batch_activated`
+
+**Code location:** Extend `AdminControlBar.tsx` or new `BatchControls.tsx`
+
+### 3. Participant Batch Navigation
+
+**Trigger:** Participant receives `batch_activated` broadcast
+**Integration:**
+- Fetch all questions where `batch_id = X` ordered by position
+- Store in session-store as `batchQuestions`
+- Render `BatchVotingView` with prev/next navigation
+- On vote submit: also insert into `batch_progress`
+
+**Code location:** New `components/BatchVotingView.tsx`, modify `ParticipantSession.tsx`
+
+### 4. Admin Progress Dashboard
+
+**Trigger:** Admin activates batch
+**Integration:**
+- Query initial progress: `SELECT participant_id, COUNT(*) FROM batch_progress WHERE batch_id = X GROUP BY participant_id`
+- Subscribe to Postgres Changes on `batch_progress` for live updates
+- Display grid/table of participant progress
+
+**Code location:** New `components/BatchProgressDashboard.tsx`
+
+### 5. Batch End
+
+**Trigger:** Admin clicks "End Batch"
+**Integration:**
+- Update questions: `status = 'closed' WHERE batch_id = X`
+- Update session: `mode = 'live', active_batch_id = NULL`
+- Broadcast `batch_ended`
+- Optionally transition to results view (same as live mode)
+
+**Code location:** Extend `AdminControlBar.tsx` or `BatchControls.tsx`
+
+---
+
+## Suggested Build Order
+
+Based on dependencies, build in this order:
+
+### Phase 1: Collections Foundation (No Realtime)
+
+1. **Schema: collections + collection_questions tables**
+   - Run migrations, set up RLS
+   - Prerequisite for: everything else
+
+2. **CollectionManager component**
+   - CRUD UI for collections
+   - Add/edit/delete questions within collection
+   - Export to JSON / Import from JSON
+
+3. **Import collection into session**
+   - "Import" button in session draft view
+   - Copies questions from collection_questions to questions
+
+**Deliverable:** Admin can create, manage, and import collections. No batch mode yet.
+
+### Phase 2: Batch Schema + Basic Activation
+
+4. **Schema: batch_id column on questions, mode/active_batch_id on sessions**
+   - Migration to add columns
+   - Prerequisite for: batch activation
+
+5. **Batch selection UI in admin**
+   - Checkboxes on question list
+   - "Start Batch" button
+
+6. **Batch activation logic**
+   - Generate batch_id
+   - Update questions and session
+   - Broadcast `batch_activated`
+
+**Deliverable:** Admin can select questions and activate a batch. Participants don't react yet.
+
+### Phase 3: Participant Batch Experience
+
+7. **Schema: batch_progress table**
+   - Migration, RLS, add to realtime publication
+   - Prerequisite for: progress tracking
+
+8. **BatchVotingView component**
+   - Multi-question navigation (prev/next)
+   - Progress indicator (3/5 answered)
+   - Vote submission + progress tracking
+
+9. **ParticipantSession: handle batch_activated**
+   - Switch to batch view when broadcast received
+   - Fetch batch questions, render BatchVotingView
+
+**Deliverable:** Participants can complete a batch at their own pace.
+
+### Phase 4: Admin Progress + Batch End
+
+10. **BatchProgressDashboard component**
+    - Aggregate view of participant completion
+    - Subscribe to batch_progress changes
+
+11. **Batch end flow**
+    - "End Batch" button
+    - Update questions/session status
+    - Broadcast `batch_ended`
+
+12. **Participant: handle batch_ended**
+    - Exit batch view, return to waiting/results
+
+**Deliverable:** Full batch workflow from activation to completion.
+
+### Phase 5: Polish + Edge Cases
+
+13. **Late joiner in batch mode**
+    - Fetch active_batch_id from session
+    - Load batch questions, resume at first unanswered
+
+14. **Review mode for participants**
+    - After all answered, allow navigation to review votes
+    - Optional: allow vote changes before batch ends
+
+15. **Batch results view for admin**
+    - Same as live mode results but for all batch questions
+
+---
+
+## Migration Path from v1.0
+
+### Backward Compatibility
+
+- Existing sessions continue to work in `live` mode (default)
+- `batch_id` NULL on existing questions = no batch grouping
+- `source_collection_id` NULL = question created directly
+- No changes to existing vote/realtime behavior for live mode
+
+### Migration SQL
 
 ```sql
--- Sessions
-CREATE TABLE sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  admin_token UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
-  join_code TEXT UNIQUE NOT NULL,  -- short, human-friendly (e.g., 6 chars)
-  title TEXT,
-  mode TEXT NOT NULL CHECK (mode IN ('live', 'self_paced')),
-  current_question_id UUID,  -- FK added after questions table
-  status TEXT NOT NULL DEFAULT 'lobby' CHECK (status IN ('lobby', 'active', 'ended')),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+-- Migration 001: Add collections table
+CREATE TABLE collections (...);
+CREATE TABLE collection_questions (...);
 
--- Questions
-CREATE TABLE questions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-  text TEXT NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('agree_disagree', 'multiple_choice')),
-  options JSONB,  -- for MC: ["Option A", "Option B", "Option C"]
-  position INTEGER NOT NULL,
-  anonymous BOOLEAN NOT NULL DEFAULT true,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'closed')),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+-- Migration 002: Add batch columns to questions
+ALTER TABLE questions ADD COLUMN batch_id UUID;
+ALTER TABLE questions ADD COLUMN source_collection_id UUID REFERENCES collections(id) ON DELETE SET NULL;
+CREATE INDEX idx_questions_batch_id ON questions(batch_id);
 
--- Add FK for current_question_id
-ALTER TABLE sessions ADD CONSTRAINT fk_current_question
-  FOREIGN KEY (current_question_id) REFERENCES questions(id);
+-- Migration 003: Add mode to sessions
+ALTER TABLE sessions ADD COLUMN mode TEXT NOT NULL DEFAULT 'live' CHECK (mode IN ('live', 'batch'));
+ALTER TABLE sessions ADD COLUMN active_batch_id UUID;
 
--- Votes
-CREATE TABLE votes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  question_id UUID NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
-  session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-  participant_id UUID NOT NULL,  -- client-generated, stored in localStorage
-  value TEXT NOT NULL,  -- the chosen option
-  display_name TEXT,  -- nullable, for named voting
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(question_id, participant_id)  -- one vote per participant per question
-);
-
--- Index for realtime subscription filter
-CREATE INDEX idx_votes_session_id ON votes(session_id);
-
--- Index for fetching questions by session
-CREATE INDEX idx_questions_session_id ON questions(session_id);
+-- Migration 004: Add batch_progress table
+CREATE TABLE batch_progress (...);
+ALTER PUBLICATION supabase_realtime ADD TABLE batch_progress;
 ```
-
-### Row Level Security (RLS) Strategy
-
-Since there are no user accounts, RLS must be carefully designed:
-
-```sql
--- Sessions: anyone can read by join_code (participants) or admin_token (admin)
--- Admin writes require admin_token match
-ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Anyone can read sessions by join_code"
-  ON sessions FOR SELECT
-  USING (true);  -- join_code lookup is safe; admin_token exposure is the risk
-
-CREATE POLICY "Admin can update own sessions"
-  ON sessions FOR UPDATE
-  USING (admin_token = current_setting('request.headers')::json->>'x-admin-token')
-  -- Note: This approach requires passing admin_token as a header
-
--- Votes: anyone can insert (participant), read for aggregation
-ALTER TABLE votes ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Anyone can insert votes"
-  ON votes FOR INSERT
-  WITH CHECK (true);  -- rate limiting handled at app level
-
-CREATE POLICY "Anyone can read votes for aggregation"
-  ON votes FOR SELECT
-  USING (true);
-```
-
-**Confidence: LOW** -- RLS with anonymous/no-auth users is tricky in Supabase. The above is a starting pattern but may need adjustment. Two common approaches:
-1. Use Supabase anonymous auth -- gives each client a JWT, and RLS can use `auth.uid()`.
-2. Disable RLS and rely on application-level checks via Edge Functions.
-
-**Recommendation:** Use Supabase anonymous auth. It gives you a real JWT per client, making RLS policies cleaner and more secure. The admin_token can be validated via an Edge Function or a Postgres function called from RLS.
-
----
-
-## Self-Paced Mode vs Live Mode
-
-The architecture supports both modes through the same components, with behavioral differences:
-
-| Aspect | Live Mode | Self-Paced Mode |
-|--------|-----------|-----------------|
-| Question progression | Admin Broadcasts state changes | Participant navigates freely |
-| Broadcast channel | Active -- admin pushes state | Minimal -- maybe just session open/close |
-| Postgres Changes | Admin listens for live vote tally | Optional (admin can view aggregate later) |
-| Late join behavior | Participant sees current question | Participant sees first unanswered question |
-| Timing | Real-time, synchronized | Async, at participant's pace |
-| UI | One question at a time, full-screen | List or paginated question view |
-
-**Key insight:** Self-paced mode is architecturally simpler. It is essentially a form with realtime vote-count updates. Live mode is the complex case requiring Broadcast orchestration. Build self-paced first only if you want an easier foundation, BUT live mode is the core value proposition. Recommendation: build live mode first -- it exercises all the hard parts.
-
----
-
-## Patterns to Follow
-
-### Pattern 1: Optimistic UI for Vote Submission
-
-**What:** When a participant taps a vote button, immediately show "vote submitted" state locally before the database confirms.
-
-**When:** Every vote submission.
-
-**Why:** Mobile networks can have 100-300ms latency. The participant should feel instant feedback. If the INSERT fails (duplicate vote, network error), revert the UI and show an error.
-
-```typescript
-// Pseudocode
-const handleVote = async (value: string) => {
-  setVoteState('submitted'); // Optimistic
-  setSelectedValue(value);
-
-  const { error } = await supabase
-    .from('votes')
-    .insert({ question_id, participant_id, value, session_id });
-
-  if (error) {
-    setVoteState('idle'); // Revert
-    setSelectedValue(null);
-    showError('Vote failed, please try again');
-  }
-};
-```
-
-### Pattern 2: Broadcast + DB Write (Dual Write for State)
-
-**What:** When admin changes session state (advance question, close voting), both Broadcast the change AND write it to the database.
-
-**When:** Every admin state transition in live mode.
-
-**Why:** Broadcast is ephemeral -- if a participant joins after the broadcast, they miss it. The DB write ensures late joiners can fetch current state via REST. The Broadcast ensures connected participants see it instantly.
-
-```typescript
-// Admin advances to next question
-const advanceQuestion = async (questionId: string) => {
-  // 1. Write to DB (source of truth for late joiners)
-  await supabase
-    .from('questions')
-    .update({ status: 'active' })
-    .eq('id', questionId);
-
-  await supabase
-    .from('sessions')
-    .update({ current_question_id: questionId })
-    .eq('id', sessionId);
-
-  // 2. Broadcast (instant delivery to connected participants)
-  channel.send({
-    type: 'broadcast',
-    event: 'state_change',
-    payload: {
-      state: 'question_active',
-      questionId,
-      questionData: questions.find(q => q.id === questionId),
-    },
-  });
-};
-```
-
-### Pattern 3: Participant Reconciliation on Connect
-
-**What:** When a participant connects (or reconnects after network drop), fetch current state from REST API, THEN subscribe to realtime channel.
-
-**When:** Every participant page load and reconnection.
-
-**Why:** Prevents the "missed broadcast" problem. The REST fetch gives you the current truth, then realtime keeps you updated going forward.
-
-```typescript
-const initParticipant = async (joinCode: string) => {
-  // 1. Fetch current state (REST)
-  const { data: session } = await supabase
-    .from('sessions')
-    .select('*, questions(*)')
-    .eq('join_code', joinCode)
-    .single();
-
-  // 2. Set initial UI state from fetched data
-  setSessionState(session);
-
-  // 3. Subscribe to realtime updates
-  const channel = supabase.channel(`session:${session.id}`);
-  channel.on('broadcast', { event: 'state_change' }, handleStateChange);
-  channel.subscribe();
-};
-```
-
-### Pattern 4: Idempotent Vote Insertion
-
-**What:** Use the UNIQUE constraint on (question_id, participant_id) and INSERT with ON CONFLICT to make vote submission idempotent.
-
-**When:** Every vote submission.
-
-**Why:** Network issues may cause retry. Double-tap on mobile is common. The DB constraint prevents double-counting. The client can safely retry without worrying about duplicates.
 
 ---
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Polling Instead of Realtime
+### Anti-Pattern 1: Separate Channel for Batch Mode
 
-**What:** Using `setInterval` to fetch vote counts every N seconds instead of subscribing to Postgres Changes.
+**Bad:** Create a new channel `batch:{batchId}` for batch-specific events.
+**Why bad:** Fragments the realtime architecture, complicates subscription management, participants need to subscribe to multiple channels.
+**Instead:** Use the existing session channel with new event types.
 
-**Why bad:** Wastes bandwidth, adds latency, hammers the database with repeated queries. With 50 participants all polling every 2 seconds, that is 25 queries/second for no reason.
+### Anti-Pattern 2: Store Participant Position in Database
 
-**Instead:** Use Supabase Realtime subscriptions (Postgres Changes for votes, Broadcast for state).
+**Bad:** Track `current_question_index` per participant in database.
+**Why bad:** Creates unnecessary writes (every navigation = write), doesn't add value (position is ephemeral).
+**Instead:** Track position in client-side state. Only persist answers (votes) and completion (batch_progress).
 
-### Anti-Pattern 2: Storing Session State Only in Broadcast
+### Anti-Pattern 3: Batches as First-Class Entities
 
-**What:** Using Broadcast alone for session state without persisting to the database.
+**Bad:** Create a `batches` table with name, status, timing, etc.
+**Why bad:** Over-engineering for v1.1 scope. Batches are just a grouping mechanism.
+**Instead:** `batch_id` on questions is sufficient. If batch metadata is needed later, add it then.
 
-**Why bad:** Late joiners have no way to know the current state. If the admin refreshes their browser, all state is lost. Broadcast is ephemeral.
+### Anti-Pattern 4: Poll for Progress Updates
 
-**Instead:** Dual write -- Broadcast for instant delivery, DB for persistence (Pattern 2 above).
+**Bad:** Admin polls `batch_progress` every 2 seconds for progress dashboard.
+**Why bad:** Unnecessary load, higher latency than Postgres Changes.
+**Instead:** Subscribe to Postgres Changes on `batch_progress` table.
 
-### Anti-Pattern 3: Server-Side Aggregation for Small Scale
+### Anti-Pattern 5: Broadcast Full Question Data in batch_activated
 
-**What:** Building a Supabase Edge Function or database function to aggregate vote counts and push results, when you have < 100 voters.
-
-**Why bad:** Over-engineering. Adds latency, complexity, and a deployment dependency. Client-side counting from the Postgres Changes stream is simpler and fast enough for v1.
-
-**Instead:** Aggregate client-side. Add server-side aggregation only when scale demands it (500+ concurrent voters).
-
-### Anti-Pattern 4: Using Postgres Changes for Admin Commands
-
-**What:** Having the admin write a "command" row to a commands table, then listening for INSERT via Postgres Changes to advance questions.
-
-**Why bad:** Adds write latency (Postgres INSERT), unnecessary data persistence, and WAL overhead. Broadcast is purpose-built for this: ephemeral, low-latency, point-to-multipoint.
-
-**Instead:** Use Broadcast for admin commands. Only write to DB for persistence (source of truth), not as a signaling mechanism.
-
-### Anti-Pattern 5: Complex Participant Auth for v1
-
-**What:** Building user accounts, email verification, or OAuth for a casual voting app.
-
-**Why bad:** Kills the "scan QR and vote in 3 seconds" value proposition. Participants will not sign up. The friction destroys the use case.
-
-**Instead:** Anonymous identity via localStorage UUID + optional Supabase anonymous auth for RLS.
+**Bad:** Include all question data in the `batch_activated` payload.
+**Why bad:** Payload size limits, data duplication, stale data risk.
+**Instead:** Send only `questionIds`, let participant fetch from database.
 
 ---
 
-## Scalability Considerations
+## Open Questions
 
-| Concern | At 50 users (v1) | At 500 users | At 5,000 users |
-|---------|-------------------|--------------|----------------|
-| **Realtime connections** | Well within Supabase free tier | Check Supabase plan limits (concurrent connections) | May need Supabase Pro or self-hosted |
-| **Vote aggregation** | Client-side counting | Client-side still fine | Server-side aggregation (Edge Function or DB view) to avoid N events hitting admin client |
-| **Broadcast latency** | Sub-100ms typical | Sub-200ms | Test; may need message batching |
-| **DB writes (votes)** | Trivial | Manageable | Consider write batching or queue |
-| **QR code / join** | Instant | Instant | Instant (stateless) |
+### 1. Can participants change votes in batch mode?
 
-**v1 architecture handles 50-100 users with zero scaling concerns.** The first real scaling bottleneck will be Supabase Realtime connection limits on the free plan, and that is a plan-upgrade solution, not an architecture change.
+**Current design:** Yes, same as live mode (UPSERT on votes). No additional complexity.
 
----
+### 2. What happens if admin ends batch while participant is mid-vote?
 
-## Suggested Build Order (Dependencies)
+**Current design:** `batch_ended` broadcast transitions participant to waiting. Vote in progress may be lost (same as live mode when voting_closed arrives).
 
-The following build order respects component dependencies -- each layer builds on the one before it.
+**Mitigation:** Optimistic UI shows "submitted" immediately, actual write happens async. Brief race window is acceptable.
 
-### Layer 1: Data Foundation (no realtime yet)
+### 3. Should batch questions be ordered or randomized?
 
-1. **Supabase project setup** -- create project, configure
-2. **Database schema** -- sessions, questions, votes tables with constraints and indexes
-3. **RLS policies** -- at minimum, permissive policies for anonymous access
-4. **Session CRUD** -- admin can create session, generate join code
-5. **Question CRUD** -- admin can add/edit/reorder questions for a session
+**Current design:** Ordered by `position` (same as live mode).
 
-**Why first:** Everything else depends on having data in the database. Build this with regular REST (supabase-js `.from().select()`) -- no realtime yet.
+**Future consideration:** Add `randomize_order` flag to batch activation. Client shuffles order locally using seeded random (participant_id as seed for consistency on reload).
 
-### Layer 2: Participant Join Flow
+### 4. How to handle very large batches (20+ questions)?
 
-6. **Join page** -- participant enters join code or scans QR, fetches session
-7. **Participant identity** -- localStorage UUID generation, optional Supabase anonymous auth
-8. **QR code generation** -- admin view shows QR code encoding the join URL
+**Current design:** No special handling. Participant navigates linearly.
 
-**Why second:** Participants need to be able to reach the session before they can vote or see realtime updates.
-
-### Layer 3: Voting Mechanics (still no realtime)
-
-9. **Vote submission** -- participant sees question (hardcoded/static), submits vote via REST INSERT
-10. **Vote constraint enforcement** -- UNIQUE(question_id, participant_id) works, error handling for duplicates
-11. **Results query** -- admin can query aggregated results (REST, not realtime yet)
-
-**Why third:** Voting works end-to-end without realtime. This is a testable, demoable checkpoint. Admin creates session + questions, participant joins and votes, admin queries results.
-
-### Layer 4: Realtime Layer
-
-12. **Supabase channel setup** -- subscribe to session channel
-13. **Postgres Changes for votes** -- admin sees live vote count update as participants vote
-14. **Broadcast for session state** -- admin pushes question transitions, participants see them
-15. **Presence for participant count** -- lobby shows how many people are connected
-
-**Why fourth:** Realtime is the "magic" layer but it adds complexity. Having Layer 3 working means you can test in isolation, and realtime is additive -- it makes the existing flows live instead of requiring page refresh.
-
-### Layer 5: Live Session Orchestration
-
-16. **Session state machine** -- admin UI for advancing through questions (next, close voting, reveal results)
-17. **Participant state rendering** -- participant UI reacts to broadcast messages (show question, show results, etc.)
-18. **Late joiner reconciliation** -- fetch current state on connect, then subscribe
-
-**Why fifth:** This is the "live presentation" experience that ties together all previous layers. It depends on Broadcast (Layer 4), Voting (Layer 3), and Join Flow (Layer 2).
-
-### Layer 6: Polish and Self-Paced Mode
-
-19. **Self-paced mode** -- participant navigates questions freely (simpler variant of live mode)
-20. **Full-screen tactile UI** -- large buttons, animations, mobile-optimized
-21. **Chart visualizations** -- bar charts, pie charts for results
-22. **Session summary** -- admin sees all questions + results after session ends
+**Future consideration:** Progress bar becomes more important. Consider "jump to question" dropdown for long batches.
 
 ---
 
-## Client-Side State Management
+## Confidence Assessment
 
-**Recommendation: React Context + useReducer for session state, no external state library.**
-
-Rationale for v1:
-- The state shape is simple: current session, current question, vote status, results
-- Two main contexts: `SessionContext` (admin) and `ParticipantContext` (participant)
-- Realtime events dispatch actions to the reducer -- clean, testable pattern
-- Adding Zustand, Redux, or Jotai is unnecessary overhead for this state complexity
-
-```typescript
-// Simplified participant state
-type ParticipantState = {
-  session: Session | null;
-  currentQuestion: Question | null;
-  sessionStatus: 'lobby' | 'question_active' | 'voting_closed' | 'results_revealed' | 'ended';
-  myVote: string | null;
-  results: Record<string, number> | null;
-  participantCount: number;
-};
-
-type ParticipantAction =
-  | { type: 'SESSION_LOADED'; session: Session }
-  | { type: 'STATE_CHANGE'; payload: SessionBroadcast }
-  | { type: 'VOTE_SUBMITTED'; value: string }
-  | { type: 'VOTE_FAILED' }
-  | { type: 'PRESENCE_UPDATED'; count: number };
-```
+| Area | Confidence | Rationale |
+|------|------------|-----------|
+| Schema design | HIGH | Follows existing patterns, minimal new tables |
+| Realtime changes | HIGH | Extends existing channel pattern, proven in v1.0 |
+| State machine | HIGH | Clear separation between live and batch modes |
+| Progress tracking | MEDIUM | Postgres Changes for progress is same pattern as votes, but batch_progress is new |
+| Build order | HIGH | Dependencies clearly mapped |
+| Participant UX | MEDIUM | Navigation pattern is new, may need iteration |
 
 ---
 
-## Routing Structure
+## Sources
 
-```
-/                       -- Landing page (create new session)
-/admin/{adminToken}     -- Admin dashboard for session
-/join/{joinCode}        -- Participant entry point
-/session/{joinCode}     -- Participant in-session view
-```
-
-**Why separate `/join` and `/session`:** The join page handles the identity setup (generate participant_id, optional name entry for named votes). Once joined, redirect to the session view. This also lets the QR code point to `/join/{code}` which is a cleaner entry point than dropping directly into a session.
+- [Supabase Realtime Documentation](https://supabase.com/docs/guides/realtime) - Channel multiplexing, Broadcast, Postgres Changes
+- [PostgreSQL Schema Design Best Practices](https://www.tigerdata.com/learn/guide-to-postgresql-database-design) - Schema organization
+- [Supabase Best Practices](https://www.leanware.co/insights/supabase-best-practices) - RLS patterns, scaling considerations
+- QuickVote v1.0 codebase (verified architecture)
+- `.planning/phases/04-realtime-and-live-session-orchestration/04-RESEARCH.md` - Existing realtime patterns
 
 ---
 
-## Technology-Specific Notes
-
-### Supabase Realtime Limits (Verify)
-
-- **Free tier:** Likely limited concurrent realtime connections (possibly 200-500). Verify current limits.
-- **Channel limits:** Check if there is a per-project channel limit.
-- **Postgres Changes filter:** The `filter` parameter on Postgres Changes subscriptions is limited (equality filters only, as of training data). Cannot do complex WHERE clauses.
-- **Message size:** Broadcast messages have a size limit (likely 1MB per message). Not a concern for QuickVote payloads.
-
-**Confidence: LOW** -- These limits may have changed. Verify against current Supabase pricing/docs page.
-
-### Vercel Deployment Notes
-
-- The app is a pure SPA (Vite + React). Vercel serves it as static files. No SSR needed.
-- All "backend" logic lives in Supabase (database, realtime, edge functions if needed).
-- Vercel's edge network provides fast static asset delivery globally -- good for mobile participants.
-- No Vercel Functions needed for v1 (Supabase handles everything server-side).
-
-### Vite + React Notes
-
-- Use `@supabase/supabase-js` as the sole backend SDK.
-- Supabase client initialization should use environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).
-- These are public (anon key is designed to be public; RLS provides security).
-
----
-
-## Sources and Confidence
-
-| Claim | Source | Confidence |
-|-------|--------|------------|
-| Supabase Realtime has Broadcast, Presence, Postgres Changes | Training data (Supabase docs as of early 2025) | MEDIUM |
-| Broadcast is lower latency than Postgres Changes for signaling | Training data (Supabase architecture docs) | MEDIUM |
-| Channel multiplexing (broadcast + presence + postgres_changes on one channel) | Training data (supabase-js v2 docs) | MEDIUM -- verify with current docs |
-| UNIQUE constraint for idempotent votes | Standard PostgreSQL pattern | HIGH |
-| Client-side aggregation sufficient for 50-100 users | Engineering judgment | HIGH |
-| Supabase anonymous auth availability | Training data | LOW -- verify current availability |
-| Supabase free tier connection limits | Training data (may be outdated) | LOW |
-| Vercel static SPA deployment | Standard pattern, well-documented | HIGH |
-
-**Note:** WebSearch and WebFetch were unavailable during this research. All findings are based on training data. Before implementation, verify Supabase Realtime API surface and limits against current official documentation at https://supabase.com/docs/guides/realtime.
+*Researched: 2026-01-28*
+*Valid for: QuickVote v1.1 milestone*

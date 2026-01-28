@@ -1,266 +1,290 @@
-# Feature Landscape
+# Feature Landscape: Batch Questions & Collections
 
-**Domain:** Real-time voting / polling / audience response systems
-**Researched:** 2026-01-27
-**Confidence:** MEDIUM (based on training data knowledge of Mentimeter, Slido, Poll Everywhere, Kahoot, Wooclap, and similar products; no live verification available)
+**Domain:** Self-paced voting / question collections / batch survey mode
+**Researched:** 2026-01-28
+**Context:** v1.1 milestone extending existing v1.0 real-time voting app
+**Confidence:** MEDIUM-HIGH (based on WebSearch verified against multiple sources)
 
-## Competitive Context
+## Existing v1.0 Features (Already Built)
 
-The real-time polling space has a clear hierarchy of products. Understanding what each tier offers reveals where QuickVote's table stakes and differentiators live.
-
-**Tier 1 (Enterprise):** Slido (Cisco), Poll Everywhere, Mentimeter
-- Full question libraries, integrations (PowerPoint, Google Slides, Teams, Zoom), advanced analytics, team management, branding, SSO, moderation, export
-
-**Tier 2 (Education/Gamification):** Kahoot, Wooclap, Socrative
-- Gamification (leaderboards, points, timers), quiz-oriented, classroom management, LMS integrations
-
-**Tier 3 (Lightweight/Open):** Strawpoll, EasyRetro, various open-source tools
-- Single-question polls, no sessions, minimal admin controls, fast creation, often no accounts needed
-
-**QuickVote's positioning:** Between Tier 2 and Tier 3. It has session management and multi-question flows like Tier 1/2, but with the frictionless access (no accounts) and simplicity of Tier 3. The "immersive tactile UX" is a differentiator that no tier fully owns.
+For context, QuickVote v1.0 already has:
+- Session creation with unique admin link (no accounts)
+- Question management (add, edit, reorder)
+- Two vote types: agree/disagree, multiple choice
+- QR code join flow with lobby
+- Admin voting controls (start, close, reveal, timer)
+- Live-updating bar chart results
+- Per-question anonymous vs named voting
+- Full-screen tactile voting UI with animations
+- Session persistence and history
+- Participant count display
+- Connection status indicators
 
 ---
 
-## Table Stakes
+## Table Stakes for Batch/Self-Paced Mode
 
-Features users expect from any real-time polling product. Missing these means users will immediately perceive the product as incomplete or broken.
+Features users expect when a polling tool offers "self-paced" or "survey" mode. Missing these means the feature feels incomplete.
 
-### Session & Question Management
+### Core Self-Paced Functionality
 
-| Feature | Why Expected | Complexity | QuickVote Status |
-|---------|--------------|------------|------------------|
-| Create a session with multiple questions | Core product concept; single-question-only feels like a toy | Low | Planned |
-| Multiple question/vote types | Every competitor offers at least 3+ types; single type feels rigid | Medium | Planned (agree/disagree, multiple choice) |
-| Admin controls voting flow (start/stop/reveal) | Defines "live" polling; without this it's just a form | Medium | Planned |
-| Timer for voting rounds | Users expect time pressure as an option; every competitor has it | Low | Planned (manual or timer) |
-| Edit/reorder questions before and during session | Admins need to adapt on the fly; not having this frustrates presenters | Low | Not explicitly planned |
+| Feature | Why Expected | Complexity | Depends On |
+|---------|--------------|------------|------------|
+| Participant-controlled question navigation | The defining feature of self-paced mode. Without it, it's just "live mode with no presenter." [Mentimeter](https://www.mentimeter.com/blog/menti-news/live-presentation-or-survey-the-ultimate-guide-to-voting-pace), [Vevox](https://help.vevox.com/hc/en-us/articles/360010481817-Live-polling-vs-surveys-what-s-the-difference) all differentiate this clearly. | Medium | Session mode flag |
+| Forward navigation (Next button/swipe) | Standard survey pattern. "Next button advances respondents to subsequent page" - [QuestionPro](https://www.questionpro.com/features/button.html). Users expect to move forward through questions. | Low | Question navigation |
+| Back navigation (Previous button/swipe) | "Back button enables respondents to revisit earlier survey pages to review and edit answers" - [QuestionPro](https://www.questionpro.com/features/button.html). Most survey tools support this. | Low | Question navigation |
+| Progress indicator | "Progress tracker eases potential user anxiety with long online forms" - [Arounda](https://arounda.agency/blog/progress-trackers-in-ux-design-2). Shows "Question 3 of 10" or progress bar. | Low | Question count |
+| Submit/Complete action | Explicit end-of-survey action. Distinguishes "in progress" from "completed" participants. | Low | All questions answered |
+| Answers persist across navigation | When going back/forward, previous answers should be retained. Core survey UX expectation. | Low | Vote state management |
 
-### Participant Experience
+### Admin Progress Dashboard
 
-| Feature | Why Expected | Complexity | QuickVote Status |
-|---------|--------------|------------|------------------|
-| Join via link or QR code | Standard onboarding; every competitor supports this | Low | Planned (QR) |
-| No app install required (web-based) | Friction killer; requiring an app loses 30-50% of audience | N/A | Planned (web app) |
-| Mobile-first responsive voting UI | 80%+ of participants use phones; must work perfectly on small screens | Medium | Planned |
-| Instant feedback that vote was received | Without confirmation, participants wonder if it worked and tap again | Low | Not explicitly planned |
-| Lobby/waiting screen before session starts | Participants arrive early; seeing a blank or error page is disorienting | Low | Planned |
-| See current question without refreshing | Realtime push is the whole point; polling/refresh defeats the purpose | Medium | Planned (Supabase Realtime) |
+| Feature | Why Expected | Complexity | Depends On |
+|---------|--------------|------------|------------|
+| Completion count | "How many participants have finished?" Basic metric for any survey. "Response rate, completion rate" - [QuestionPro](https://www.questionpro.com/features/real-time-reports.html). | Low | Submit tracking |
+| In-progress count | "How many started but haven't finished?" Shows engagement. "Partially completed responses" - [QuestionPro](https://www.questionpro.com/blog/survey-response-viewer/). | Low | Progress tracking |
+| Per-question response counts | "How many answered Q3?" Identifies where participants are. | Low | Vote aggregation |
+| Real-time updates | Dashboard updates as responses come in. "Charts auto-update in real time" - [AidaForm](https://aidaform.com/help/how-to-use-the-real-time-survey-dashboard.html). | Medium | Existing realtime infra |
 
-### Results & Visualization
+---
 
-| Feature | Why Expected | Complexity | QuickVote Status |
-|---------|--------------|------------|------------------|
-| Live-updating results visualization | The "wow" moment of live polling; bar charts updating in real-time | Medium | Planned |
-| Admin controls when results are visible | Revealing too early biases votes; admin must control reveal timing | Low | Planned |
-| At least bar chart visualization | Bar charts are the universal default; every product has them | Low | Planned |
-| Participant count visible to admin | Admin needs to know "how many people have joined/voted" at a glance | Low | Not explicitly planned |
+## Table Stakes for Question Collections
 
-### Data Persistence
+Features users expect when a tool offers "question bank" or "reusable questions."
 
-| Feature | Why Expected | Complexity | QuickVote Status |
-|---------|--------------|------------|------------------|
-| Session results are saved and reviewable | Admins expect to revisit results after the event; ephemeral-only is a dealbreaker | Low | Planned (Supabase) |
-| Session history / list of past sessions | Without this, saved data is inaccessible (admin forgets the link) | Low | Implied but not explicit |
+| Feature | Why Expected | Complexity | Depends On |
+|---------|--------------|------------|------------|
+| Named collection/group | Questions need to belong to something identifiable. "Question Library" - [Vevox](https://help.vevox.com/hc/en-us/articles/4559386961937-Duplicate-or-reuse-a-poll). | Low | New database entity |
+| Add questions to collection | Core CRUD for collections. | Low | Collection entity |
+| Load collection into session | The payoff: "quickly add previously created questions" - [Vevox](https://help.vevox.com/hc/en-us/articles/4559386961937-Duplicate-or-reuse-a-poll). | Low | Session-collection relationship |
+| Copy questions (not reference) | Questions should be copied, not linked. Changes to session questions shouldn't affect collection originals. [PublicInput](https://support.publicinput.com/en/articles/2666885-re-using-and-copying-questions) distinguishes "copy" vs "reuse." | Low | Deep copy logic |
 
 ---
 
 ## Differentiators
 
-Features that set a product apart. Not expected by default, but valued when present. These are opportunities for QuickVote.
+Features that set QuickVote apart. Not universally expected but add value.
 
-### QuickVote's Planned Differentiators
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Full-screen tactile voting UI with animations | No competitor owns "voting feels amazing." Mentimeter/Slido are functional but sterile. This is QuickVote's core identity. | High | Highest priority differentiator. Animations on vote, lock-in, reveal. Mobile-native feel in a web app. |
-| Zero-account admin experience | Mentimeter, Slido, Poll Everywhere all require sign-up. QuickVote's "just share a link" model removes the biggest adoption barrier for casual use. | Low | Powerful for ad-hoc meetings, workshops, classrooms where admin doesn't want yet another account. |
-| Per-question anonymous vs. named config | Most competitors set anonymity per-session, not per-question. This flexibility lets admins mix "safe space" and "accountability" questions in one session. | Low | Genuine differentiator; very few products offer this granularity. |
-| Dual session modes (live + self-paced) | Most products are either live-only (Slido, Kahoot) or survey-only (Google Forms). Supporting both in one product is unusual. | Medium | Important but ensure the UX clearly distinguishes modes; hybrid confusion is a risk. |
-| Vote change until lock-in | Most products lock on first tap. Allowing changes with explicit lock-in reduces "I tapped wrong" frustration and adds a strategic element. | Low | Subtle but meaningfully better UX. |
-
-### Potential Future Differentiators (Not in v1)
+### High-Value Differentiators for v1.1
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Ranked choice voting | Enables nuanced preference gathering that most competitors lack entirely | High | Planned for later. UI/UX for ranked choice on mobile is non-trivial. |
-| Participant reasoning/comments on votes | "Why did you vote that way?" turns polling into discussion. No competitor does this well. | Medium | Planned for later. Moderation becomes important. |
-| Audience-sourced questions | Let participants submit questions that get voted on (democratic Q&A). Slido has this but others don't. | Medium | Not currently planned but high-value for Q&A sessions. |
-| Reaction/emoji responses | Lightweight sentiment beyond structured votes. Mentimeter has this. | Low | Could enhance the "tactile" identity. |
-| Session templates | Pre-built question sets for common use cases (retrospective, icebreaker, decision-making) | Low | Reduces setup friction for repeat use cases. |
+| Swipe-based navigation | "Swiping leads to greater sense of control, enjoyment, user engagement" - [Springer](https://link.springer.com/chapter/10.1007/978-3-319-39396-4_16). Aligns with QuickVote's "tactile" identity. More engaging than Next/Back buttons alone. | Medium | Requires gesture library. Must also support buttons for accessibility. |
+| On-the-fly batch creation | Create a batch from existing session questions during a live session. Unusual feature - most tools require upfront mode selection. | Medium | Requires session mode switching or parallel batch creation. |
+| Hybrid live+batch mode | Admin controls some questions live, others are self-paced. Very few competitors offer this granularity. | High | Complex state management. Consider deferring. |
+| Visual answer review | Before submit, show summary of all answers with ability to tap back to change. Reduces "did I answer that?" anxiety. | Medium | Requires answer aggregation view. |
+| Per-question completion animation | Maintain QuickVote's animation identity in batch mode. Satisfying micro-interaction on each answer. | Low | Reuse existing vote animations. |
 
-### Differentiators Other Products Have (QuickVote Could Consider Later)
+### Collection-Specific Differentiators
 
-| Feature | Who Has It | Value | Complexity | Recommendation |
-|---------|-----------|-------|------------|----------------|
-| PowerPoint/Google Slides integration | Mentimeter, Slido, Poll Everywhere | High for enterprise presenters | High | Defer. Adds massive scope. Consider as v2+. |
-| Zoom/Teams integration | Slido (Cisco owns it), Mentimeter | High for remote meetings | High | Defer. Platform-specific integrations are maintenance-heavy. |
-| Gamification (leaderboards, points) | Kahoot, Wooclap | High for education/engagement | Medium | Defer unless targeting education. Not aligned with QuickVote's "immersive voting" identity. |
-| Word cloud question type | Mentimeter, Slido | Medium (crowd favorite for brainstorming) | Medium | Good future addition. Visually impressive, aligns with "live results" identity. |
-| Open-ended text responses | All Tier 1 products | Medium | Low (question) / Medium (display) | Could add post-MVP. Displaying aggregated text well is the hard part. |
-| Quiz mode with correct answers | Kahoot, Mentimeter | Medium for education | Low | Easy to add if multiple choice already exists. Just mark one option as "correct." |
-| Moderation / content filtering | Slido, Mentimeter | Important for large audiences | Medium | Not needed at 50-100 scale. Critical if scaling to 1000+. |
-| CSV/PDF export | All Tier 1 products | High for post-event analysis | Low | Explicitly deferred in v1 but should be early in v2. Admins will ask for it quickly. |
-| Custom branding / themes | Mentimeter (paid), Poll Everywhere | Medium for corporate use | Low-Medium | Nice-to-have. Not critical for v1 target audience. |
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Import/export collections (JSON) | "Export file will be in .JSON format" - [Quiz And Survey Master](https://quizandsurveymaster.com/docs/add-ons/export-import/). Enables sharing, backup, version control. | Low | JSON schema design needed. |
+| Collection versioning | Track changes to collections over time. Enterprise feature most competitors lack. | High | Significant complexity. Defer unless requested. |
+| Public collection library | Share collections across users. Community feature. | High | Requires multi-user features. Out of scope. |
 
 ---
 
 ## Anti-Features
 
-Features to deliberately NOT build. These are common in the domain but would hurt QuickVote if included.
+Features to deliberately NOT build for batch/collections. Common in the domain but wrong for QuickVote.
 
 | Anti-Feature | Why Avoid | What to Do Instead |
 |--------------|-----------|-------------------|
-| User account system for participants | Kills the instant-join magic. Every friction point loses participants. Requiring sign-up for voting would cut participation 50%+. | Keep participants anonymous/named by admin config. Name entry is a text field, not an account. |
-| Complex admin dashboard | QuickVote's value is simplicity. Replicating Mentimeter's 50-option admin panel would destroy the "just works" feel. | Keep admin UI to: create session, add questions, control flow, view results. That's it. |
-| Presentation builder / slide deck features | Mentimeter evolved into a presentation tool. This is a trap: it adds massive scope and competes with PowerPoint. | Stay focused on voting/polling. Admins use their own slides and switch to QuickVote for interactive moments. |
-| Real-time chat / discussion | Chat adds moderation burden, toxicity risk, and scope creep. At 50-100 participants, chat becomes noise. | Keep interactions structured: vote, optional name, optional future comment feature (moderated). |
-| Email collection / marketing features | Feels exploitative in a voting context. Participants expect anonymity and will distrust the tool. | Respect participant privacy. No email, no tracking beyond what the session requires. |
-| AI-generated questions / AI analysis | Trendy but gimmicky for v1. Adds API costs, complexity, and unpredictable outputs. | Ship the core experience first. AI features can be layered on later if there's demand. |
-| Native mobile app | App store deployment adds weeks of work, review cycles, and maintenance. Web works fine on mobile. | Progressive web app if needed later, but responsive web-first is correct for this domain. |
-| Complex access control / permissions | Roles, teams, org hierarchies -- this is enterprise bloat that doesn't serve the "quick" in QuickVote. | Single admin per session via unique link. Keep it flat. |
-| Offline support | Real-time voting is inherently online. Offline caching adds complexity for a feature that contradicts the product's core purpose. | If connection drops, show a clear "reconnecting" state. Don't try to queue votes offline. |
+| Skip logic / conditional branching | "Skip logic works only with linear surveys" - [QuestionPro](https://www.questionpro.com/features/branching.html). Adds massive complexity. QuickVote sessions are typically short (5-15 questions). Skip logic optimizes for long surveys (50+ questions). | Keep questions linear. If admins need branching, they can create multiple sessions. |
+| Required questions / validation | Blocking progress on unanswered questions adds friction and complexity. In voting context (not data collection), partial responses are acceptable. | Optional: show "X of Y answered" but allow submit with incomplete. |
+| Email/identity collection | "Feels exploitative in a voting context" - identified in v1.0 research. Still applies to batch mode. | Per-question anonymous/named config already exists. No email capture. |
+| Time limits per question in batch mode | Contradicts "self-paced" concept. Creates anxiety rather than engagement. | Total session timeout is reasonable. Per-question timeout is anti-pattern for self-paced. |
+| Auto-advance after answer | Some survey tools auto-advance to next question after selection. Removes ability to reconsider before moving on. | Require explicit Next action. Keep participant in control. |
+| Partial save / resume later | Adds significant complexity (participant identity, session state, expiration). For short voting sessions (5-15 questions), not worth it. | Batch sessions are designed to be completed in one sitting. Clear expectation upfront. |
+| Complex collection hierarchy | Folders within folders, tags, categories. Over-engineering for the use case. | Simple flat list of named collections is sufficient. Search/filter if list grows. |
+| Collection sharing / permissions | Multi-user access control. Requires user accounts. | Collections are admin-local (tied to admin token or browser storage). |
 
 ---
 
 ## Feature Dependencies
 
+### Batch Mode Dependencies
+
 ```
-Session Creation
+Session Mode Selection (new)
   |
-  +-- Question Management (requires session to exist)
-  |     |
-  |     +-- Vote Type Configuration (per question)
-  |     |
-  |     +-- Anonymous/Named Config (per question)
-  |     |
-  |     +-- Timer Config (per question)
-  |
-  +-- QR Code Generation (requires session URL)
-  |
-  +-- Session Mode Selection (live vs self-paced, set at creation)
-
-Participant Join Flow
-  |
-  +-- QR Code Scan / Link --> Session URL
-  |     |
-  |     +-- Lobby Screen (if session not started)
-  |     |
-  |     +-- Current Question (if session active, live mode)
-  |     |
-  |     +-- Question List (if session active, self-paced mode)
-
-Voting Flow (requires question to be active)
-  |
-  +-- Vote Selection (tap target, tactile feedback)
-  |     |
-  |     +-- Vote Change (until locked)
-  |     |
-  |     +-- Lock-In (explicit or admin-ended)
-  |
-  +-- Vote Confirmation Feedback (animation, visual state)
-
-Results Flow (requires votes to exist)
-  |
-  +-- Live Result Aggregation (Supabase Realtime)
-  |     |
-  |     +-- Admin Reveal Control
-  |     |
-  |     +-- Chart Visualization (bar, pie)
-  |     |
-  |     +-- Participant Count Display
-
-Data Persistence (requires Supabase)
-  |
-  +-- Session Storage
-  |     |
-  |     +-- Session History / List
-  |     |
-  |     +-- Individual Session Results Review
+  +-- Mode Flag: 'live' | 'batch' (or hybrid)
+        |
+        +-- Live Mode (existing v1.0 behavior)
+        |     |
+        |     +-- Admin controls question flow
+        |     +-- Participants see current question only
+        |
+        +-- Batch Mode (new for v1.1)
+              |
+              +-- Questions Pre-loaded (all visible to participant)
+              |     |
+              |     +-- Question Navigation UI
+              |     |     |
+              |     |     +-- Next/Previous buttons
+              |     |     +-- Swipe gestures (optional)
+              |     |     +-- Progress indicator
+              |     |
+              |     +-- Answer Persistence (across navigation)
+              |
+              +-- Submit/Complete Action
+              |     |
+              |     +-- Completion Tracking (per participant)
+              |
+              +-- Admin Progress Dashboard
+                    |
+                    +-- Completion counts
+                    +-- Per-question response counts
+                    +-- Real-time updates (existing Supabase channel)
 ```
 
-**Critical path:** Session Creation --> Question Management --> Participant Join --> Voting Flow --> Results Display. This is the minimum viable loop. Everything else layers on top.
+### Collection Dependencies
 
-**Mode dependency:** Self-paced mode requires all questions to be authored upfront. Live mode allows adding questions during the session. The data model must support both.
+```
+Collection Entity (new)
+  |
+  +-- Collection CRUD
+  |     |
+  |     +-- Create collection with name
+  |     +-- Add/remove questions
+  |     +-- Edit collection metadata
+  |     +-- Delete collection
+  |
+  +-- Collection Usage
+  |     |
+  |     +-- Load collection into new session (copies questions)
+  |     +-- Load collection into existing session (appends copies)
+  |
+  +-- Import/Export
+        |
+        +-- Export collection as JSON
+        +-- Import collection from JSON
+        +-- JSON Schema (questions, metadata, version)
+```
 
----
+### Integration with Existing v1.0
 
-## MVP Recommendation
-
-For MVP, prioritize the critical path plus QuickVote's identity features:
-
-### Must Ship (Table Stakes + Core Identity)
-
-1. **Session creation with unique admin link** -- the entry point
-2. **Question management (add, edit, reorder)** -- the content
-3. **Two vote types: agree/disagree and multiple choice** -- minimum viable variety
-4. **QR code join flow with lobby** -- the participant entry point
-5. **Full-screen tactile voting UI with animations** -- QuickVote's soul (DO NOT ship without this)
-6. **Vote change until lock-in** -- differentiator, low cost
-7. **Admin voting controls (start, stop, reveal, timer)** -- the live experience
-8. **Live-updating bar chart results** -- the payoff moment
-9. **Per-question anonymous vs named** -- differentiator, low cost
-10. **Session persistence and history** -- expectation, not optional
-11. **Participant count visible to admin** -- small but essential for confidence
-12. **Vote confirmation feedback** -- small but essential for trust
-
-### Ship Soon After MVP
-
-- **Self-paced survey mode** -- adds a whole second use case; may be worth deferring 1-2 sprints to nail live mode first
-- **Pie chart option** -- low effort, nice variety
-- **CSV export** -- admins will ask for this within days of using the product
-- **Session sharing (share results link)** -- low effort, high word-of-mouth value
-
-### Defer to v2+
-
-- Ranked choice voting (complex UI)
-- Participant comments/reasoning (needs moderation)
-- Word clouds / open-ended (different visualization challenge)
-- Presentation tool integrations (massive scope)
-- Custom branding (enterprise feature)
+| v1.0 Feature | How It Integrates with Batch Mode |
+|--------------|----------------------------------|
+| Question types (agree/disagree, multiple choice) | Same types work in batch mode |
+| Per-question anonymity | Still applies per question in batch |
+| Vote animations | Reuse for batch answer feedback |
+| Supabase realtime | Use for progress dashboard updates |
+| QR code join | Same join flow, different participant experience |
+| Results bar chart | Same visualization, populated as batch completes |
 
 ---
 
-## Feature Comparison Matrix: QuickVote vs Competitors
+## MVP Recommendation for v1.1
 
-| Feature | Mentimeter | Slido | Poll Everywhere | Kahoot | QuickVote v1 |
-|---------|-----------|-------|----------------|--------|-------------|
-| Multiple choice | Yes | Yes | Yes | Yes | **Yes** |
-| Agree/disagree | Yes (scales) | Yes | Yes | No | **Yes** |
-| Word cloud | Yes | Yes | Yes | No | No (v2) |
-| Open text | Yes | Yes | Yes | No | No (v2) |
-| Ranked choice | No | No | Yes (ranking) | No | No (v2) |
-| Quiz/correct answer | Yes | Yes | Yes | Yes | No (v2) |
-| Live results | Yes | Yes | Yes | Yes | **Yes** |
-| QR code join | Yes | Yes | Yes | Yes | **Yes** |
-| No participant account | Yes | Yes | Yes | Depends | **Yes** |
-| No admin account | No | No | No | No | **YES (differentiator)** |
-| Tactile/immersive UI | No | No | No | Partial (gamified) | **YES (differentiator)** |
-| Per-question anonymity | No | No | No | No | **YES (differentiator)** |
-| Vote change before lock | No | Some | No | No | **YES (differentiator)** |
-| Self-paced + live modes | Partial | No | Yes | No | **Yes** |
-| Timer | Yes | Yes | Yes | Yes | **Yes** |
-| Slide deck integration | Yes | Yes | Yes | No | No |
-| Export (CSV/PDF) | Yes | Yes | Yes | Yes | No (v2) |
-| Custom branding | Paid | Paid | Paid | Paid | No |
-| Free tier | Limited | Limited | Limited | Limited | **Full (no paywall)** |
+### Must Ship (Table Stakes)
+
+1. **Session mode selection** - Admin chooses live or batch at session creation
+2. **Batch participant navigation** - Next/Previous with progress indicator
+3. **Answers persist** - Navigate freely without losing responses
+4. **Submit/Complete action** - Explicit batch completion
+5. **Admin progress dashboard** - Completion count, in-progress count
+6. **Collection CRUD** - Create, name, add questions
+7. **Load collection into session** - Primary collection use case
+8. **Collection JSON export** - Portable, shareable format
+9. **Collection JSON import** - Complete the loop
+
+### Nice to Have (Differentiators)
+
+- **Swipe navigation** - Enhances tactile identity
+- **Visual answer review before submit** - Reduces anxiety
+- **Per-question completion animation** - Consistency with live mode
+- **On-the-fly batch creation** - Create batch from live session questions
+
+### Explicitly Defer
+
+- Skip logic / branching (high complexity, low value for short sessions)
+- Collection versioning (enterprise feature)
+- Hybrid live+batch mode (complex state)
+- Partial save / resume later (requires identity system)
 
 ---
 
-## Confidence Notes
+## JSON Schema Recommendation for Collections
+
+Based on industry patterns from [SurveyJS](https://surveyjs.io/form-library/documentation/design-survey/create-a-simple-survey) and [Qualtrics QSF](https://gist.github.com/ctesta01/d4255959dace01431fb90618d1e8c241):
+
+```json
+{
+  "version": "1.0",
+  "exportedAt": "2026-01-28T10:30:00Z",
+  "collection": {
+    "name": "Team Retrospective Questions",
+    "description": "Optional description",
+    "questions": [
+      {
+        "text": "The sprint goals were clear",
+        "type": "agree_disagree",
+        "anonymous": true
+      },
+      {
+        "text": "What was the biggest blocker?",
+        "type": "multiple_choice",
+        "options": ["Dependencies", "Unclear requirements", "Technical debt", "Other"],
+        "anonymous": false
+      }
+    ]
+  }
+}
+```
+
+Key design decisions:
+- **Version field** - Future-proofs schema evolution
+- **Questions are data, not references** - Full question content included
+- **No IDs in export** - IDs generated on import
+- **Position implicit** - Array order defines position
+
+---
+
+## Complexity Estimates
+
+| Feature Group | Complexity | Rationale |
+|---------------|------------|-----------|
+| Batch mode participant UI | Medium | New navigation paradigm, but builds on existing vote components |
+| Batch mode admin dashboard | Low-Medium | Aggregation logic exists; new dashboard layout |
+| Collection entity + CRUD | Low | Standard database entity, simple UI |
+| Collection import/export | Low | JSON serialization, file I/O |
+| Swipe navigation | Medium | Gesture handling, animation, fallback buttons |
+| On-the-fly batch creation | Medium | Mode switching, state management |
+
+---
+
+## Confidence Assessment
 
 | Finding | Confidence | Reason |
 |---------|------------|--------|
-| Table stakes list | MEDIUM-HIGH | Based on extensive training data about these products. Core features are well-established and unlikely to have changed. |
-| Competitor feature sets | MEDIUM | Based on training data (up to early 2025). Products may have added features since. |
-| Per-question anonymity being rare | MEDIUM | Based on training knowledge. Products may have added this since. |
-| Anti-features list | HIGH | Based on domain patterns that are structural, not product-specific. |
-| Feature dependencies | HIGH | Based on logical analysis of the product concept. |
-| MVP recommendation | HIGH | Based on both domain knowledge and QuickVote's PROJECT.md. |
+| Self-paced navigation patterns | HIGH | Multiple sources agree (Mentimeter, Vevox, QuestionPro, Poll Everywhere) |
+| Progress dashboard metrics | HIGH | Industry standard, verified via QuestionPro, AidaForm |
+| JSON export/import patterns | MEDIUM-HIGH | Multiple implementations reviewed (SurveyJS, QSF, Quiz Master) |
+| Anti-features (skip logic, auto-advance) | HIGH | Structural analysis matches QuickVote's positioning |
+| Swipe UX benefits | MEDIUM | Research supports but implementation depends on gesture library choice |
+| Collection reuse patterns | MEDIUM-HIGH | Vevox, QuestionPro, SurveyMonkey all offer similar features |
 
 ---
 
 ## Sources
 
-- Training data knowledge of Mentimeter, Slido (Cisco), Poll Everywhere, Kahoot, Wooclap, Socrative, Strawpoll
-- QuickVote PROJECT.md (local project context)
-- Note: WebSearch and WebFetch were unavailable during this research session. Findings should be spot-checked against current product pages before finalizing architectural decisions.
+### Verified Sources (MEDIUM-HIGH Confidence)
+- [Mentimeter: Voting Pace Guide](https://www.mentimeter.com/blog/menti-news/live-presentation-or-survey-the-ultimate-guide-to-voting-pace)
+- [QuestionPro: Navigation Buttons](https://www.questionpro.com/features/button.html)
+- [QuestionPro: Real-Time Reports](https://www.questionpro.com/features/real-time-reports.html)
+- [Vevox: Duplicate or Reuse Poll](https://help.vevox.com/hc/en-us/articles/4559386961937-Duplicate-or-reuse-a-poll)
+- [SurveyJS: Create a Simple Survey](https://surveyjs.io/form-library/documentation/design-survey/create-a-simple-survey)
+- [Arounda: Progress Trackers in UX](https://arounda.agency/blog/progress-trackers-in-ux-design-2)
+- [Quiz And Survey Master: Export/Import](https://quizandsurveymaster.com/docs/add-ons/export-import/)
+
+### WebSearch Sources (MEDIUM Confidence)
+- [Springer: Swiping vs Scrolling](https://link.springer.com/chapter/10.1007/978-3-319-39396-4_16)
+- [AidaForm: Real-Time Dashboard](https://aidaform.com/help/how-to-use-the-real-time-survey-dashboard.html)
+- [PublicInput: Reusing Questions](https://support.publicinput.com/en/articles/2666885-re-using-and-copying-questions)
+
+### Project Context
+- QuickVote PROJECT.md (existing v1.0 features)
+- QuickVote v1.0 REQUIREMENTS.md (completed features)
+- QuickVote database.ts (current data model)
