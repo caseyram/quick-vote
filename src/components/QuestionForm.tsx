@@ -14,7 +14,6 @@ export default function QuestionForm({ sessionId, editingQuestion, onSaved, onCa
   const [text, setText] = useState('');
   const [type, setType] = useState<VoteType>('agree_disagree');
   const [options, setOptions] = useState<string[]>(['', '']);
-  const [reasonsEnabled, setReasonsEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -23,7 +22,6 @@ export default function QuestionForm({ sessionId, editingQuestion, onSaved, onCa
     if (editingQuestion) {
       setText(editingQuestion.text);
       setType(editingQuestion.type);
-      setReasonsEnabled(editingQuestion.reasons_enabled ?? false);
       setOptions(
         editingQuestion.type === 'multiple_choice' && editingQuestion.options
           ? [...editingQuestion.options]
@@ -32,7 +30,6 @@ export default function QuestionForm({ sessionId, editingQuestion, onSaved, onCa
     } else {
       setText('');
       setType('agree_disagree');
-      setReasonsEnabled(false);
       setOptions(['', '']);
     }
     setErrorMsg(null);
@@ -82,7 +79,6 @@ export default function QuestionForm({ sessionId, editingQuestion, onSaved, onCa
             text: trimmedText,
             type,
             options: filteredOptions,
-            reasons_enabled: reasonsEnabled,
           })
           .eq('id', editingQuestion.id)
           .select()
@@ -113,7 +109,6 @@ export default function QuestionForm({ sessionId, editingQuestion, onSaved, onCa
             text: trimmedText,
             type,
             options: filteredOptions,
-            reasons_enabled: reasonsEnabled,
             position: nextPosition,
           })
           .select()
@@ -130,7 +125,6 @@ export default function QuestionForm({ sessionId, editingQuestion, onSaved, onCa
         // Reset form after add
         setText('');
         setType('agree_disagree');
-        setReasonsEnabled(false);
         setOptions(['', '']);
       }
     } catch (err) {
@@ -189,17 +183,6 @@ export default function QuestionForm({ sessionId, editingQuestion, onSaved, onCa
           </label>
         </div>
       </fieldset>
-
-      {/* Enable reasons */}
-      <label className="flex items-center gap-2 text-gray-300 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={reasonsEnabled}
-          onChange={(e) => setReasonsEnabled(e.target.checked)}
-          className="text-indigo-500 focus:ring-indigo-500 bg-gray-800 border-gray-600 rounded"
-        />
-        <span className="text-sm">Allow participants to give a reason</span>
-      </label>
 
       {/* Multiple choice options */}
       {type === 'multiple_choice' && (

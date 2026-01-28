@@ -479,15 +479,16 @@ export default function AdminSession() {
     }
   }
 
-  async function handleToggleReasons(question: Question) {
-    const newValue = !(question.reasons_enabled ?? false);
+  async function handleToggleSessionReasons() {
+    if (!session) return;
+    const newValue = !(session.reasons_enabled ?? false);
     const { error: err } = await supabase
-      .from('questions')
+      .from('sessions')
       .update({ reasons_enabled: newValue })
-      .eq('id', question.id);
+      .eq('session_id', session.session_id);
 
     if (!err) {
-      updateQuestion(question.id, { reasons_enabled: newValue });
+      setSession({ ...session, reasons_enabled: newValue });
     }
   }
 
@@ -555,7 +556,25 @@ export default function AdminSession() {
               </div>
             </div>
 
-            {/* Question settings toggles */}
+            {/* Session settings */}
+            <div className="bg-white rounded-lg p-4 space-y-3">
+              <p className="text-sm text-gray-500 font-medium">Session Settings</p>
+              <button
+                onClick={handleToggleSessionReasons}
+                className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  session.reasons_enabled
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                </svg>
+                {session.reasons_enabled ? 'Reasons Enabled' : 'Reasons Disabled'}
+              </button>
+            </div>
+
+            {/* Per-question settings */}
             {questions.length > 0 && (
               <div className="bg-white rounded-lg p-4">
                 <p className="text-sm text-gray-500 font-medium mb-3">Question Settings</p>
@@ -570,24 +589,6 @@ export default function AdminSession() {
                         {q.text}
                       </span>
                       <div className="flex gap-1 shrink-0">
-                        <button
-                          onClick={() => handleToggleReasons(q)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                            q.reasons_enabled
-                              ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                              : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
-                          }`}
-                          title={
-                            q.reasons_enabled
-                              ? 'Click to disable reasons'
-                              : 'Click to enable reasons'
-                          }
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                          </svg>
-                          Reasons
-                        </button>
                         <button
                           onClick={() => handleToggleAnonymous(q)}
                           className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
@@ -881,22 +882,18 @@ function ActiveQuestionHero({
 
   const isClosed = question.status === 'closed' || question.status === 'revealed';
 
-  // Collect reasons from votes, grouped by value with color
-  const reasons = useMemo(() => {
-    return votes
-      .filter((v) => v.reason && v.reason.trim())
-      .map((v) => {
-        let color: string;
-        if (question.type === 'agree_disagree') {
-          const key = v.value.toLowerCase() as 'agree' | 'disagree' | 'sometimes';
-          color = AGREE_DISAGREE_COLORS[key] ?? '#6B7280';
-        } else {
-          const optIndex = (question.options ?? []).indexOf(v.value);
-          color = MULTI_CHOICE_COLORS[optIndex >= 0 ? optIndex % MULTI_CHOICE_COLORS.length : 0];
-        }
-        return { text: v.reason!, value: v.value, color };
-      });
-  }, [votes, question.type, question.options]);
+  // Group reasons by vote value, aligned with barData columns
+  const reasonsByColumn = useMemo(() => {
+    return barData.map((bar) => ({
+      label: bar.label,
+      color: bar.color,
+      reasons: votes
+        .filter((v) => v.value === bar.label && v.reason && v.reason.trim())
+        .map((v) => v.reason!),
+    }));
+  }, [barData, votes]);
+
+  const totalReasons = reasonsByColumn.reduce((sum, col) => sum + col.reasons.length, 0);
 
   return (
     <div className={`h-full flex flex-col text-center py-4 ${!isClosed ? 'justify-center' : ''}`}>
@@ -929,27 +926,46 @@ function ActiveQuestionHero({
         </div>
       )}
 
-      {/* Expandable reasons panel */}
-      {isClosed && reasons.length > 0 && (
+      {/* Expandable reasons panel — grouped under bar columns */}
+      {isClosed && totalReasons > 0 && (
         <div className="shrink-0 mt-3">
           <button
             onClick={() => setReasonsExpanded((prev) => !prev)}
             className="text-lg font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
           >
-            {reasonsExpanded ? 'Hide' : 'Show'} Reasons ({reasons.length})
+            {reasonsExpanded ? 'Hide' : 'Show'} Reasons ({totalReasons})
             <span className="ml-1">{reasonsExpanded ? '\u25B2' : '\u25BC'}</span>
           </button>
           {reasonsExpanded && (
-            <div className="mt-2 max-h-[35vh] overflow-y-auto text-left max-w-3xl mx-auto space-y-2 px-2">
-              {reasons.map((r, i) => (
-                <div key={i} className="flex items-start gap-3 bg-gray-50 rounded-lg px-4 py-3">
-                  <span
-                    className="mt-1.5 w-3 h-3 rounded-full shrink-0"
-                    style={{ backgroundColor: r.color }}
-                  />
-                  <span className="text-xl text-gray-800">{r.text}</span>
-                </div>
-              ))}
+            <div className="mt-3 max-h-[35vh] overflow-y-auto">
+              <div className="flex gap-6 justify-center max-w-4xl mx-auto px-2">
+                {reasonsByColumn.map((col) => (
+                  <div
+                    key={col.label}
+                    className="flex-1 min-w-0 space-y-2"
+                    style={{ maxWidth: 200 }}
+                  >
+                    <p
+                      className="text-base font-semibold text-center"
+                      style={{ color: col.color }}
+                    >
+                      {col.label} ({col.reasons.length})
+                    </p>
+                    {col.reasons.map((text, i) => (
+                      <div
+                        key={i}
+                        className="bg-gray-50 rounded-lg px-3 py-2 text-left"
+                        style={{ borderLeft: `3px solid ${col.color}` }}
+                      >
+                        <span className="text-lg text-gray-800">{text}</span>
+                      </div>
+                    ))}
+                    {col.reasons.length === 0 && (
+                      <p className="text-sm text-gray-300 text-center italic">No reasons</p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

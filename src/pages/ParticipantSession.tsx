@@ -79,7 +79,7 @@ export default function ParticipantSession() {
     // Fetch session status
     const { data: statusData } = await supabase
       .from('sessions')
-      .select('id, session_id, title, status, created_at')
+      .select('id, session_id, title, status, reasons_enabled, created_at')
       .eq('session_id', sessionId)
       .single();
 
@@ -247,7 +247,7 @@ export default function ParticipantSession() {
       // Fetch session (explicit columns, NO admin_token)
       const { data: sessionData, error: sessionError } = await supabase
         .from('sessions')
-        .select('id, session_id, title, status, created_at')
+        .select('id, session_id, title, status, reasons_enabled, created_at')
         .eq('session_id', sessionId)
         .single();
 
@@ -524,6 +524,7 @@ export default function ParticipantSession() {
                       sessionId={sessionId!}
                       participantId={participantId}
                       displayName={participantName || null}
+                      reasonsEnabled={session?.reasons_enabled ?? false}
                     />
                   ) : (
                     <VoteMultipleChoice
@@ -531,6 +532,7 @@ export default function ParticipantSession() {
                       sessionId={sessionId!}
                       participantId={participantId}
                       displayName={participantName || null}
+                      reasonsEnabled={session?.reasons_enabled ?? false}
                     />
                   )}
                 </motion.div>

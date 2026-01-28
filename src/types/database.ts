@@ -8,6 +8,7 @@ export interface Session {
   admin_token: string;
   title: string;
   status: SessionStatus;
+  reasons_enabled: boolean;
   created_by: string;
   created_at: string;
 }
@@ -20,7 +21,6 @@ export interface Question {
   options: string[] | null;
   position: number;
   anonymous: boolean;
-  reasons_enabled: boolean;
   status: QuestionStatus;
   created_at: string;
 }

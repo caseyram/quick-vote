@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import { useHaptic } from '../hooks/use-haptic';
 import { useSessionStore } from '../stores/session-store';
 import { AGREE_DISAGREE_COLORS } from './BarChart';
-import { ReasonInput } from './ReasonInput';
 import type { Question } from '../types/database';
 
 const UNSELECTED = 'rgba(55, 65, 81, 0.5)';
@@ -14,6 +13,7 @@ interface VoteAgreeDisagreeProps {
   sessionId: string;
   participantId: string;
   displayName: string | null;
+  reasonsEnabled?: boolean;
 }
 
 export default function VoteAgreeDisagree({
@@ -21,6 +21,7 @@ export default function VoteAgreeDisagree({
   sessionId,
   participantId,
   displayName,
+  reasonsEnabled = false,
 }: VoteAgreeDisagreeProps) {
   const haptic = useHaptic();
   const { currentVote, setCurrentVote, submitting, setSubmitting } = useSessionStore();
@@ -30,6 +31,7 @@ export default function VoteAgreeDisagree({
   const prevSelected = useRef<string | null>(null);
   const [pendingSelection, setPendingSelection] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [reason, setReason] = useState('');
 
   // Fetch existing vote on mount or when question changes
   useEffect(() => {
@@ -46,6 +48,7 @@ export default function VoteAgreeDisagree({
       if (!cancelled && data) {
         setCurrentVote(data);
         setPendingSelection(data.value);
+        setReason(data.reason ?? '');
         setSubmitted(true);
       }
     }
@@ -53,6 +56,7 @@ export default function VoteAgreeDisagree({
     setCurrentVote(null);
     setPendingSelection(null);
     setSubmitted(false);
+    setReason('');
     fetchExistingVote();
 
     return () => {
@@ -65,7 +69,7 @@ export default function VoteAgreeDisagree({
     setSubmitting(true);
     haptic.tap();
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         question_id: question.id,
         session_id: sessionId,
         participant_id: participantId,
@@ -73,6 +77,9 @@ export default function VoteAgreeDisagree({
         locked_in: false,
         display_name: question.anonymous ? null : displayName,
       };
+      if (reasonsEnabled) {
+        payload.reason = reason.trim() || null;
+      }
 
       const { data, error } = await supabase
         .from('votes')
@@ -91,7 +98,7 @@ export default function VoteAgreeDisagree({
     } finally {
       setSubmitting(false);
     }
-  }, [pendingSelection, question.id, question.anonymous, sessionId, participantId, displayName, haptic, setCurrentVote, setSubmitting]);
+  }, [pendingSelection, reason, reasonsEnabled, question.id, question.anonymous, sessionId, participantId, displayName, haptic, setCurrentVote, setSubmitting]);
 
   function handleSelect(value: string) {
     setPendingSelection(value);
@@ -201,8 +208,17 @@ export default function VoteAgreeDisagree({
         </motion.button>
       </div>
 
-      {/* Submit button */}
+      {/* Reason + Submit */}
       <div className="px-4 py-4 space-y-3">
+        {reasonsEnabled && (
+          <textarea
+            value={reason}
+            onChange={(e) => { setReason(e.target.value); setSubmitted(false); }}
+            placeholder="Why? (optional)"
+            rows={2}
+            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none text-base"
+          />
+        )}
         <button
           onClick={submitVote}
           disabled={!pendingSelection || submitting}
@@ -224,9 +240,6 @@ export default function VoteAgreeDisagree({
               ? 'Vote Submitted!'
               : 'Submit Vote'}
         </button>
-        {submitted && (question.reasons_enabled ?? false) && currentVote && (
-          <ReasonInput voteId={currentVote.id} existingReason={currentVote.reason ?? null} />
-        )}
       </div>
     </div>
   );
