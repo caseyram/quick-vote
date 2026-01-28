@@ -532,7 +532,6 @@ describe('AdminSession', () => {
     const questionsData = [makeQuestion({ status: 'active' })];
     const votesData = [makeVote()];
 
-    let _callCount = 0;
     mockFromResolvers['sessions'] = (chain) => {
       chain.single.mockResolvedValue({ data: sessionData, error: null });
     };
