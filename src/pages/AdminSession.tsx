@@ -36,6 +36,8 @@ export default function AdminSession() {
     loading,
     error,
     reset,
+    activeBatchId,
+    setActiveBatchId,
   } = useSessionStore();
   const [copied, setCopied] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
@@ -288,6 +290,20 @@ export default function AdminSession() {
     () => questions.filter((q) => q.status === 'closed' || q.status === 'revealed'),
     [questions]
   );
+
+  // Derived state for batch activation mode enforcement
+  const isLiveQuestionActive = activeQuestion !== null;
+  const isBatchActive = activeBatchId !== null;
+
+  // Compute whether a specific batch can be activated
+  function canActivateBatch(batch: Batch): boolean {
+    if (batch.status !== 'pending') return false;
+    if (isLiveQuestionActive) return false;
+    if (isBatchActive && activeBatchId !== batch.id) return false;
+    const batchQuestions = questions.filter((q) => q.batch_id === batch.id);
+    if (batchQuestions.length === 0) return false;
+    return true;
+  }
 
   // --- Handler extraction ---
 
@@ -599,6 +615,71 @@ export default function AdminSession() {
     useSessionStore.getState().reorderQuestions(questionIds);
   }
 
+  async function handleActivateBatch(batchId: string) {
+    if (!session) return;
+
+    // 1. Close any active live questions first
+    await supabase
+      .from('questions')
+      .update({ status: 'closed' as const })
+      .eq('session_id', session.session_id)
+      .eq('status', 'active');
+
+    for (const q of questions) {
+      if (q.status === 'active') {
+        updateQuestion(q.id, { status: 'closed' });
+      }
+    }
+    stopCountdown();
+
+    // 2. Update batch status to active in database
+    const { error: batchError } = await supabase
+      .from('batches')
+      .update({ status: 'active' as const })
+      .eq('id', batchId);
+
+    if (batchError) {
+      console.error('Failed to activate batch:', batchError);
+      return;
+    }
+
+    // 3. Update local store
+    setActiveBatchId(batchId);
+    useSessionStore.getState().updateBatch(batchId, { status: 'active' });
+
+    // 4. Get question IDs for this batch
+    const batchQuestions = questions.filter((q) => q.batch_id === batchId);
+    const questionIds = batchQuestions.map((q) => q.id);
+
+    // 5. Broadcast to participants
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'batch_activated',
+      payload: { batchId, questionIds },
+    });
+  }
+
+  async function handleCloseBatch(batchId: string) {
+    // 1. Update batch status to closed (one-time only)
+    const { error } = await supabase
+      .from('batches')
+      .update({ status: 'closed' as const })
+      .eq('id', batchId);
+
+    if (!error) {
+      // 2. Update local store
+      setActiveBatchId(null);
+      useSessionStore.getState().updateBatch(batchId, { status: 'closed' });
+
+      // 3. Broadcast to participants
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'batch_closed',
+        payload: { batchId },
+      });
+    }
+  }
+
   async function handleDelete(question: Question) {
     if (!window.confirm('Delete this question?')) return;
 
@@ -748,6 +829,8 @@ export default function AdminSession() {
                 sessionId={session.session_id}
                 batches={batches}
                 questions={questions}
+                activeBatchId={activeBatchId}
+                activeQuestionId={activeQuestion?.id ?? null}
                 onEditQuestion={setEditingQuestion}
                 onDeleteQuestion={handleDelete}
                 onBatchNameChange={handleBatchNameChange}
@@ -755,6 +838,8 @@ export default function AdminSession() {
                 onAddQuestionToBatch={(batchId) => setAddingQuestionToBatchId(batchId)}
                 onCreateBatch={handleCreateBatch}
                 onDeleteBatch={handleDeleteBatch}
+                onActivateBatch={handleActivateBatch}
+                onCloseBatch={handleCloseBatch}
               />
               <ImportExportPanel sessionId={session.session_id} />
             </div>
