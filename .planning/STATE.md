@@ -9,10 +9,10 @@
 ## Current Position
 
 **Milestone:** v1.1 — Batch Questions & Polish
-**Phase:** 8 of 10 (Participant Batch Experience) - Complete
-**Plan:** 3 of 3 complete
-**Status:** Phase 8 complete, ready for Phase 9
-**Last activity:** 2026-01-28 — Completed 08-03-PLAN.md
+**Phase:** 8 of 10 (Participant Batch Experience) - Verification gap closed
+**Plan:** 4 of 4 complete (includes gap closure plan)
+**Status:** Phase 8 gap closed, re-verify before Phase 9
+**Last activity:** 2026-01-28 — Completed 08-04-PLAN.md (gap closure)
 
 Progress: [################....] 80% (v1.0 complete, Phases 6-8 complete)
 
@@ -29,7 +29,7 @@ Progress: [################....] 80% (v1.0 complete, Phases 6-8 complete)
 |-------|------|--------------|--------|
 | 6 | Batch Schema & UI | BATCH-01, BATCH-02 | Verified |
 | 7 | Batch Activation | BATCH-03 | Verified |
-| 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | Complete (3/3 plans) |
+| 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | Complete (4/4 plans, gap closed) |
 | 9 | Session Management | SESS-01 to SESS-05 | Not started |
 | 10 | Progress Dashboard & Results Polish | PROG-01 to PROG-04, RESL-01 to RESL-04 | Not started |
 
@@ -41,7 +41,7 @@ Progress: [################....] 80% (v1.0 complete, Phases 6-8 complete)
 - Total execution time: ~6.5 hours
 
 **v1.1 Metrics:**
-- Plans completed: 8
+- Plans completed: 9
 - Total phases: 5
 - Requirements: 23
 
@@ -70,6 +70,15 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 - Drag handle only pattern - listeners on grip icon, not entire card
 - Accordion state local to BatchList (not global store)
 
+### From 08-04 Summary (Gap Closure)
+
+Answer review screen before batch completion:
+- BatchReviewScreen component fetches all votes for batch questions
+- Shows scrollable list with question text and color-coded answer badges
+- Go Back returns to carousel, Confirm & Complete calls onComplete()
+- BatchVotingCarousel now has showReview state
+- "Complete Batch" sets showReview=true instead of direct onComplete()
+
 ### From 08-03 Summary
 
 Keyboard navigation and completion feedback:
@@ -85,10 +94,10 @@ Keyboard navigation and completion feedback:
 
 ## Session Continuity
 
-**Last session:** 2026-01-28 — Completed 08-03-PLAN.md
-**Next action:** Initialize Phase 9 (Session Management)
+**Last session:** 2026-01-28 — Completed 08-04-PLAN.md (gap closure)
+**Next action:** Re-run Phase 8 verification, then initialize Phase 9
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-28 — Phase 8 complete*
+*Updated: 2026-01-28 — Phase 8 gap closure complete*
