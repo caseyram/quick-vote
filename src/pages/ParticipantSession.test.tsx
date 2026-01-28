@@ -99,7 +99,7 @@ let mockParticipantCount = 5;
 let capturedSetupFn: ((channel: any) => void) | null = null;
 
 vi.mock('../hooks/use-realtime-channel', () => ({
-  useRealtimeChannel: vi.fn((channelName: string, setup: any, enabled: boolean) => {
+  useRealtimeChannel: vi.fn((_channelName: string, setup: any, _enabled: boolean) => {
     capturedSetupFn = setup;
     return {
       connectionStatus: mockConnectionStatus,
@@ -805,7 +805,7 @@ describe('ParticipantSession', () => {
     expect(capturedSetupFn).not.toBeNull();
     const handlers: Record<string, Function> = {};
     const fakeChannel = {
-      on: vi.fn((type: string, opts: any, handler: Function) => {
+      on: vi.fn((_type: string, opts: any, handler: Function) => {
         handlers[opts.event] = handler;
         return fakeChannel;
       }),
@@ -836,7 +836,7 @@ describe('ParticipantSession', () => {
 
     const handlers: Record<string, Function> = {};
     const fakeChannel = {
-      on: vi.fn((type: string, opts: any, handler: Function) => {
+      on: vi.fn((_type: string, opts: any, handler: Function) => {
         handlers[opts.event] = handler;
         return fakeChannel;
       }),
@@ -873,7 +873,7 @@ describe('ParticipantSession', () => {
 
     const handlers: Record<string, Function> = {};
     const fakeChannel = {
-      on: vi.fn((type: string, opts: any, handler: Function) => {
+      on: vi.fn((_type: string, opts: any, handler: Function) => {
         handlers[opts.event] = handler;
         return fakeChannel;
       }),
@@ -909,7 +909,7 @@ describe('ParticipantSession', () => {
 
     const handlers: Record<string, Function> = {};
     const fakeChannel = {
-      on: vi.fn((type: string, opts: any, handler: Function) => {
+      on: vi.fn((_type: string, opts: any, handler: Function) => {
         handlers[opts.event] = handler;
         return fakeChannel;
       }),
@@ -941,7 +941,7 @@ describe('ParticipantSession', () => {
 
     const handlers: Record<string, Function> = {};
     const fakeChannel = {
-      on: vi.fn((type: string, opts: any, handler: Function) => {
+      on: vi.fn((_type: string, opts: any, handler: Function) => {
         handlers[opts.event] = handler;
         return fakeChannel;
       }),
@@ -976,7 +976,7 @@ describe('ParticipantSession', () => {
 
     const handlers: Record<string, Function> = {};
     const fakeChannel = {
-      on: vi.fn((type: string, opts: any, handler: Function) => {
+      on: vi.fn((_type: string, opts: any, handler: Function) => {
         handlers[opts.event] = handler;
         return fakeChannel;
       }),
@@ -1009,7 +1009,7 @@ describe('ParticipantSession', () => {
 
     const handlers: Record<string, Function> = {};
     const fakeChannel = {
-      on: vi.fn((type: string, opts: any, handler: Function) => {
+      on: vi.fn((_type: string, opts: any, handler: Function) => {
         handlers[opts.event] = handler;
         return fakeChannel;
       }),
@@ -1091,7 +1091,7 @@ describe('ParticipantSession', () => {
 
     const handlers: Record<string, Function> = {};
     const fakeChannel = {
-      on: vi.fn((type: string, opts: any, handler: Function) => {
+      on: vi.fn((_type: string, opts: any, handler: Function) => {
         handlers[opts.event] = handler;
         return fakeChannel;
       }),

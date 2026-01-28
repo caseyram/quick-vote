@@ -212,15 +212,15 @@ vi.mock('../components/ConnectionBanner', () => ({
 }));
 
 vi.mock('../components/QuestionForm', () => ({
-  default: (props: any) => <div data-testid="question-form">QuestionForm</div>,
+  default: (_props: any) => <div data-testid="question-form">QuestionForm</div>,
 }));
 
 vi.mock('../components/QuestionList', () => ({
-  default: (props: any) => <div data-testid="question-list">QuestionList</div>,
+  default: (_props: any) => <div data-testid="question-list">QuestionList</div>,
 }));
 
 vi.mock('../components/QRCode', () => ({
-  SessionQRCode: (props: any) => <div data-testid="session-qr-code">QRCode</div>,
+  SessionQRCode: (_props: any) => <div data-testid="session-qr-code">QRCode</div>,
 }));
 
 vi.mock('../components/SessionResults', () => ({
@@ -236,7 +236,7 @@ vi.mock('../components/ParticipantCount', () => ({
 }));
 
 vi.mock('../components/CountdownTimer', () => ({
-  CountdownTimer: (props: any) => <div data-testid="countdown-timer">CountdownTimer</div>,
+  CountdownTimer: (_props: any) => <div data-testid="countdown-timer">CountdownTimer</div>,
 }));
 
 vi.mock('../components/AdminControlBar', () => ({
@@ -265,7 +265,7 @@ vi.mock('../components/TemplatePanel', () => ({
 }));
 
 vi.mock('../components/BarChart', () => ({
-  BarChart: (props: any) => <div data-testid="bar-chart">BarChart</div>,
+  BarChart: (_props: any) => <div data-testid="bar-chart">BarChart</div>,
   AGREE_DISAGREE_COLORS: { agree: '#22c55e', disagree: '#ef4444', sometimes: '#eab308' },
   MULTI_CHOICE_COLORS: ['#6366f1', '#f59e0b', '#10b981', '#ef4444'],
 }));
@@ -532,7 +532,7 @@ describe('AdminSession', () => {
     const questionsData = [makeQuestion({ status: 'active' })];
     const votesData = [makeVote()];
 
-    let callCount = 0;
+    let _callCount = 0;
     mockFromResolvers['sessions'] = (chain) => {
       chain.single.mockResolvedValue({ data: sessionData, error: null });
     };
