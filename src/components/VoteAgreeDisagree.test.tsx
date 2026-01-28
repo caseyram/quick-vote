@@ -55,7 +55,7 @@ import VoteAgreeDisagree from './VoteAgreeDisagree';
 
 const baseQuestion: Question = {
   id: 'q1', session_id: 's1', text: 'Is this good?', type: 'agree_disagree',
-  options: null, position: 0, anonymous: false, status: 'active', created_at: new Date().toISOString(),
+  options: null, position: 0, anonymous: false, status: 'active', created_at: new Date().toISOString(), batch_id: null,
 };
 
 describe('VoteAgreeDisagree', () => {

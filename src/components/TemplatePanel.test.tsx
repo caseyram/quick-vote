@@ -5,7 +5,7 @@ import type { Question } from '../types/database';
 const mockQuestions: Question[] = [
   {
     id: 'q1', session_id: 's1', text: 'First', type: 'agree_disagree',
-    options: null, position: 0, anonymous: false, status: 'pending', created_at: new Date().toISOString(),
+    options: null, position: 0, anonymous: false, status: 'pending', created_at: new Date().toISOString(), batch_id: null,
   },
 ];
 

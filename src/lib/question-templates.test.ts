@@ -20,6 +20,7 @@ function makeQuestion(overrides: Partial<Question> = {}): Question {
     anonymous: true,
     status: 'pending',
     created_at: new Date().toISOString(),
+    batch_id: null,
     ...overrides,
   };
 }

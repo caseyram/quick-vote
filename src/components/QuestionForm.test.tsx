@@ -63,7 +63,7 @@ describe('QuestionForm', () => {
     const q = {
       id: 'q1', session_id: 's1', text: 'Edit me', type: 'agree_disagree' as const,
       options: null, position: 0, anonymous: false, status: 'pending' as const,
-      created_at: new Date().toISOString(),
+      created_at: new Date().toISOString(), batch_id: null,
     };
     render(<QuestionForm sessionId="s1" editingQuestion={q} onSaved={onSaved} onCancel={onCancel} />);
     expect(screen.getByText('Edit Question')).toBeDefined();
@@ -124,7 +124,7 @@ describe('QuestionForm', () => {
     const q = {
       id: 'q1', session_id: 's1', text: 'Edit me', type: 'agree_disagree' as const,
       options: null, position: 0, anonymous: false, status: 'pending' as const,
-      created_at: new Date().toISOString(),
+      created_at: new Date().toISOString(), batch_id: null,
     };
     render(<QuestionForm sessionId="s1" editingQuestion={q} onSaved={onSaved} onCancel={onCancel} />);
     fireEvent.click(screen.getByText('Cancel'));
