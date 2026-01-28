@@ -10,6 +10,7 @@ import { CountdownTimer } from '../components/CountdownTimer';
 import { ParticipantCount } from '../components/ParticipantCount';
 import VoteAgreeDisagree from '../components/VoteAgreeDisagree';
 import VoteMultipleChoice from '../components/VoteMultipleChoice';
+import { BatchVotingCarousel } from '../components/BatchVotingCarousel';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Session, Question, SessionStatus } from '../types/database';
 
@@ -131,6 +132,16 @@ export default function ParticipantSession() {
     stopCountdown();
     setView('lobby');
   }, [sessionId, setSession, stopCountdown]);
+
+  // Handle batch completion - clears batch state and returns to waiting
+  const handleBatchComplete = useCallback(() => {
+    // Clear batch state
+    setBatchQuestions([]);
+    setActiveBatchId(null);
+    // Transition to waiting screen
+    setView('waiting');
+    setWaitingMessage('Batch submitted! Waiting for results...');
+  }, [setBatchQuestions, setActiveBatchId]);
 
   // Channel setup callback -- registers all Broadcast listeners
   const setupChannel = useCallback(
@@ -486,15 +497,20 @@ export default function ParticipantSession() {
     );
   }
 
-  // Batch voting state (placeholder)
+  // Batch voting state
   if (view === 'batch-voting' && batchQuestions.length > 0 && participantId) {
     return (
-      <div className="min-h-dvh bg-gray-950 flex flex-col">
+      <>
         <ConnectionPill status={connectionStatus} />
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-white text-xl">Batch voting mode - {batchQuestions.length} questions</p>
-        </div>
-      </div>
+        <BatchVotingCarousel
+          questions={batchQuestions}
+          sessionId={sessionId!}
+          participantId={participantId}
+          displayName={participantName || null}
+          reasonsEnabled={session?.reasons_enabled ?? false}
+          onComplete={handleBatchComplete}
+        />
+      </>
     );
   }
 
