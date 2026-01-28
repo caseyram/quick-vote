@@ -7,28 +7,26 @@
 
 Requirements for batch questions and polish milestone. Each maps to roadmap phases.
 
-### Collections
+### Batch Questions
 
-- [ ] **COLL-01**: Admin can create a named collection of questions
-- [ ] **COLL-02**: Admin can add existing questions to a collection
-- [ ] **COLL-03**: Admin can remove questions from a collection
-- [ ] **COLL-04**: Admin can edit collection name
-- [ ] **COLL-05**: Admin can delete a collection
-- [ ] **COLL-06**: Admin can load a collection into a session (copies questions)
-- [ ] **COLL-07**: Admin can export a collection as JSON file
-- [ ] **COLL-08**: Admin can import a collection from JSON file
-- [ ] **COLL-09**: Admin can create a batch on-the-fly from selected session questions
+- [ ] **BATCH-01**: Admin can create questions on-the-fly and group them into a named batch
+- [ ] **BATCH-02**: Admin can create multiple batches within a single session
+- [ ] **BATCH-03**: Admin can activate a batch (all questions delivered to participants at once)
+- [ ] **BATCH-04**: Participant sees all batch questions and can navigate with Next/Previous buttons
+- [ ] **BATCH-05**: Participant sees progress indicator ("Question 3 of 10")
+- [ ] **BATCH-06**: Participant answers persist when navigating between questions
+- [ ] **BATCH-07**: Participant can submit/complete the batch when finished
+- [ ] **BATCH-08**: Participant can use arrow keys to navigate batch questions (desktop)
+- [ ] **BATCH-09**: Participant sees visual answer review before final submit
+- [ ] **BATCH-10**: Participant sees completion animation per question answered
 
-### Batch Mode
+### Session Management
 
-- [ ] **BATCH-01**: Admin can set session mode (live or batch) when activating questions
-- [ ] **BATCH-02**: Participant sees all batch questions and can navigate with Next/Previous buttons
-- [ ] **BATCH-03**: Participant sees progress indicator ("Question 3 of 10")
-- [ ] **BATCH-04**: Participant answers persist when navigating between questions
-- [ ] **BATCH-05**: Participant can submit/complete the batch when finished
-- [ ] **BATCH-06**: Participant can use arrow keys to navigate batch questions (desktop)
-- [ ] **BATCH-07**: Participant sees visual answer review before final submit
-- [ ] **BATCH-08**: Participant sees completion animation per question answered
+- [ ] **SESS-01**: Global admin URL (/admin) shows list of all sessions
+- [ ] **SESS-02**: Session list ordered by timestamp, most recent first
+- [ ] **SESS-03**: Admin can reopen a past session to review results
+- [ ] **SESS-04**: Admin can export session as JSON (questions grouped by batch, with votes/reasons)
+- [ ] **SESS-05**: Admin can import questions from JSON file (preserves batch groupings)
 
 ### Progress Dashboard
 
@@ -48,18 +46,18 @@ Requirements for batch questions and polish milestone. Each maps to roadmap phas
 
 Acknowledged but deferred to later milestones.
 
+### Collections (Deprioritized)
+
+- **COLL-01**: Admin can create a named collection of reusable questions
+- **COLL-02**: Admin can add/remove questions from a collection
+- **COLL-03**: Admin can load a collection into a session
+- **COLL-04**: Admin can import a collection from JSON file
+- **COLL-05**: Admin can export a collection as JSON file
+
 ### Advanced Batch Features
 
 - **BATCH-F01**: Swipe gesture navigation for mobile participants
-- **BATCH-F02**: Hybrid mode (mix of live and batch questions in same session)
-- **BATCH-F03**: Skip logic / conditional branching
-- **BATCH-F04**: Save progress and resume later
-
-### Collection Enhancements
-
-- **COLL-F01**: Collection versioning
-- **COLL-F02**: Public collection library (share across users)
-- **COLL-F03**: Collection folders/categories
+- **BATCH-F02**: Hybrid mode (mix of live single questions and batches in same session)
 
 ## Out of Scope
 
@@ -67,13 +65,12 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| Skip logic / branching | High complexity, low value for short voting sessions (5-15 questions) |
-| Required questions / validation | Voting context tolerates incomplete responses; adds friction |
+| Skip logic / branching | High complexity, low value for short voting sessions |
+| Required questions / validation | Voting context tolerates incomplete responses |
 | Per-question time limits in batch | Contradicts self-paced concept |
 | Auto-advance after answer | Removes participant control |
-| Partial save / resume later | Requires identity system; batch sessions designed for single sitting |
-| Complex collection hierarchy | Over-engineering; flat list sufficient |
-| Collection sharing / permissions | Requires user accounts |
+| Partial save / resume later | Batch sessions designed for single sitting |
+| User accounts / authentication | Keep admin access simple via URLs |
 
 ## Traceability
 
@@ -81,37 +78,35 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| COLL-01 | — | Pending |
-| COLL-02 | — | Pending |
-| COLL-03 | — | Pending |
-| COLL-04 | — | Pending |
-| COLL-05 | — | Pending |
-| COLL-06 | — | Pending |
-| COLL-07 | — | Pending |
-| COLL-08 | — | Pending |
-| COLL-09 | — | Pending |
-| BATCH-01 | — | Pending |
-| BATCH-02 | — | Pending |
-| BATCH-03 | — | Pending |
-| BATCH-04 | — | Pending |
-| BATCH-05 | — | Pending |
-| BATCH-06 | — | Pending |
-| BATCH-07 | — | Pending |
-| BATCH-08 | — | Pending |
-| PROG-01 | — | Pending |
-| PROG-02 | — | Pending |
-| PROG-03 | — | Pending |
-| PROG-04 | — | Pending |
-| RESL-01 | — | Pending |
-| RESL-02 | — | Pending |
-| RESL-03 | — | Pending |
-| RESL-04 | — | Pending |
+| BATCH-01 | Phase 6 | Pending |
+| BATCH-02 | Phase 6 | Pending |
+| BATCH-03 | Phase 7 | Pending |
+| BATCH-04 | Phase 8 | Pending |
+| BATCH-05 | Phase 8 | Pending |
+| BATCH-06 | Phase 8 | Pending |
+| BATCH-07 | Phase 8 | Pending |
+| BATCH-08 | Phase 8 | Pending |
+| BATCH-09 | Phase 8 | Pending |
+| BATCH-10 | Phase 8 | Pending |
+| SESS-01 | Phase 9 | Pending |
+| SESS-02 | Phase 9 | Pending |
+| SESS-03 | Phase 9 | Pending |
+| SESS-04 | Phase 9 | Pending |
+| SESS-05 | Phase 9 | Pending |
+| PROG-01 | Phase 10 | Pending |
+| PROG-02 | Phase 10 | Pending |
+| PROG-03 | Phase 10 | Pending |
+| PROG-04 | Phase 10 | Pending |
+| RESL-01 | Phase 10 | Pending |
+| RESL-02 | Phase 10 | Pending |
+| RESL-03 | Phase 10 | Pending |
+| RESL-04 | Phase 10 | Pending |
 
 **Coverage:**
-- v1.1 requirements: 25 total
-- Mapped to phases: 0
-- Unmapped: 25 (pending roadmap)
+- v1.1 requirements: 23 total
+- Mapped to phases: 23
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-28*
-*Last updated: 2026-01-28 after initial definition*
+*Last updated: 2026-01-28 - traceability updated with phase mappings*

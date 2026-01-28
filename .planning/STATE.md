@@ -9,15 +9,43 @@
 ## Current Position
 
 **Milestone:** v1.1 — Batch Questions & Polish
-**Phase:** Not started (defining requirements)
-**Status:** Defining requirements
-**Last activity:** 2026-01-28 — Milestone v1.1 started
+**Phase:** 6 of 10 (Batch Schema & UI)
+**Plan:** Ready to plan
+**Status:** Ready to plan Phase 6
+**Last activity:** 2026-01-28 — Roadmap revised for v1.1
+
+Progress: [##########..........] 50% (v1.0 complete, v1.1 at 0/5 phases)
 
 ## Milestone History
 
 | Version | Name | Shipped | Phases |
 |---------|------|---------|--------|
 | v1.0 | MVP | 2026-01-28 | 1-5 (16 plans) |
+| v1.1 | Batch Questions & Polish | In progress | 6-10 (TBD plans) |
+
+## v1.1 Phase Summary
+
+| Phase | Name | Requirements | Status |
+|-------|------|--------------|--------|
+| 6 | Batch Schema & UI | BATCH-01, BATCH-02 | Not started |
+| 7 | Batch Activation | BATCH-03 | Not started |
+| 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | Not started |
+| 9 | Session Management | SESS-01 to SESS-05 | Not started |
+| 10 | Progress Dashboard & Results Polish | PROG-01 to PROG-04, RESL-01 to RESL-04 | Not started |
+
+## Performance Metrics
+
+**Velocity (v1.0):**
+- Total plans completed: 16
+- Average duration: ~25 min
+- Total execution time: ~6.5 hours
+
+**v1.1 Metrics:**
+- Plans completed: 0
+- Total phases: 5
+- Requirements: 23
+
+*Updated after each plan completion*
 
 ## Accumulated Context
 
@@ -30,12 +58,14 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 - Immediate vote submission (no lock-in)
 - Admin light / Participant dark themes
 
-### Research Insights
+### Research Insights (v1.1)
 
-- Supabase Realtime: Broadcast (admin commands), Postgres Changes (vote stream), Presence (participant count)
-- Vote submission must be idempotent: UNIQUE(question_id, participant_id) + UPSERT
-- Mobile viewport: use 100dvh not 100vh
-- Tailwind CSS v4 uses CSS-first configuration
+- Batches are runtime feature (not storage like collections)
+- Batch mode is separate state machine from live mode
+- Mode confusion is #1 pitfall -- needs explicit visual differentiation
+- Zod v4 recommended for JSON import validation
+- Motion v12 gestures sufficient for navigation (no new dependencies needed)
+- Collections feature deprioritized to future milestone
 
 ### Blockers
 
@@ -43,10 +73,10 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 
 ## Session Continuity
 
-**Last session:** 2026-01-28 — v1.1 milestone started
-**Next action:** Define requirements and roadmap
+**Last session:** 2026-01-28 — v1.1 roadmap revised
+**Next action:** Plan Phase 6 (Batch Schema & UI)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-28 — v1.1 milestone started*
+*Updated: 2026-01-28 — v1.1 roadmap revised with correct requirements*
