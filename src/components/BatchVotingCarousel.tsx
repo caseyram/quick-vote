@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useAnimate } from 'motion/react';
 import VoteAgreeDisagree from './VoteAgreeDisagree';
 import VoteMultipleChoice from './VoteMultipleChoice';
+import { BatchReviewScreen } from './BatchReviewScreen';
 import type { Question } from '../types/database';
 
 interface BatchVotingCarouselProps {
@@ -34,6 +35,7 @@ export function BatchVotingCarousel({
   onComplete,
 }: BatchVotingCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showReview, setShowReview] = useState(false);
   const [progressRef, animateProgress] = useAnimate();
 
   const handleVoteSubmit = useCallback(() => {
@@ -91,11 +93,31 @@ export function BatchVotingCarousel({
   };
 
   const handleSubmitBatch = () => {
+    setShowReview(true);
+  };
+
+  const handleConfirmComplete = () => {
     onComplete();
+  };
+
+  const handleGoBackFromReview = () => {
+    setShowReview(false);
   };
 
   if (!currentQuestion) {
     return null;
+  }
+
+  if (showReview) {
+    return (
+      <BatchReviewScreen
+        questions={questions}
+        sessionId={sessionId}
+        participantId={participantId}
+        onConfirm={handleConfirmComplete}
+        onGoBack={handleGoBackFromReview}
+      />
+    );
   }
 
   return (
