@@ -24,6 +24,8 @@ interface BatchCardProps {
   questions: Question[];
   isExpanded: boolean;
   isAddingQuestion: boolean;
+  isActive: boolean;
+  canActivate: boolean;
   onToggle: () => void;
   onNameChange: (name: string) => void;
   onQuestionReorder: (questionIds: string[]) => void;
@@ -32,6 +34,8 @@ interface BatchCardProps {
   onAddQuestion: () => void;
   onAddQuestionDone: () => void;
   onDeleteBatch: () => void;
+  onActivate: (batchId: string) => void;
+  onClose: (batchId: string) => void;
 }
 
 export function BatchCard({
@@ -40,6 +44,8 @@ export function BatchCard({
   questions,
   isExpanded,
   isAddingQuestion,
+  isActive,
+  canActivate,
   onToggle,
   onNameChange,
   onQuestionReorder,
@@ -48,6 +54,8 @@ export function BatchCard({
   onAddQuestion,
   onAddQuestionDone,
   onDeleteBatch,
+  onActivate,
+  onClose,
 }: BatchCardProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(batch.name);
@@ -115,8 +123,19 @@ export function BatchCard({
     .map((q) => q.text)
     .join(' | ');
 
+  // Determine card border/styling based on state
+  const cardClassName = [
+    'bg-gray-800 rounded-lg overflow-hidden transition-all duration-200',
+    isActive
+      ? 'border-2 border-green-500 shadow-lg shadow-green-500/20'
+      : 'border border-indigo-700/50',
+    batch.status === 'closed' ? 'opacity-60' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div className="bg-gray-800 border border-indigo-700/50 rounded-lg overflow-hidden">
+    <div className={cardClassName}>
       {/* Header - always visible */}
       <button
         type="button"
@@ -163,6 +182,41 @@ export function BatchCard({
         <span className="px-2 py-0.5 bg-gray-700 text-gray-300 rounded text-xs shrink-0">
           {sortedQuestions.length} question{sortedQuestions.length !== 1 ? 's' : ''}
         </span>
+
+        {/* Activate/Close button */}
+        {batch.status !== 'closed' && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              isActive ? onClose(batch.id) : onActivate(batch.id);
+            }}
+            disabled={!isActive && !canActivate}
+            className={`px-3 py-1 text-xs font-medium rounded transition-colors shrink-0 ${
+              isActive
+                ? 'bg-red-600 hover:bg-red-500 text-white'
+                : canActivate
+                  ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                  : 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-60'
+            }`}
+            title={
+              !canActivate && !isActive
+                ? 'Close active question or batch first'
+                : isActive
+                  ? 'Close batch voting'
+                  : 'Start batch voting'
+            }
+          >
+            {isActive ? '\u25A0 Close' : '\u25B6 Activate'}
+          </button>
+        )}
+
+        {/* Closed status indicator */}
+        {batch.status === 'closed' && (
+          <span className="px-2 py-1 text-xs text-gray-400 bg-gray-700 rounded">
+            Closed
+          </span>
+        )}
 
         {/* Delete batch button */}
         <button
