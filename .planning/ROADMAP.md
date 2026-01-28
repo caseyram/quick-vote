@@ -23,7 +23,7 @@ See git history for v1.0 implementation details. Milestone delivered:
 
 **Milestone Goal:** Enable self-paced batch voting mode with on-the-fly batch creation, session management improvements, and results polish.
 
-- [ ] **Phase 6: Batch Schema & UI** - Admin can create and manage batches on-the-fly
+- [x] **Phase 6: Batch Schema & UI** - Admin can create and manage batches on-the-fly
 - [ ] **Phase 7: Batch Activation** - Admin activates batch for participant self-paced voting
 - [ ] **Phase 8: Participant Batch Experience** - Participants navigate and complete batch questions at their own pace
 - [ ] **Phase 9: Session Management** - Global admin URL, session list, review past sessions, export/import
@@ -43,9 +43,9 @@ See git history for v1.0 implementation details. Milestone delivered:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Database schema & types (batches table, Batch type, store methods)
-- [ ] 06-02-PLAN.md — Batch UI components (BatchCard, BatchList, drag-and-drop with dnd-kit)
-- [ ] 06-03-PLAN.md — Admin session integration (wire components to Supabase, inline question creation)
+- [x] 06-01-PLAN.md — Database schema & types (batches table, Batch type, store methods)
+- [x] 06-02-PLAN.md — Batch UI components (BatchCard, BatchList, drag-and-drop with dnd-kit)
+- [x] 06-03-PLAN.md — Admin session integration (wire components to Supabase, inline question creation)
 
 ### Phase 7: Batch Activation
 **Goal**: Admin can activate a batch so participants receive all questions at once for self-paced voting
@@ -121,7 +121,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1-5 | v1.0 | 16/16 | Complete | 2026-01-28 |
-| 6. Batch Schema & UI | v1.1 | 0/3 | Planning complete | - |
+| 6. Batch Schema & UI | v1.1 | 3/3 | Complete | 2026-01-28 |
 | 7. Batch Activation | v1.1 | 0/TBD | Not started | - |
 | 8. Participant Batch Experience | v1.1 | 0/TBD | Not started | - |
 | 9. Session Management | v1.1 | 0/TBD | Not started | - |
@@ -129,4 +129,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-01-28*
-*Last updated: 2026-01-28 - v1.1 roadmap revised to match actual requirements*
+*Last updated: 2026-01-28 - Phase 6 complete*
