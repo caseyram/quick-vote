@@ -5,12 +5,13 @@ import type { Question, VoteType } from '../types/database';
 
 interface QuestionFormProps {
   sessionId: string;
+  batchId?: string | null;  // If provided, question will be created in this batch
   editingQuestion?: Question;
   onSaved: () => void;
   onCancel?: () => void;
 }
 
-export default function QuestionForm({ sessionId, editingQuestion, onSaved, onCancel }: QuestionFormProps) {
+export default function QuestionForm({ sessionId, batchId, editingQuestion, onSaved, onCancel }: QuestionFormProps) {
   const [text, setText] = useState('');
   const [type, setType] = useState<VoteType>('agree_disagree');
   const [options, setOptions] = useState<string[]>(['', '']);
@@ -93,12 +94,20 @@ export default function QuestionForm({ sessionId, editingQuestion, onSaved, onCa
         onSaved();
       } else {
         // Add mode -- find next position
-        const { data: maxRow } = await supabase
+        // If batchId is provided, find max position among questions with same batch_id
+        // Otherwise, find max position among all questions in the session
+        let positionQuery = supabase
           .from('questions')
           .select('position')
           .eq('session_id', sessionId)
           .order('position', { ascending: false })
           .limit(1);
+
+        if (batchId) {
+          positionQuery = positionQuery.eq('batch_id', batchId);
+        }
+
+        const { data: maxRow } = await positionQuery;
 
         const nextPosition = maxRow && maxRow.length > 0 ? maxRow[0].position + 1 : 0;
 
@@ -106,6 +115,7 @@ export default function QuestionForm({ sessionId, editingQuestion, onSaved, onCa
           .from('questions')
           .insert({
             session_id: sessionId,
+            batch_id: batchId ?? null,
             text: trimmedText,
             type,
             options: filteredOptions,
