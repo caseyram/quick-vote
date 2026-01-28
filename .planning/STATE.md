@@ -28,7 +28,7 @@ Progress: [#############.......] 65% (v1.0 complete, Phase 7 complete)
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
 | 6 | Batch Schema & UI | BATCH-01, BATCH-02 | ✓ Verified |
-| 7 | Batch Activation | BATCH-03 | Complete |
+| 7 | Batch Activation | BATCH-03 | ✓ Verified |
 | 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | Not started |
 | 9 | Session Management | SESS-01 to SESS-05 | Not started |
 | 10 | Progress Dashboard & Results Polish | PROG-01 to PROG-04, RESL-01 to RESL-04 | Not started |

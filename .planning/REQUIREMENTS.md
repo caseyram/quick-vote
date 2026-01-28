@@ -11,7 +11,7 @@ Requirements for batch questions and polish milestone. Each maps to roadmap phas
 
 - [x] **BATCH-01**: Admin can create questions on-the-fly and group them into a named batch
 - [x] **BATCH-02**: Admin can create multiple batches within a single session
-- [ ] **BATCH-03**: Admin can activate a batch (all questions delivered to participants at once)
+- [x] **BATCH-03**: Admin can activate a batch (all questions delivered to participants at once)
 - [ ] **BATCH-04**: Participant sees all batch questions and can navigate with Next/Previous buttons
 - [ ] **BATCH-05**: Participant sees progress indicator ("Question 3 of 10")
 - [ ] **BATCH-06**: Participant answers persist when navigating between questions
@@ -80,7 +80,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | BATCH-01 | Phase 6 | Complete |
 | BATCH-02 | Phase 6 | Complete |
-| BATCH-03 | Phase 7 | Pending |
+| BATCH-03 | Phase 7 | Complete |
 | BATCH-04 | Phase 8 | Pending |
 | BATCH-05 | Phase 8 | Pending |
 | BATCH-06 | Phase 8 | Pending |
@@ -109,4 +109,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-28*
-*Last updated: 2026-01-28 - BATCH-01, BATCH-02 complete (Phase 6)*
+*Last updated: 2026-01-28 - BATCH-03 complete (Phase 7)*
