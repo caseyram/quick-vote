@@ -9,12 +9,12 @@
 ## Current Position
 
 **Milestone:** v1.1 — Batch Questions & Polish
-**Phase:** 7 of 10 (Batch Activation) - COMPLETE
-**Plan:** All 2 plans executed
-**Status:** Phase 7 complete, ready for Phase 8
-**Last activity:** 2026-01-28 — Completed Phase 7
+**Phase:** 8 of 10 (Participant Batch Experience) - In progress
+**Plan:** 1 of 3 complete
+**Status:** Executing Phase 8
+**Last activity:** 2026-01-28 — Completed 08-01-PLAN.md
 
-Progress: [#############.......] 65% (v1.0 complete, Phase 7 complete)
+Progress: [##############......] 70% (v1.0 complete, Phase 7 complete, 08-01 complete)
 
 ## Milestone History
 
@@ -27,9 +27,9 @@ Progress: [#############.......] 65% (v1.0 complete, Phase 7 complete)
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 6 | Batch Schema & UI | BATCH-01, BATCH-02 | ✓ Verified |
-| 7 | Batch Activation | BATCH-03 | ✓ Verified |
-| 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | Not started |
+| 6 | Batch Schema & UI | BATCH-01, BATCH-02 | Verified |
+| 7 | Batch Activation | BATCH-03 | Verified |
+| 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | In progress (1/3 plans) |
 | 9 | Session Management | SESS-01 to SESS-05 | Not started |
 | 10 | Progress Dashboard & Results Polish | PROG-01 to PROG-04, RESL-01 to RESL-04 | Not started |
 
@@ -41,7 +41,7 @@ Progress: [#############.......] 65% (v1.0 complete, Phase 7 complete)
 - Total execution time: ~6.5 hours
 
 **v1.1 Metrics:**
-- Plans completed: 5
+- Plans completed: 6
 - Total phases: 5
 - Requirements: 23
 
@@ -70,13 +70,13 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 - Drag handle only pattern - listeners on grip icon, not entire card
 - Accordion state local to BatchList (not global store)
 
-### From 07-02 Summary
+### From 08-01 Summary
 
-Batch activation UI with mode exclusion enforcement:
-- Activate/Close buttons on BatchCard with visual state (green border when active)
-- handleActivateBatch/handleCloseBatch broadcast events for participant sync
-- Push question buttons disabled when batch mode active
-- canActivate computed based on status, questions, and mode exclusion
+Batch broadcast wiring for participant:
+- batchQuestions stored in global zustand store (not local state)
+- batch_activated listener fetches questions by ID array on activation
+- batch_closed listener clears batch state and returns to waiting
+- batch-voting view distinct from voting view for mode separation
 
 ### Blockers
 
@@ -84,10 +84,10 @@ Batch activation UI with mode exclusion enforcement:
 
 ## Session Continuity
 
-**Last session:** 2026-01-28 — Phase 7 complete
-**Next action:** Plan Phase 8 (Participant Batch Experience)
+**Last session:** 2026-01-28 — Completed 08-01-PLAN.md
+**Next action:** Execute 08-02-PLAN.md (Batch voting carousel)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-28 — Phase 7 complete*
+*Updated: 2026-01-28 — 08-01 complete*
