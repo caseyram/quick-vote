@@ -14,6 +14,7 @@ interface VoteMultipleChoiceProps {
   participantId: string;
   displayName: string | null;
   reasonsEnabled?: boolean;
+  onVoteSubmit?: () => void;
 }
 
 export default function VoteMultipleChoice({
@@ -22,6 +23,7 @@ export default function VoteMultipleChoice({
   participantId,
   displayName,
   reasonsEnabled = false,
+  onVoteSubmit,
 }: VoteMultipleChoiceProps) {
   const haptic = useHaptic();
   const { setCurrentVote, submitting, setSubmitting } = useSessionStore();
@@ -88,13 +90,14 @@ export default function VoteMultipleChoice({
       } else if (data) {
         setCurrentVote(data);
         setSubmitted(true);
+        onVoteSubmit?.();  // Call callback for completion feedback
       }
     } catch (err) {
       console.error('Vote submission error:', err);
     } finally {
       setSubmitting(false);
     }
-  }, [pendingSelection, reason, reasonsEnabled, question.id, question.anonymous, sessionId, participantId, displayName, haptic, setCurrentVote, setSubmitting]);
+  }, [pendingSelection, reason, reasonsEnabled, question.id, question.anonymous, sessionId, participantId, displayName, haptic, setCurrentVote, setSubmitting, onVoteSubmit]);
 
   function handleSelect(value: string) {
     setPendingSelection(value);
