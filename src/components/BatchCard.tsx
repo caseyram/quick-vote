@@ -16,30 +16,37 @@ import {
 } from '@dnd-kit/sortable';
 import type { Batch, Question } from '../types/database';
 import { BatchQuestionItem } from './BatchQuestionItem';
+import QuestionForm from './QuestionForm';
 
 interface BatchCardProps {
+  sessionId: string;
   batch: Batch;
   questions: Question[];
   isExpanded: boolean;
+  isAddingQuestion: boolean;
   onToggle: () => void;
   onNameChange: (name: string) => void;
   onQuestionReorder: (questionIds: string[]) => void;
   onEditQuestion: (question: Question) => void;
   onDeleteQuestion: (question: Question) => void;
   onAddQuestion: () => void;
+  onAddQuestionDone: () => void;
   onDeleteBatch: () => void;
 }
 
 export function BatchCard({
+  sessionId,
   batch,
   questions,
   isExpanded,
+  isAddingQuestion,
   onToggle,
   onNameChange,
   onQuestionReorder,
   onEditQuestion,
   onDeleteQuestion,
   onAddQuestion,
+  onAddQuestionDone,
   onDeleteBatch,
 }: BatchCardProps) {
   const [isEditingName, setIsEditingName] = useState(false);
@@ -183,14 +190,27 @@ export function BatchCard({
         <div className="px-4 pb-4 pt-2 border-t border-gray-700">
           {sortedQuestions.length === 0 ? (
             <div className="text-center py-4">
-              <p className="text-gray-500 text-sm mb-3">No questions yet</p>
-              <button
-                type="button"
-                onClick={onAddQuestion}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded transition-colors"
-              >
-                + Add Question
-              </button>
+              {isAddingQuestion ? (
+                <div className="bg-gray-900 rounded-lg p-4 text-left">
+                  <QuestionForm
+                    sessionId={sessionId}
+                    batchId={batch.id}
+                    onSaved={onAddQuestionDone}
+                    onCancel={onAddQuestionDone}
+                  />
+                </div>
+              ) : (
+                <>
+                  <p className="text-gray-500 text-sm mb-3">No questions yet</p>
+                  <button
+                    type="button"
+                    onClick={onAddQuestion}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded transition-colors"
+                  >
+                    + Add Question
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <>
@@ -216,13 +236,24 @@ export function BatchCard({
                   </div>
                 </SortableContext>
               </DndContext>
-              <button
-                type="button"
-                onClick={onAddQuestion}
-                className="mt-3 w-full px-3 py-2 border border-dashed border-gray-600 hover:border-indigo-500 text-gray-400 hover:text-indigo-400 text-sm rounded transition-colors"
-              >
-                + Add Question
-              </button>
+              {isAddingQuestion ? (
+                <div className="mt-3 bg-gray-900 rounded-lg p-4">
+                  <QuestionForm
+                    sessionId={sessionId}
+                    batchId={batch.id}
+                    onSaved={onAddQuestionDone}
+                    onCancel={onAddQuestionDone}
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onAddQuestion}
+                  className="mt-3 w-full px-3 py-2 border border-dashed border-gray-600 hover:border-indigo-500 text-gray-400 hover:text-indigo-400 text-sm rounded transition-colors"
+                >
+                  + Add Question
+                </button>
+              )}
             </>
           )}
         </div>

@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
 import type { Batch, Question } from '../types/database';
 import { BatchCard } from './BatchCard';
+import QuestionForm from './QuestionForm';
 
 interface BatchListProps {
+  sessionId: string;
   batches: Batch[];
   questions: Question[];
   onEditQuestion: (question: Question) => void;
@@ -19,6 +21,7 @@ type ListItem =
   | { type: 'question'; question: Question; createdAt: string };
 
 export function BatchList({
+  sessionId,
   batches,
   questions,
   onEditQuestion,
@@ -30,6 +33,7 @@ export function BatchList({
   onDeleteBatch,
 }: BatchListProps) {
   const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
+  const [addingToBatchId, setAddingToBatchId] = useState<string | null>(null);
 
   // Create interleaved list sorted by created_at
   const interleavedItems = useMemo(() => {
@@ -105,15 +109,22 @@ export function BatchList({
           return (
             <BatchCard
               key={item.batch.id}
+              sessionId={sessionId}
               batch={item.batch}
               questions={getBatchQuestions(item.batch.id)}
               isExpanded={expandedBatchId === item.batch.id}
+              isAddingQuestion={addingToBatchId === item.batch.id}
               onToggle={() => handleBatchToggle(item.batch.id)}
               onNameChange={(name) => onBatchNameChange(item.batch.id, name)}
               onQuestionReorder={(ids) => onQuestionReorder(item.batch.id, ids)}
               onEditQuestion={onEditQuestion}
               onDeleteQuestion={onDeleteQuestion}
-              onAddQuestion={() => onAddQuestionToBatch(item.batch.id)}
+              onAddQuestion={() => {
+                // Expand the batch and show the form
+                setExpandedBatchId(item.batch.id);
+                setAddingToBatchId(item.batch.id);
+              }}
+              onAddQuestionDone={() => setAddingToBatchId(null)}
               onDeleteBatch={() => onDeleteBatch(item.batch.id)}
             />
           );
