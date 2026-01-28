@@ -8,6 +8,7 @@ import { aggregateVotes } from '../lib/vote-aggregation';
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../components/BarChart';
 import QuestionForm from '../components/QuestionForm';
 import QuestionList from '../components/QuestionList';
+import { BatchList } from '../components/BatchList';
 import { SessionQRCode } from '../components/QRCode';
 import SessionResults from '../components/SessionResults';
 import { ConnectionBanner } from '../components/ConnectionBanner';
@@ -44,6 +45,7 @@ export default function AdminSession() {
   const [quickQuestion, setQuickQuestion] = useState('');
   const [quickQuestionLoading, setQuickQuestionLoading] = useState(false);
   const [lastClosedQuestionId, setLastClosedQuestionId] = useState<string | null>(null);
+  const [addingQuestionToBatchId, setAddingQuestionToBatchId] = useState<string | null>(null);
 
   // Track session ID in a ref for the channel setup callback
   const sessionIdRef = useRef<string | null>(null);
@@ -528,6 +530,88 @@ export default function AdminSession() {
     }
   }
 
+  // --- Batch handlers ---
+
+  async function handleCreateBatch() {
+    if (!session) return;
+    const nextPosition = batches.length > 0
+      ? Math.max(...batches.map(b => b.position)) + 1
+      : 0;
+
+    const { data, error: err } = await supabase
+      .from('batches')
+      .insert({
+        session_id: session.session_id,
+        name: 'Untitled Batch',
+        position: nextPosition,
+      })
+      .select()
+      .single();
+
+    if (!err && data) {
+      useSessionStore.getState().addBatch(data);
+    }
+  }
+
+  async function handleBatchNameChange(batchId: string, name: string) {
+    const { error: err } = await supabase
+      .from('batches')
+      .update({ name })
+      .eq('id', batchId);
+
+    if (!err) {
+      useSessionStore.getState().updateBatch(batchId, { name });
+    }
+  }
+
+  async function handleDeleteBatch(batchId: string) {
+    if (!window.confirm('Delete this batch? Questions will be moved to unbatched.')) return;
+    if (!session) return;
+
+    const { error: err } = await supabase
+      .from('batches')
+      .delete()
+      .eq('id', batchId);
+
+    if (!err) {
+      useSessionStore.getState().removeBatch(batchId);
+      // Questions automatically become unbatched via ON DELETE SET NULL
+      // Refresh questions to get updated batch_id values
+      const { data: questionsData } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('session_id', session.session_id)
+        .order('position', { ascending: true });
+      if (questionsData) {
+        useSessionStore.getState().setQuestions(questionsData);
+      }
+    }
+  }
+
+  async function handleQuestionReorder(batchId: string, questionIds: string[]) {
+    // Update positions in parallel
+    const updates = questionIds.map((id, index) =>
+      supabase.from('questions').update({ position: index }).eq('id', id)
+    );
+    await Promise.all(updates);
+
+    // Optimistic update in store
+    useSessionStore.getState().reorderQuestions(questionIds);
+  }
+
+  async function handleDelete(question: Question) {
+    if (!window.confirm('Delete this question?')) return;
+
+    const { error: err } = await supabase
+      .from('questions')
+      .delete()
+      .eq('id', question.id);
+
+    if (!err) {
+      useSessionStore.getState().removeQuestion(question.id);
+    }
+  }
+
   // --- Loading / error states ---
 
   if (loading) {
@@ -659,8 +743,18 @@ export default function AdminSession() {
 
             {/* Question list with edit/delete/reorder */}
             <div className="bg-white rounded-lg p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Questions</h2>
-              <QuestionList onEditQuestion={setEditingQuestion} />
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Questions & Batches</h2>
+              <BatchList
+                batches={batches}
+                questions={questions}
+                onEditQuestion={setEditingQuestion}
+                onDeleteQuestion={handleDelete}
+                onBatchNameChange={handleBatchNameChange}
+                onQuestionReorder={handleQuestionReorder}
+                onAddQuestionToBatch={(batchId) => setAddingQuestionToBatchId(batchId)}
+                onCreateBatch={handleCreateBatch}
+                onDeleteBatch={handleDeleteBatch}
+              />
               <ImportExportPanel sessionId={session.session_id} />
             </div>
 

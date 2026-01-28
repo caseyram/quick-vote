@@ -11,6 +11,7 @@ interface BatchListProps {
   onQuestionReorder: (batchId: string, questionIds: string[]) => void;
   onAddQuestionToBatch: (batchId: string) => void;
   onCreateBatch: () => void;
+  onDeleteBatch: (batchId: string) => void;
 }
 
 type ListItem =
@@ -26,6 +27,7 @@ export function BatchList({
   onQuestionReorder,
   onAddQuestionToBatch,
   onCreateBatch,
+  onDeleteBatch,
 }: BatchListProps) {
   const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
 
@@ -112,6 +114,7 @@ export function BatchList({
               onEditQuestion={onEditQuestion}
               onDeleteQuestion={onDeleteQuestion}
               onAddQuestion={() => onAddQuestionToBatch(item.batch.id)}
+              onDeleteBatch={() => onDeleteBatch(item.batch.id)}
             />
           );
         }

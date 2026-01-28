@@ -27,6 +27,7 @@ interface BatchCardProps {
   onEditQuestion: (question: Question) => void;
   onDeleteQuestion: (question: Question) => void;
   onAddQuestion: () => void;
+  onDeleteBatch: () => void;
 }
 
 export function BatchCard({
@@ -39,6 +40,7 @@ export function BatchCard({
   onEditQuestion,
   onDeleteQuestion,
   onAddQuestion,
+  onDeleteBatch,
 }: BatchCardProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(batch.name);
@@ -154,6 +156,19 @@ export function BatchCard({
         <span className="px-2 py-0.5 bg-gray-700 text-gray-300 rounded text-xs shrink-0">
           {sortedQuestions.length} question{sortedQuestions.length !== 1 ? 's' : ''}
         </span>
+
+        {/* Delete batch button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDeleteBatch();
+          }}
+          className="px-2 py-1 text-gray-400 hover:text-red-400 text-xs font-medium transition-colors shrink-0"
+          title="Delete batch"
+        >
+          Delete
+        </button>
       </button>
 
       {/* Collapsed preview */}
