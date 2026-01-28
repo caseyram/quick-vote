@@ -10,11 +10,11 @@
 
 **Milestone:** v1.1 — Batch Questions & Polish
 **Phase:** 8 of 10 (Participant Batch Experience) - In progress
-**Plan:** 1 of 3 complete
+**Plan:** 2 of 3 complete
 **Status:** Executing Phase 8
-**Last activity:** 2026-01-28 — Completed 08-01-PLAN.md
+**Last activity:** 2026-01-28 — Completed 08-02-PLAN.md
 
-Progress: [##############......] 70% (v1.0 complete, Phase 7 complete, 08-01 complete)
+Progress: [###############.....] 75% (v1.0 complete, Phase 7 complete, 08-02 complete)
 
 ## Milestone History
 
@@ -29,7 +29,7 @@ Progress: [##############......] 70% (v1.0 complete, Phase 7 complete, 08-01 com
 |-------|------|--------------|--------|
 | 6 | Batch Schema & UI | BATCH-01, BATCH-02 | Verified |
 | 7 | Batch Activation | BATCH-03 | Verified |
-| 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | In progress (1/3 plans) |
+| 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | In progress (2/3 plans) |
 | 9 | Session Management | SESS-01 to SESS-05 | Not started |
 | 10 | Progress Dashboard & Results Polish | PROG-01 to PROG-04, RESL-01 to RESL-04 | Not started |
 
@@ -41,7 +41,7 @@ Progress: [##############......] 70% (v1.0 complete, Phase 7 complete, 08-01 com
 - Total execution time: ~6.5 hours
 
 **v1.1 Metrics:**
-- Plans completed: 6
+- Plans completed: 7
 - Total phases: 5
 - Requirements: 23
 
@@ -70,13 +70,14 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 - Drag handle only pattern - listeners on grip icon, not entire card
 - Accordion state local to BatchList (not global store)
 
-### From 08-01 Summary
+### From 08-02 Summary
 
-Batch broadcast wiring for participant:
-- batchQuestions stored in global zustand store (not local state)
-- batch_activated listener fetches questions by ID array on activation
-- batch_closed listener clears batch state and returns to waiting
-- batch-voting view distinct from voting view for mode separation
+Batch voting carousel:
+- BatchVotingCarousel with local currentIndex state for navigation
+- Reuses VoteAgreeDisagree/VoteMultipleChoice (no UI duplication)
+- Previous disabled on first question, Complete Batch replaces Next on last
+- Progress indicator: "Question X of Y" at top
+- AnimatePresence slide transitions matching live mode
 
 ### Blockers
 
@@ -84,10 +85,10 @@ Batch broadcast wiring for participant:
 
 ## Session Continuity
 
-**Last session:** 2026-01-28 — Completed 08-01-PLAN.md
-**Next action:** Execute 08-02-PLAN.md (Batch voting carousel)
+**Last session:** 2026-01-28 — Completed 08-02-PLAN.md
+**Next action:** Execute 08-03-PLAN.md (Swipe gestures - optional enhancement)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-28 — 08-01 complete*
+*Updated: 2026-01-28 — 08-02 complete*
