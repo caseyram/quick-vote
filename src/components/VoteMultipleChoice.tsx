@@ -177,8 +177,8 @@ export default function VoteMultipleChoice({
         })}
       </div>
 
-      {/* Reason + Submit (hidden in batch mode) */}
-      <div className="px-4 py-4 space-y-3">
+      {/* Reason + Submit (hidden in batch mode) — pinned to bottom */}
+      <div className="px-4 py-4 space-y-3 shrink-0">
         {reasonsEnabled && (
           <textarea
             value={reason}
