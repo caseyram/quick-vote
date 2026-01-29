@@ -45,8 +45,6 @@ export default function ParticipantSession() {
   // Refs for mutable state accessible from Broadcast callbacks (avoid stale closures)
   const viewRef = useRef<ParticipantView>('loading');
   const activeQuestionRef = useRef<Question | null>(null);
-  const hasConnectedOnce = useRef(false);
-
   // Keep refs in sync with state
   useEffect(() => {
     viewRef.current = view;
@@ -125,12 +123,16 @@ export default function ParticipantSession() {
 
     if (statusData.status === 'active') {
       // First check for an active batch (participant may have disconnected during batch voting)
-      const { data: activeBatch } = await supabase
+      const { data: activeBatch, error: batchError } = await supabase
         .from('batches')
         .select('*')
         .eq('session_id', sessionId)
         .eq('status', 'active')
         .maybeSingle();
+
+      if (batchError) {
+        console.warn('Failed to query active batch:', batchError.message);
+      }
 
       if (activeBatch) {
         // Fetch questions belonging to this batch
@@ -151,12 +153,16 @@ export default function ParticipantSession() {
       }
 
       // No active batch, check for active individual question
-      const { data: qData } = await supabase
+      const { data: qData, error: qError } = await supabase
         .from('questions')
         .select('*')
         .eq('session_id', sessionId)
         .eq('status', 'active')
         .maybeSingle();
+
+      if (qError) {
+        console.warn('Failed to query active question:', qError.message);
+      }
 
       if (qData) {
         setActiveQuestion(qData);
@@ -367,12 +373,16 @@ export default function ParticipantSession() {
       let hasBatchActive = false;
       if (sessionData.status === 'active') {
         // First check for active batch
-        const { data: activeBatch } = await supabase
+        const { data: activeBatch, error: batchErr } = await supabase
           .from('batches')
           .select('*')
           .eq('session_id', sessionId)
           .eq('status', 'active')
           .maybeSingle();
+
+        if (batchErr) {
+          console.warn('Failed to query active batch on load:', batchErr.message);
+        }
 
         if (!cancelled && activeBatch) {
           // Fetch questions belonging to this batch
@@ -391,12 +401,16 @@ export default function ParticipantSession() {
 
         // If no active batch, check for active question
         if (!hasBatchActive) {
-          const { data: qData } = await supabase
+          const { data: qData, error: qErr } = await supabase
             .from('questions')
             .select('*')
             .eq('session_id', sessionId)
             .eq('status', 'active')
             .maybeSingle();
+
+          if (qErr) {
+            console.warn('Failed to query active question on load:', qErr.message);
+          }
 
           if (!cancelled && qData) {
             question = qData;
@@ -452,15 +466,11 @@ export default function ParticipantSession() {
     return 'loading';
   }
 
-  // Re-fetch on reconnection to catch missed events (Pitfall 6 from RESEARCH.md)
+  // Re-fetch on every connection (including first) to catch missed events
+  // and act as a safety net for the initial load
   useEffect(() => {
     if (connectionStatus === 'connected') {
-      if (hasConnectedOnce.current) {
-        // This is a reconnection -- re-fetch state to catch missed events
-        refetchState();
-      } else {
-        hasConnectedOnce.current = true;
-      }
+      refetchState();
     }
   }, [connectionStatus, refetchState]);
 
