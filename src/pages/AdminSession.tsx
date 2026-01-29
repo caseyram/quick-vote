@@ -46,7 +46,7 @@ export default function AdminSession() {
   const [quickQuestionLoading, setQuickQuestionLoading] = useState(false);
   const [lastClosedQuestionId, setLastClosedQuestionId] = useState<string | null>(null);
   const [_addingQuestionToBatchId, _setAddingQuestionToBatchId] = useState<string | null>(null);
-  const [pendingBatchId, setPendingBatchId] = useState<string | null>(null);
+  const [pendingBatchId] = useState<string | null>(null);
   const [resultsViewIndex, setResultsViewIndex] = useState(0);
 
   // Track session ID in a ref for the channel setup callback
@@ -315,10 +315,6 @@ export default function AdminSession() {
       }
     }
   }, [lastClosedQuestionId, closedQuestions]);
-
-  // Derived state for batch activation mode enforcement
-  const isLiveQuestionActive = activeQuestion !== null;
-  const isBatchActive = activeBatchId !== null;
 
   // Show progress dashboard only during active batch voting
   const showProgressDashboard = activeBatchId !== null;
