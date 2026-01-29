@@ -93,9 +93,17 @@ export function parseCsv(csvContent: string): CsvParseResult {
     throw new Error('CSV must have a "question" or "text" column');
   }
 
-  // Track batches by number
-  const batchMap = new Map<number, { name: string; questions: QuestionTemplate[] }>();
-  const unbatchedQuestions: QuestionTemplate[] = [];
+  // Track batches by number (just name and count, not questions)
+  const batchMap = new Map<number, { name: string; questionCount: number }>();
+  // Temporary storage for all questions before assigning batchIndex
+  const unbatchedQuestions: Array<{
+    text: string;
+    type: 'agree_disagree' | 'multiple_choice';
+    options: string[] | null;
+    anonymous: boolean;
+    batchNum: number | null;
+    isBatched: boolean;
+  }> = [];
 
   // Parse data rows
   for (let i = 1; i < lines.length; i++) {
@@ -139,14 +147,6 @@ export function parseCsv(csvContent: string): CsvParseResult {
       }
     }
 
-    const template: QuestionTemplate = {
-      text: questionText,
-      type,
-      options,
-      anonymous,
-      position: 0, // Will be set later
-    };
-
     // Parse batch number
     let batchNum: number | null = null;
     if (batchIdx !== -1) {
@@ -159,44 +159,61 @@ export function parseCsv(csvContent: string): CsvParseResult {
       }
     }
 
+    // Track batch numbers for later mapping
     if (batchNum !== null) {
       if (!batchMap.has(batchNum)) {
-        batchMap.set(batchNum, {
-          name: `Batch ${batchNum}`,
-          questions: [],
-        });
+        batchMap.set(batchNum, { name: `Batch ${batchNum}`, questionCount: 0 });
       }
-      batchMap.get(batchNum)!.questions.push(template);
+      batchMap.get(batchNum)!.questionCount++;
+    }
+
+    // Store question with its batch number for later processing
+    const template = {
+      text: questionText,
+      type,
+      options,
+      anonymous,
+      batchNum, // Temporary field, will be converted to batchIndex
+    };
+
+    if (batchNum !== null) {
+      // Will be processed after batches are created
+      unbatchedQuestions.push({ ...template, isBatched: true });
     } else {
-      unbatchedQuestions.push(template);
+      unbatchedQuestions.push({ ...template, isBatched: false });
     }
   }
 
-  // Build result with proper positions
+  // Build result with proper positions and batchIndex references
   const batches: BatchTemplate[] = [];
   const questions: QuestionTemplate[] = [];
-  let position = 0;
 
-  // Sort batches by number and interleave with unbatched questions
+  // Create batch templates and build batchNum -> batchIndex map
   const sortedBatchNums = Array.from(batchMap.keys()).sort((a, b) => a - b);
+  const batchNumToIndex = new Map<number, number>();
 
-  // Add unbatched questions first (they appear at top)
-  for (const q of unbatchedQuestions) {
-    questions.push({ ...q, position: position++ });
+  for (let i = 0; i < sortedBatchNums.length; i++) {
+    const batchNum = sortedBatchNums[i];
+    const batch = batchMap.get(batchNum)!;
+    batchNumToIndex.set(batchNum, i);
+    batches.push({
+      name: batch.name,
+      position: i, // Will be adjusted by caller with startBatchPosition
+    });
   }
 
-  // Add batches with their questions
-  for (const batchNum of sortedBatchNums) {
-    const batch = batchMap.get(batchNum)!;
-    const batchTemplate: BatchTemplate = {
-      name: batch.name,
-      position: position++,
-      questions: batch.questions.map((q, idx) => ({
-        ...q,
-        position: idx,
-      })),
-    };
-    batches.push(batchTemplate);
+  // Process all questions with proper batchIndex
+  let questionPosition = 0;
+  for (const q of unbatchedQuestions) {
+    const batchIndex = q.batchNum !== null ? (batchNumToIndex.get(q.batchNum) ?? null) : null;
+    questions.push({
+      text: q.text,
+      type: q.type,
+      options: q.options,
+      anonymous: q.anonymous,
+      batchIndex,
+      position: questionPosition++,
+    });
   }
 
   if (questions.length === 0 && batches.length === 0) {
