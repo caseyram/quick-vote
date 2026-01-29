@@ -278,9 +278,7 @@ export function BatchList({
   // Unique ID for this DndContext to prevent conflicts with nested DndContext in BatchCard
   const dndContextId = useId();
 
-  // Create sensors - but disable them when a batch is expanded to prevent
-  // interference with the nested DndContext inside BatchCard
-  const activeSensors = useSensors(
+  const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
@@ -290,9 +288,9 @@ export function BatchList({
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-  const emptySensors = useSensors();
-  // Disable outer sensors when any batch is expanded
-  const sensors = expandedBatchId ? emptySensors : activeSensors;
+
+  // When a batch is expanded, we skip the outer DndContext to avoid interference
+  const skipOuterDnd = expandedBatchId !== null;
 
   // Create interleaved list sorted by position
   const interleavedItems = useMemo(() => {
@@ -470,82 +468,93 @@ export function BatchList({
     );
   }
 
+  // Render items - used both with and without DndContext wrapper
+  const renderItems = () => (
+    <>
+      {interleavedItems.map((item) => {
+        if (item.type === 'batch') {
+          return (
+            <SortableBatchCard
+              key={item.id}
+              batch={item.batch}
+              sessionId={sessionId}
+              questions={getBatchQuestions(item.batch.id)}
+              isExpanded={expandedBatchId === item.batch.id}
+              isAddingQuestion={addingToBatchId === item.batch.id}
+              isActive={activeBatchId === item.batch.id}
+              canActivate={canActivateBatch(item.batch)}
+              showActivateButton={showActivateButton}
+              onToggle={() => handleBatchToggle(item.batch.id)}
+              onNameChange={(name) => onBatchNameChange(item.batch.id, name)}
+              onQuestionReorder={(ids) => onQuestionReorder(item.batch.id, ids)}
+              onEditQuestion={onEditQuestion}
+              onDeleteQuestion={onDeleteQuestion}
+              onAddQuestion={() => {
+                setExpandedBatchId(item.batch.id);
+                setAddingToBatchId(item.batch.id);
+              }}
+              onAddQuestionDone={() => setAddingToBatchId(null)}
+              onDeleteBatch={() => onDeleteBatch(item.batch.id)}
+              onActivateBatch={onActivateBatch}
+              onCloseBatch={onCloseBatch}
+              isOver={overId === item.id && activeId?.startsWith('question-')}
+            />
+          );
+        }
+
+        const isEditing = editingQuestion?.id === item.question.id;
+        return (
+          <SortableQuestionCard
+            key={item.id}
+            question={item.question}
+            isEditing={isEditing}
+            editingQuestion={editingQuestion}
+            sessionId={sessionId}
+            onEditQuestion={onEditQuestion}
+            onDeleteQuestion={onDeleteQuestion}
+            onCancelEdit={onCancelEdit}
+          />
+        );
+      })}
+    </>
+  );
+
   return (
     <div className="space-y-3">
-      <DndContext
-        id={dndContextId}
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-          {/* Interleaved items */}
-          {interleavedItems.map((item) => {
-            if (item.type === 'batch') {
-              return (
-                <SortableBatchCard
-                  key={item.id}
-                  batch={item.batch}
-                  sessionId={sessionId}
-                  questions={getBatchQuestions(item.batch.id)}
-                  isExpanded={expandedBatchId === item.batch.id}
-                  isAddingQuestion={addingToBatchId === item.batch.id}
-                  isActive={activeBatchId === item.batch.id}
-                  canActivate={canActivateBatch(item.batch)}
-                  showActivateButton={showActivateButton}
-                  onToggle={() => handleBatchToggle(item.batch.id)}
-                  onNameChange={(name) => onBatchNameChange(item.batch.id, name)}
-                  onQuestionReorder={(ids) => onQuestionReorder(item.batch.id, ids)}
-                  onEditQuestion={onEditQuestion}
-                  onDeleteQuestion={onDeleteQuestion}
-                  onAddQuestion={() => {
-                    setExpandedBatchId(item.batch.id);
-                    setAddingToBatchId(item.batch.id);
-                  }}
-                  onAddQuestionDone={() => setAddingToBatchId(null)}
-                  onDeleteBatch={() => onDeleteBatch(item.batch.id)}
-                  onActivateBatch={onActivateBatch}
-                  onCloseBatch={onCloseBatch}
-                  isOver={overId === item.id && activeId?.startsWith('question-')}
-                />
-              );
-            }
+      {/* Skip outer DndContext when a batch is expanded to avoid interference */}
+      {skipOuterDnd ? (
+        <div className="space-y-3">{renderItems()}</div>
+      ) : (
+        <DndContext
+          id={dndContextId}
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+            {renderItems()}
+          </SortableContext>
 
-            const isEditing = editingQuestion?.id === item.question.id;
-            return (
-              <SortableQuestionCard
-                key={item.id}
-                question={item.question}
-                isEditing={isEditing}
-                editingQuestion={editingQuestion}
-                sessionId={sessionId}
-                onEditQuestion={onEditQuestion}
-                onDeleteQuestion={onDeleteQuestion}
-                onCancelEdit={onCancelEdit}
-              />
-            );
-          })}
-        </SortableContext>
-
-        {/* Drag overlay for visual feedback */}
-        <DragOverlay>
-          {activeItem && activeItem.type === 'question' && (
-            <div className="bg-gray-800 border border-indigo-500 rounded-lg p-4 shadow-lg opacity-90">
-              <p className="text-white">{activeItem.question.text}</p>
-            </div>
-          )}
-          {activeItem && activeItem.type === 'batch' && (
-            <div className="bg-gray-800 border border-indigo-500 rounded-lg p-4 shadow-lg opacity-90">
-              <p className="text-white font-medium">{activeItem.batch.name}</p>
-              <p className="text-gray-400 text-sm">
-                {getBatchQuestions(activeItem.batch.id).length} questions
-              </p>
-            </div>
-          )}
-        </DragOverlay>
-      </DndContext>
+          {/* Drag overlay for visual feedback */}
+          <DragOverlay>
+            {activeItem && activeItem.type === 'question' && (
+              <div className="bg-gray-800 border border-indigo-500 rounded-lg p-4 shadow-lg opacity-90">
+                <p className="text-white">{activeItem.question.text}</p>
+              </div>
+            )}
+            {activeItem && activeItem.type === 'batch' && (
+              <div className="bg-gray-800 border border-indigo-500 rounded-lg p-4 shadow-lg opacity-90">
+                <p className="text-white font-medium">{activeItem.batch.name}</p>
+                <p className="text-gray-400 text-sm">
+                  {getBatchQuestions(activeItem.batch.id).length} questions
+                </p>
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+      )}
 
       {/* Add unbatched question form */}
       {addingUnbatchedQuestion && (
