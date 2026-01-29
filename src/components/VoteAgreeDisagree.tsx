@@ -158,13 +158,13 @@ export default function VoteAgreeDisagree({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Question text */}
-      <div className="px-4 py-6 text-center">
+      {/* Question text — scrollable for long questions */}
+      <div className="px-4 py-6 text-center overflow-y-auto max-h-[40%] shrink-0">
         <h2 className="text-2xl font-bold text-white">{question.text}</h2>
       </div>
 
       {/* Voting buttons */}
-      <div className="flex-1 flex flex-col gap-3 px-4">
+      <div className="flex-1 flex flex-col gap-3 px-4 min-h-0">
         {/* Agree button */}
         <motion.button
           ref={agreeRef}
