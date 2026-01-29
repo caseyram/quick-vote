@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickVote Documentation</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-purple: #a855f7;
+            --border: #475569;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+        }
+
+        .docs-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .doc-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .doc-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+        }
+
+        .doc-card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .doc-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .icon {
+            font-size: 1.5rem;
+        }
+
+        footer {
+            margin-top: 3rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        footer a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>QuickVote</h1>
+        <p class="subtitle">Documentation</p>
+
+        <div class="docs-grid">
+            <a href="threat-model.html" class="doc-card">
+                <h2><span class="icon">🔒</span> Threat Model</h2>
+                <p>Security analysis with architecture diagram, STRIDE threat assessment, and risk matrix.</p>
+            </a>
+
+            <a href="ARCHITECTURE.md" class="doc-card">
+                <h2><span class="icon">🏗️</span> Architecture</h2>
+                <p>Technical architecture documentation covering components, data flows, and design decisions.</p>
+            </a>
+
+            <a href="COVERAGE.md" class="doc-card">
+                <h2><span class="icon">🧪</span> Test Coverage</h2>
+                <p>Test coverage report and testing strategy documentation.</p>
+            </a>
+        </div>
+
+        <footer>
+            <p><a href="https://github.com/caseyram/quick-vote">← Back to Repository</a></p>
+        </footer>
+    </div>
+</body>
+</html>
