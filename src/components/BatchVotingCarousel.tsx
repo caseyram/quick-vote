@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useAnimate } from 'motion/react';
+import { supabase } from '../lib/supabase';
 import VoteAgreeDisagree from './VoteAgreeDisagree';
 import VoteMultipleChoice from './VoteMultipleChoice';
-import { BatchReviewScreen } from './BatchReviewScreen';
 import type { Question } from '../types/database';
 
 interface BatchVotingCarouselProps {
@@ -12,6 +12,11 @@ interface BatchVotingCarouselProps {
   displayName: string | null;
   reasonsEnabled: boolean;
   onComplete: () => void;
+}
+
+interface PendingVote {
+  value: string;
+  reason?: string;
 }
 
 // Slide transition variants matching ParticipantSession
@@ -35,18 +40,34 @@ export function BatchVotingCarousel({
   onComplete,
 }: BatchVotingCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [showReview, setShowReview] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [progressRef, animateProgress] = useAnimate();
 
-  const handleVoteSubmit = useCallback(() => {
-    // Subtle pulse on progress indicator as completion feedback
-    if (progressRef.current) {
-      animateProgress(
-        progressRef.current,
-        { scale: [1, 1.1, 1] },
-        { duration: 0.3, ease: 'easeOut' }
-      );
-    }
+  // Local state for pending votes - not persisted until Submit
+  const [pendingVotes, setPendingVotes] = useState<Map<string, PendingVote>>(new Map());
+
+  // Handle selection change from vote components
+  const handleSelectionChange = useCallback((questionId: string) => {
+    return (selection: string | null, reason?: string) => {
+      setPendingVotes(prev => {
+        const next = new Map(prev);
+        if (selection) {
+          next.set(questionId, { value: selection, reason });
+        } else {
+          next.delete(questionId);
+        }
+        return next;
+      });
+
+      // Subtle pulse on progress indicator as completion feedback
+      if (selection && progressRef.current) {
+        animateProgress(
+          progressRef.current,
+          { scale: [1, 1.1, 1] },
+          { duration: 0.3, ease: 'easeOut' }
+        );
+      }
+    };
   }, [animateProgress, progressRef]);
 
   // Keyboard navigation (desktop only)
@@ -61,7 +82,6 @@ export function BatchVotingCarousel({
       }
 
       if (event.key === 'ArrowRight') {
-        // Use functional update to avoid stale closure
         setCurrentIndex(prev => Math.min(prev + 1, questions.length - 1));
       } else if (event.key === 'ArrowLeft') {
         setCurrentIndex(prev => Math.max(prev - 1, 0));
@@ -70,15 +90,17 @@ export function BatchVotingCarousel({
 
     window.addEventListener('keydown', handleKeyDown);
 
-    // Cleanup to prevent memory leaks
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [questions.length]); // Re-attach if question count changes
+  }, [questions.length]);
 
   const currentQuestion = questions[currentIndex];
   const isFirstQuestion = currentIndex === 0;
   const isLastQuestion = currentIndex === questions.length - 1;
+
+  // Get current vote for the current question
+  const currentVote = pendingVotes.get(currentQuestion?.id ?? '');
 
   const handlePrevious = () => {
     if (currentIndex > 0) {
@@ -92,33 +114,55 @@ export function BatchVotingCarousel({
     }
   };
 
-  const handleSubmitBatch = () => {
-    setShowReview(true);
-  };
+  // Submit all votes at once
+  const handleSubmitAll = async () => {
+    if (pendingVotes.size === 0) {
+      // No votes to submit - just complete
+      onComplete();
+      return;
+    }
 
-  const handleConfirmComplete = () => {
-    onComplete();
-  };
+    setSubmitting(true);
+    try {
+      // Build array of votes to upsert
+      const votes = Array.from(pendingVotes.entries()).map(([questionId, vote]) => {
+        const question = questions.find(q => q.id === questionId);
+        return {
+          question_id: questionId,
+          session_id: sessionId,
+          participant_id: participantId,
+          value: vote.value,
+          reason: vote.reason?.trim() || null,
+          locked_in: false,
+          display_name: question?.anonymous ? null : displayName,
+        };
+      });
 
-  const handleGoBackFromReview = () => {
-    setShowReview(false);
+      // Upsert all votes in a single request
+      const { error } = await supabase
+        .from('votes')
+        .upsert(votes, { onConflict: 'question_id,participant_id' });
+
+      if (error) {
+        console.error('Failed to submit batch votes:', error);
+        // Still complete on error - votes may have partially succeeded
+      }
+
+      onComplete();
+    } catch (err) {
+      console.error('Batch submission error:', err);
+      onComplete();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!currentQuestion) {
     return null;
   }
 
-  if (showReview) {
-    return (
-      <BatchReviewScreen
-        questions={questions}
-        sessionId={sessionId}
-        participantId={participantId}
-        onConfirm={handleConfirmComplete}
-        onGoBack={handleGoBackFromReview}
-      />
-    );
-  }
+  // Count answered questions for progress
+  const answeredCount = pendingVotes.size;
 
   return (
     <div className="h-dvh bg-gray-950 flex flex-col overflow-hidden">
@@ -126,6 +170,11 @@ export function BatchVotingCarousel({
       <div ref={progressRef} className="px-4 py-3 text-center">
         <p className="text-gray-400 text-sm font-medium">
           Question {currentIndex + 1} of {questions.length}
+          {answeredCount > 0 && (
+            <span className="ml-2 text-green-400">
+              ({answeredCount} answered)
+            </span>
+          )}
         </p>
       </div>
 
@@ -150,7 +199,10 @@ export function BatchVotingCarousel({
                     participantId={participantId}
                     displayName={displayName}
                     reasonsEnabled={reasonsEnabled}
-                    onVoteSubmit={handleVoteSubmit}
+                    batchMode={true}
+                    onSelectionChange={handleSelectionChange(currentQuestion.id)}
+                    initialSelection={currentVote?.value ?? null}
+                    initialReason={currentVote?.reason ?? ''}
                   />
                 ) : (
                   <VoteMultipleChoice
@@ -159,7 +211,10 @@ export function BatchVotingCarousel({
                     participantId={participantId}
                     displayName={displayName}
                     reasonsEnabled={reasonsEnabled}
-                    onVoteSubmit={handleVoteSubmit}
+                    batchMode={true}
+                    onSelectionChange={handleSelectionChange(currentQuestion.id)}
+                    initialSelection={currentVote?.value ?? null}
+                    initialReason={currentVote?.reason ?? ''}
                   />
                 )}
               </motion.div>
@@ -181,10 +236,11 @@ export function BatchVotingCarousel({
 
         {isLastQuestion ? (
           <button
-            onClick={handleSubmitBatch}
-            className="flex-1 px-6 py-3 rounded-xl font-bold text-lg bg-green-600 hover:bg-green-500 text-white transition-colors"
+            onClick={handleSubmitAll}
+            disabled={submitting}
+            className="flex-1 px-6 py-3 rounded-xl font-bold text-lg bg-green-600 hover:bg-green-500 disabled:bg-green-800 disabled:cursor-not-allowed text-white transition-colors"
           >
-            Complete Batch
+            {submitting ? 'Submitting...' : 'Submit'}
           </button>
         ) : (
           <button

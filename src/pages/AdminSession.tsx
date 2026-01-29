@@ -6,8 +6,6 @@ import { useRealtimeChannel } from '../hooks/use-realtime-channel';
 import { useCountdown } from '../hooks/use-countdown';
 import { aggregateVotes } from '../lib/vote-aggregation';
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../components/BarChart';
-import QuestionForm from '../components/QuestionForm';
-import QuestionList from '../components/QuestionList';
 import { BatchList } from '../components/BatchList';
 import { SessionQRCode } from '../components/QRCode';
 import SessionResults from '../components/SessionResults';
@@ -16,8 +14,7 @@ import { ParticipantCount } from '../components/ParticipantCount';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { AdminControlBar } from '../components/AdminControlBar';
 import { AdminPasswordGate } from '../components/AdminPasswordGate';
-import { ImportExportPanel } from '../components/ImportExportPanel';
-import { ImportSessionPanel } from '../components/ImportSessionPanel';
+import { SessionImportExport } from '../components/SessionImportExport';
 import { TemplatePanel } from '../components/TemplatePanel';
 import type { Question, Vote, Batch } from '../types/database';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -45,10 +42,10 @@ export default function AdminSession() {
   const [transitioning, setTransitioning] = useState(false);
   const [userId, setUserId] = useState('');
   const [sessionVotes, setSessionVotes] = useState<Record<string, Vote[]>>({});
-  const [quickQuestion, setQuickQuestion] = useState('');
   const [quickQuestionLoading, setQuickQuestionLoading] = useState(false);
   const [lastClosedQuestionId, setLastClosedQuestionId] = useState<string | null>(null);
   const [addingQuestionToBatchId, setAddingQuestionToBatchId] = useState<string | null>(null);
+  const [pendingBatchId, setPendingBatchId] = useState<string | null>(null);
 
   // Track session ID in a ref for the channel setup callback
   const sessionIdRef = useRef<string | null>(null);
@@ -424,8 +421,6 @@ export default function AdminSession() {
       if (timerDuration) {
         startCountdown(timerDuration * 1000);
       }
-
-      setQuickQuestion('');
     }
 
     setQuickQuestionLoading(false);
@@ -440,10 +435,6 @@ export default function AdminSession() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }
-
-  function handleSaved() {
-    setEditingQuestion(null);
   }
 
   function handleCancelEdit() {
@@ -616,6 +607,44 @@ export default function AdminSession() {
     useSessionStore.getState().reorderQuestions(questionIds);
   }
 
+  async function handleMoveQuestionToBatch(questionId: string, batchId: string | null) {
+    // Update question's batch_id in database
+    const { error } = await supabase
+      .from('questions')
+      .update({ batch_id: batchId })
+      .eq('id', questionId);
+
+    if (!error) {
+      // Optimistic update in store
+      updateQuestion(questionId, { batch_id: batchId });
+    }
+  }
+
+  async function handleReorderItems(itemIds: string[]) {
+    if (!session) return;
+
+    // Parse item IDs and update positions
+    const updates: Promise<unknown>[] = [];
+
+    itemIds.forEach((itemId, index) => {
+      if (itemId.startsWith('batch-')) {
+        const batchId = itemId.replace('batch-', '');
+        updates.push(
+          supabase.from('batches').update({ position: index }).eq('id', batchId)
+        );
+        useSessionStore.getState().updateBatch(batchId, { position: index });
+      } else if (itemId.startsWith('question-')) {
+        const questionId = itemId.replace('question-', '');
+        updates.push(
+          supabase.from('questions').update({ position: index }).eq('id', questionId)
+        );
+        updateQuestion(questionId, { position: index });
+      }
+    });
+
+    await Promise.all(updates);
+  }
+
   async function handleActivateBatch(batchId: string) {
     if (!session) return;
 
@@ -661,18 +690,35 @@ export default function AdminSession() {
   }
 
   async function handleCloseBatch(batchId: string) {
-    // 1. Update batch status to closed (one-time only)
+    // 1. Update batch status to closed
     const { error } = await supabase
       .from('batches')
       .update({ status: 'closed' as const })
       .eq('id', batchId);
 
     if (!error) {
-      // 2. Update local store
+      // 2. Close all questions in the batch so they show in results
+      const batchQuestionIds = questions
+        .filter(q => q.batch_id === batchId)
+        .map(q => q.id);
+
+      if (batchQuestionIds.length > 0) {
+        await supabase
+          .from('questions')
+          .update({ status: 'closed' as const })
+          .in('id', batchQuestionIds);
+
+        // Update local store for each question
+        for (const qId of batchQuestionIds) {
+          updateQuestion(qId, { status: 'closed' });
+        }
+      }
+
+      // 3. Update local store
       setActiveBatchId(null);
       useSessionStore.getState().updateBatch(batchId, { status: 'closed' });
 
-      // 3. Broadcast to participants
+      // 4. Broadcast to participants
       channelRef.current?.send({
         type: 'broadcast',
         event: 'batch_closed',
@@ -680,6 +726,137 @@ export default function AdminSession() {
       });
     }
   }
+
+  // --- Pending batch handlers (for building batch during active session) ---
+
+  async function handleAddToBatch(text: string) {
+    if (!session || !text.trim()) return;
+
+    let batchId = pendingBatchId;
+
+    // Create a new batch if we don't have one
+    if (!batchId) {
+      const nextPosition = batches.length > 0
+        ? Math.max(...batches.map(b => b.position)) + 1
+        : 0;
+
+      const { data: batchData, error: batchError } = await supabase
+        .from('batches')
+        .insert({
+          session_id: session.session_id,
+          name: 'Quick Batch',
+          position: nextPosition,
+        })
+        .select()
+        .single();
+
+      if (batchError || !batchData) {
+        console.error('Failed to create batch:', batchError);
+        return;
+      }
+
+      batchId = batchData.id;
+      setPendingBatchId(batchId);
+      useSessionStore.getState().addBatch(batchData);
+    }
+
+    // Create the question in this batch
+    const nextPosition = questions.length > 0
+      ? Math.max(...questions.map(q => q.position)) + 1
+      : 0;
+
+    const { data: questionData, error: questionError } = await supabase
+      .from('questions')
+      .insert({
+        session_id: session.session_id,
+        text: text.trim(),
+        type: 'agree_disagree' as const,
+        options: null,
+        position: nextPosition,
+        status: 'pending' as const,
+        batch_id: batchId,
+      })
+      .select()
+      .single();
+
+    if (!questionError && questionData) {
+      useSessionStore.getState().addQuestion(questionData);
+    }
+  }
+
+  async function handleActivatePendingBatch() {
+    if (!pendingBatchId) return;
+    await handleActivateBatch(pendingBatchId);
+    setPendingBatchId(null);
+  }
+
+  async function handleClearPendingBatch() {
+    if (!pendingBatchId || !session) return;
+
+    // Delete all questions in the pending batch
+    await supabase
+      .from('questions')
+      .delete()
+      .eq('batch_id', pendingBatchId);
+
+    // Delete the batch itself
+    await supabase
+      .from('batches')
+      .delete()
+      .eq('id', pendingBatchId);
+
+    // Update local state
+    useSessionStore.getState().removeBatch(pendingBatchId);
+
+    // Refresh questions to remove deleted ones
+    const { data: questionsData } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('session_id', session.session_id)
+      .order('position', { ascending: true });
+
+    if (questionsData) {
+      useSessionStore.getState().setQuestions(questionsData);
+    }
+
+    setPendingBatchId(null);
+  }
+
+  async function handleRemoveFromBatch(questionId: string) {
+    if (!session) return;
+
+    // Delete the question
+    await supabase
+      .from('questions')
+      .delete()
+      .eq('id', questionId);
+
+    useSessionStore.getState().removeQuestion(questionId);
+
+    // Check if the pending batch is now empty
+    if (pendingBatchId) {
+      const remainingQuestions = questions.filter(
+        q => q.batch_id === pendingBatchId && q.id !== questionId
+      );
+
+      if (remainingQuestions.length === 0) {
+        // Delete the empty batch
+        await supabase
+          .from('batches')
+          .delete()
+          .eq('id', pendingBatchId);
+
+        useSessionStore.getState().removeBatch(pendingBatchId);
+        setPendingBatchId(null);
+      }
+    }
+  }
+
+  // Derive pending batch questions
+  const pendingBatchQuestions = useMemo(() => {
+    if (!pendingBatchId) return [];
+    return questions.filter(q => q.batch_id === pendingBatchId);
+  }, [pendingBatchId, questions]);
 
   async function handleDelete(question: Question) {
     if (!window.confirm('Delete this question?')) return;
@@ -725,7 +902,7 @@ export default function AdminSession() {
 
   return (
     <AdminPasswordGate>
-      {!isEnded && <ConnectionBanner status={connectionStatus} />}
+      {isLive && <ConnectionBanner status={connectionStatus} />}
 
       {/* Draft View: preserved admin-focused layout */}
       {isDraft && (
@@ -776,53 +953,6 @@ export default function AdminSession() {
               </button>
             </div>
 
-            {/* Per-question settings */}
-            {questions.length > 0 && (
-              <div className="bg-white rounded-lg p-4">
-                <p className="text-sm text-gray-500 font-medium mb-3">Question Settings</p>
-                <div className="space-y-2">
-                  {questions.map((q, index) => (
-                    <div
-                      key={q.id}
-                      className="flex items-center justify-between bg-gray-100 rounded-lg px-3 py-2"
-                    >
-                      <span className="text-sm text-gray-700 truncate mr-3">
-                        <span className="text-gray-400 font-mono">{index + 1}.</span>{' '}
-                        {q.text}
-                      </span>
-                      <div className="flex gap-1 shrink-0">
-                        <button
-                          onClick={() => handleToggleAnonymous(q)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                            q.anonymous
-                              ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                              : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                          }`}
-                          title={
-                            q.anonymous
-                              ? 'Click to make named voting'
-                              : 'Click to make anonymous voting'
-                          }
-                        >
-                          {q.anonymous ? (
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                            </svg>
-                          ) : (
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          )}
-                          {q.anonymous ? 'Anonymous' : 'Named'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Question list with edit/delete/reorder */}
             <div className="bg-white rounded-lg p-6 space-y-4">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Questions & Batches</h2>
@@ -832,7 +962,10 @@ export default function AdminSession() {
                 questions={questions}
                 activeBatchId={activeBatchId}
                 activeQuestionId={activeQuestion?.id ?? null}
+                editingQuestion={editingQuestion}
+                showActivateButton={false}
                 onEditQuestion={setEditingQuestion}
+                onCancelEdit={handleCancelEdit}
                 onDeleteQuestion={handleDelete}
                 onBatchNameChange={handleBatchNameChange}
                 onQuestionReorder={handleQuestionReorder}
@@ -841,50 +974,36 @@ export default function AdminSession() {
                 onDeleteBatch={handleDeleteBatch}
                 onActivateBatch={handleActivateBatch}
                 onCloseBatch={handleCloseBatch}
+                onMoveQuestionToBatch={handleMoveQuestionToBatch}
+                onReorderItems={handleReorderItems}
               />
-              <div className="space-y-4 pt-4 border-t border-gray-200">
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">Quick import (questions only)</p>
-                  <ImportExportPanel sessionId={session.session_id} />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">Full import (with batches)</p>
-                  <ImportSessionPanel
-                    sessionId={session.session_id}
-                    onImportComplete={async () => {
-                      // Refetch questions and batches after import
-                      const { data: questionsData } = await supabase
-                        .from('questions')
-                        .select('*')
-                        .eq('session_id', session.session_id)
-                        .order('position');
+              <div className="pt-4 border-t border-gray-200">
+                <SessionImportExport
+                  sessionId={session.session_id}
+                  sessionName={session.name}
+                  onImportComplete={async () => {
+                    // Refetch questions and batches after import
+                    const { data: questionsData } = await supabase
+                      .from('questions')
+                      .select('*')
+                      .eq('session_id', session.session_id)
+                      .order('position');
 
-                      const { data: batchesData } = await supabase
-                        .from('batches')
-                        .select('*')
-                        .eq('session_id', session.session_id)
-                        .order('position');
+                    const { data: batchesData } = await supabase
+                      .from('batches')
+                      .select('*')
+                      .eq('session_id', session.session_id)
+                      .order('position');
 
-                      if (questionsData) useSessionStore.getState().setQuestions(questionsData);
-                      if (batchesData) useSessionStore.getState().setBatches(batchesData);
-                    }}
-                  />
-                </div>
+                    if (questionsData) useSessionStore.getState().setQuestions(questionsData);
+                    if (batchesData) useSessionStore.getState().setBatches(batchesData);
+                  }}
+                />
               </div>
             </div>
 
             {/* Templates */}
             <TemplatePanel sessionId={session.session_id} />
-
-            {/* Question form */}
-            <div className="bg-white rounded-lg p-6">
-              <QuestionForm
-                sessionId={session.session_id}
-                editingQuestion={editingQuestion ?? undefined}
-                onSaved={handleSaved}
-                onCancel={editingQuestion ? handleCancelEdit : undefined}
-              />
-            </div>
           </div>
         </div>
       )}
@@ -953,32 +1072,15 @@ export default function AdminSession() {
                     </div>
                   );
                 })() : (
-                  /* Quick question input when no results to show */
+                  /* Waiting state - prompt to use control bar */
                   <div className="flex-1 flex items-center justify-center">
-                    <div className="max-w-xl w-full space-y-4">
-                      <p className="text-xl text-gray-400 text-center">
-                        Type a question to go live
+                    <div className="text-center space-y-2">
+                      <p className="text-xl text-gray-400">
+                        Ready for questions
                       </p>
-                      <textarea
-                        value={quickQuestion}
-                        onChange={(e) => setQuickQuestion(e.target.value)}
-                        placeholder="Enter your question..."
-                        rows={2}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 text-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey && quickQuestion.trim()) {
-                            e.preventDefault();
-                            handleQuickQuestion(quickQuestion, null);
-                          }
-                        }}
-                      />
-                      <button
-                        onClick={() => handleQuickQuestion(quickQuestion, null)}
-                        disabled={!quickQuestion.trim() || quickQuestionLoading}
-                        className="w-full py-3 bg-green-600 hover:bg-green-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-lg font-semibold rounded-xl transition-colors"
-                      >
-                        {quickQuestionLoading ? 'Going live...' : 'Go Live'}
-                      </button>
+                      <p className="text-sm text-gray-300">
+                        Use the control bar below to add questions
+                      </p>
                     </div>
                   </div>
                 )}
@@ -1081,6 +1183,18 @@ export default function AdminSession() {
         onCloseVoting={handleCloseVotingInternal}
         onQuickQuestion={handleQuickQuestion}
         quickQuestionLoading={quickQuestionLoading}
+        // Pending batch props
+        pendingBatchId={pendingBatchId}
+        pendingBatchQuestions={pendingBatchQuestions}
+        onAddToBatch={handleAddToBatch}
+        onActivatePendingBatch={handleActivatePendingBatch}
+        onClearPendingBatch={handleClearPendingBatch}
+        onRemoveFromBatch={handleRemoveFromBatch}
+        onCloseBatch={() => {
+          if (activeBatchId) {
+            handleCloseBatch(activeBatchId);
+          }
+        }}
       />
     </AdminPasswordGate>
   );

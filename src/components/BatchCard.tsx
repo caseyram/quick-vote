@@ -26,6 +26,7 @@ interface BatchCardProps {
   isAddingQuestion: boolean;
   isActive: boolean;
   canActivate: boolean;
+  showActivateButton: boolean;
   onToggle: () => void;
   onNameChange: (name: string) => void;
   onQuestionReorder: (questionIds: string[]) => void;
@@ -36,6 +37,7 @@ interface BatchCardProps {
   onDeleteBatch: () => void;
   onActivate: (batchId: string) => void;
   onClose: (batchId: string) => void;
+  dragHandleProps?: Record<string, unknown>;
 }
 
 export function BatchCard({
@@ -46,6 +48,7 @@ export function BatchCard({
   isAddingQuestion,
   isActive,
   canActivate,
+  showActivateButton,
   onToggle,
   onNameChange,
   onQuestionReorder,
@@ -56,6 +59,7 @@ export function BatchCard({
   onDeleteBatch,
   onActivate,
   onClose,
+  dragHandleProps,
 }: BatchCardProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(batch.name);
@@ -137,23 +141,38 @@ export function BatchCard({
   return (
     <div className={cardClassName}>
       {/* Header - always visible */}
-      <button
-        type="button"
-        onClick={onToggle}
-        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-750 transition-colors text-left"
-      >
-        {/* Chevron */}
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="currentColor"
-          className={`text-gray-400 shrink-0 transition-transform duration-200 ${
-            isExpanded ? 'rotate-90' : ''
-          }`}
+      <div className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-750 transition-colors text-left">
+        {/* Drag handle */}
+        {dragHandleProps && (
+          <div
+            {...dragHandleProps}
+            className="cursor-grab active:cursor-grabbing text-gray-500 hover:text-gray-400 shrink-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm8-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
+            </svg>
+          </div>
+        )}
+
+        {/* Chevron + toggle button */}
+        <button
+          type="button"
+          onClick={onToggle}
+          className="shrink-0"
         >
-          <path d="M6 3l5 5-5 5V3z" />
-        </svg>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+            className={`text-gray-400 transition-transform duration-200 ${
+              isExpanded ? 'rotate-90' : ''
+            }`}
+          >
+            <path d="M6 3l5 5-5 5V3z" />
+          </svg>
+        </button>
 
         {/* Name */}
         <div className="flex-1 min-w-0">
@@ -183,8 +202,8 @@ export function BatchCard({
           {sortedQuestions.length} question{sortedQuestions.length !== 1 ? 's' : ''}
         </span>
 
-        {/* Activate/Close button */}
-        {batch.status !== 'closed' && (
+        {/* Activate/Close button - only shown when session is active */}
+        {showActivateButton && batch.status !== 'closed' && (
           <button
             type="button"
             onClick={(e) => {
@@ -230,7 +249,7 @@ export function BatchCard({
         >
           Delete
         </button>
-      </button>
+      </div>
 
       {/* Collapsed preview */}
       {!isExpanded && sortedQuestions.length > 0 && (

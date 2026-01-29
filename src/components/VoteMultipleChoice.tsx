@@ -15,6 +15,11 @@ interface VoteMultipleChoiceProps {
   displayName: string | null;
   reasonsEnabled?: boolean;
   onVoteSubmit?: () => void;
+  // Batch mode props - when true, defers submission to parent
+  batchMode?: boolean;
+  onSelectionChange?: (selection: string | null, reason?: string) => void;
+  initialSelection?: string | null;
+  initialReason?: string;
 }
 
 export default function VoteMultipleChoice({
@@ -24,6 +29,10 @@ export default function VoteMultipleChoice({
   displayName,
   reasonsEnabled = false,
   onVoteSubmit,
+  batchMode = false,
+  onSelectionChange,
+  initialSelection = null,
+  initialReason = '',
 }: VoteMultipleChoiceProps) {
   const haptic = useHaptic();
   const { setCurrentVote, submitting, setSubmitting } = useSessionStore();
@@ -32,6 +41,7 @@ export default function VoteMultipleChoice({
   const [reason, setReason] = useState('');
 
   // Fetch existing vote on mount or when question changes
+  // In batch mode, initialize from props instead of fetching
   useEffect(() => {
     let cancelled = false;
 
@@ -52,15 +62,30 @@ export default function VoteMultipleChoice({
     }
 
     setCurrentVote(null);
-    setPendingSelection(null);
     setSubmitted(false);
-    setReason('');
-    fetchExistingVote();
+
+    if (batchMode) {
+      // In batch mode, initialize from props
+      setPendingSelection(initialSelection);
+      setReason(initialReason);
+    } else {
+      // Normal mode - fetch from database
+      setPendingSelection(null);
+      setReason('');
+      fetchExistingVote();
+    }
 
     return () => {
       cancelled = true;
     };
-  }, [question.id, participantId, setCurrentVote]);
+  }, [question.id, participantId, setCurrentVote, batchMode, initialSelection, initialReason]);
+
+  // In batch mode, notify parent of selection changes
+  useEffect(() => {
+    if (batchMode && onSelectionChange) {
+      onSelectionChange(pendingSelection, reason);
+    }
+  }, [batchMode, pendingSelection, reason, onSelectionChange]);
 
   const submitVote = useCallback(async () => {
     if (!pendingSelection) return;
@@ -144,7 +169,7 @@ export default function VoteMultipleChoice({
         })}
       </div>
 
-      {/* Reason + Submit */}
+      {/* Reason + Submit (hidden in batch mode) */}
       <div className="px-4 py-4 space-y-3">
         {reasonsEnabled && (
           <textarea
@@ -155,27 +180,29 @@ export default function VoteMultipleChoice({
             className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none text-base"
           />
         )}
-        <button
-          onClick={submitVote}
-          disabled={!pendingSelection || submitting}
-          className={`w-full py-4 rounded-xl text-lg font-bold transition-all ${
-            submitted
-              ? 'bg-green-600 text-white'
-              : pendingSelection
-                ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-          }`}
-          style={{
-            touchAction: 'manipulation',
-            WebkitTapHighlightColor: 'transparent',
-          }}
-        >
-          {submitting
-            ? 'Submitting...'
-            : submitted
-              ? 'Vote Submitted!'
-              : 'Submit Vote'}
-        </button>
+        {!batchMode && (
+          <button
+            onClick={submitVote}
+            disabled={!pendingSelection || submitting}
+            className={`w-full py-4 rounded-xl text-lg font-bold transition-all ${
+              submitted
+                ? 'bg-green-600 text-white'
+                : pendingSelection
+                  ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+            }`}
+            style={{
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            {submitting
+              ? 'Submitting...'
+              : submitted
+                ? 'Vote Submitted!'
+                : 'Submit Vote'}
+          </button>
+        )}
       </div>
     </div>
   );

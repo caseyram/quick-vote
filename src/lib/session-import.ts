@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { supabase } from './supabase';
+import type { Question, Batch } from '../types/database';
 
 // Schema for question import (votes ignored per CONTEXT.md)
 const QuestionImportSchema = z.object({
@@ -27,6 +28,14 @@ export const ImportSchema = z.object({
 
 export type ImportData = z.infer<typeof ImportSchema>;
 
+// Schema for simple array format (questions only, no batches)
+const SimpleQuestionArraySchema = z.array(z.object({
+  text: z.string().min(1),
+  type: z.enum(['agree_disagree', 'multiple_choice']),
+  options: z.array(z.string()).nullable().optional(),
+  anonymous: z.boolean().optional(),
+})).min(1);
+
 export interface ValidationResult {
   success: boolean;
   data?: ImportData;
@@ -34,8 +43,84 @@ export interface ValidationResult {
 }
 
 /**
+ * Exports session questions and batches to the import format.
+ * Unbatched questions are grouped under a special '_unbatched' batch.
+ */
+export function exportSessionData(
+  questions: Question[],
+  batches: Batch[],
+  sessionName?: string
+): string {
+  // Group questions by batch
+  const batchedQuestions = new Map<string | null, Question[]>();
+
+  for (const q of questions) {
+    const key = q.batch_id;
+    if (!batchedQuestions.has(key)) {
+      batchedQuestions.set(key, []);
+    }
+    batchedQuestions.get(key)!.push(q);
+  }
+
+  // Build export data
+  const exportBatches: Array<{
+    name: string;
+    position: number;
+    questions: Array<{
+      text: string;
+      type: string;
+      options: string[] | null;
+      anonymous: boolean;
+    }>;
+  }> = [];
+
+  // Add actual batches with their questions
+  const sortedBatches = [...batches].sort((a, b) => a.position - b.position);
+  for (const batch of sortedBatches) {
+    const batchQuestions = batchedQuestions.get(batch.id) ?? [];
+    const sortedQuestions = [...batchQuestions].sort((a, b) => a.position - b.position);
+
+    exportBatches.push({
+      name: batch.name,
+      position: batch.position,
+      questions: sortedQuestions.map(q => ({
+        text: q.text,
+        type: q.type,
+        options: q.options,
+        anonymous: q.anonymous,
+      })),
+    });
+  }
+
+  // Add unbatched questions under special '_unbatched' batch
+  const unbatched = batchedQuestions.get(null) ?? [];
+  if (unbatched.length > 0) {
+    const sortedUnbatched = [...unbatched].sort((a, b) => a.position - b.position);
+    exportBatches.push({
+      name: '_unbatched',
+      position: exportBatches.length,
+      questions: sortedUnbatched.map(q => ({
+        text: q.text,
+        type: q.type,
+        options: q.options,
+        anonymous: q.anonymous,
+      })),
+    });
+  }
+
+  const exportData = {
+    session_name: sessionName,
+    created_at: new Date().toISOString(),
+    batches: exportBatches,
+  };
+
+  return JSON.stringify(exportData, null, 2);
+}
+
+/**
  * Validates an import file for proper JSON structure and schema conformance.
  * Checks file extension, size limits, JSON parsing, and Zod schema validation.
+ * Supports both full format (with batches) and simple array format (questions only).
  */
 export async function validateImportFile(file: File): Promise<ValidationResult> {
   // Check file extension
@@ -51,15 +136,35 @@ export async function validateImportFile(file: File): Promise<ValidationResult> 
   try {
     const content = await file.text();
     const parsed = JSON.parse(content);
-    const result = ImportSchema.safeParse(parsed);
 
-    if (!result.success) {
-      // Format Zod error for user readability
-      const issues = result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`);
-      return { success: false, error: `Validation failed:\n${issues.join('\n')}` };
+    // Try full format first (object with batches)
+    const fullResult = ImportSchema.safeParse(parsed);
+    if (fullResult.success) {
+      return { success: true, data: fullResult.data };
     }
 
-    return { success: true, data: result.data };
+    // Try simple array format (questions only)
+    const simpleResult = SimpleQuestionArraySchema.safeParse(parsed);
+    if (simpleResult.success) {
+      // Convert to full format with _unbatched batch
+      const convertedData: ImportData = {
+        batches: [{
+          name: '_unbatched',
+          position: 0,
+          questions: simpleResult.data.map(q => ({
+            text: q.text,
+            type: q.type,
+            options: q.options ?? null,
+            anonymous: q.anonymous ?? true,
+          })),
+        }],
+      };
+      return { success: true, data: convertedData };
+    }
+
+    // Neither format matched - show full format error (more informative)
+    const issues = fullResult.error.issues.map(i => `${i.path.join('.')}: ${i.message}`);
+    return { success: false, error: `Validation failed:\n${issues.join('\n')}` };
   } catch (err) {
     if (err instanceof SyntaxError) {
       return { success: false, error: 'Invalid JSON format' };
