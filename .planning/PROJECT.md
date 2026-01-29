@@ -2,9 +2,9 @@
 
 ## What This Is
 
-A real-time voting web application where an administrator poses questions to a group and participants respond from their phones or desktops. Built with Vite + React, backed by Supabase, and deployed to Vercel.
+A real-time voting web application where an administrator poses questions to a group and participants respond from their phones or desktops. Supports both live single-question push and self-paced batch voting modes. Built with Vite + React, backed by Supabase, and deployed to Vercel.
 
-**Current state:** v1.0 shipped with 10,626 LOC TypeScript across 66 files.
+**Current state:** v1.1 shipped with 16,086 LOC TypeScript across 97 files.
 
 ## Core Value
 
@@ -28,38 +28,49 @@ Participants can instantly vote on questions in a way that feels immersive and t
 - ✓ Connection status indicator shows participant connectivity — v1.0
 - ✓ Countdown timer with auto-close — v1.0
 - ✓ Participant count visible to admin — v1.0
+- ✓ Admin can create questions on-the-fly and group them into named batches — v1.1
+- ✓ Admin can create multiple batches per session — v1.1
+- ✓ Admin can activate a batch for participant self-paced voting — v1.1
+- ✓ Participants navigate batch questions with Next/Previous buttons — v1.1
+- ✓ Participants see progress indicator (Question 3 of 10) — v1.1
+- ✓ Participant answers persist when navigating between questions — v1.1
+- ✓ Participants can submit/complete the batch when finished — v1.1
+- ✓ Keyboard navigation for desktop batch voting — v1.1
+- ✓ Visual answer review before final batch submit — v1.1
+- ✓ Completion animation per question answered — v1.1
+- ✓ Global admin URL (/admin) shows session list — v1.1
+- ✓ Session list ordered by timestamp (most recent first) — v1.1
+- ✓ Admin can reopen past session to review results — v1.1
+- ✓ Admin can export session as JSON with batch structure — v1.1
+- ✓ Admin can import questions from JSON preserving batch groupings — v1.1
+- ✓ Admin sees real-time progress dashboard during batch voting — v1.1
+- ✓ Admin can mark individual reasons as read — v1.1
+- ✓ Results columns display in consistent order (agree always same position) — v1.1
+- ✓ Keyboard navigation in results view — v1.1
 
 ### Active
 
-**Current Milestone: v1.1 — Batch Questions & Polish**
-
-**Goal:** Enable self-paced batch voting with on-the-fly batch creation, session management, and results polish.
-
-**Target features:**
-- On-the-fly batch creation (group questions into named batches within sessions)
-- Multiple batches per session
-- Self-paced batch mode (participants navigate at own pace)
-- Global admin URL (/admin) with session list
-- Session review and export/import (JSON with batch groupings)
-- Admin progress dashboard for batch completion
-- Results view: mark reasons as read, consistent column ordering, reduce scrolling, question navigation
+(Next milestone to be defined)
 
 ### Out of Scope
 
 - User accounts / authentication system — admin uses simple link, no login
-- CSV/PDF export of results — live visuals only for now
+- CSV/PDF export of results — JSON export available, visual formats deferred
 - Real-time chat or discussion features — voting only
 - 10,000 concurrent user support — architecture allows scaling later
 - Ranked choice voting — planned for future
 - Multi-admin collaborative session management — single admin per session
 - Mobile native app — web only, responsive design
+- Skip logic / branching in batch questions — high complexity, low value for short sessions
+- Swipe gesture navigation for mobile — arrow keys and buttons sufficient
 
 ## Context
 
-- **Scale:** v1 handles 50-100 concurrent participants. Single Supabase channel per session multiplexes Broadcast + Presence + Postgres Changes.
-- **Tech stack:** Vite + React 19 + TypeScript, Supabase (PostgreSQL + Realtime), Vercel, Zustand, Motion (framer-motion), React Router v7
+- **Scale:** v1.1 handles 50-100 concurrent participants. Single Supabase channel per session multiplexes Broadcast + Presence + Postgres Changes.
+- **Tech stack:** Vite + React 19 + TypeScript, Supabase (PostgreSQL + Realtime), Vercel, Zustand, Motion (framer-motion), React Router v7, Zod, dnd-kit
 - **Themes:** Admin uses light theme (projection-friendly), participants use dark theme (immersive)
-- **Voting:** Immediate submission on tap (no lock-in step), admin closes voting manually or via timer
+- **Voting modes:** Live single-question push, self-paced batch mode (introduced v1.1)
+- **Testing:** Vitest with happy-dom, 97 tests passing
 
 ## Key Decisions
 
@@ -72,6 +83,12 @@ Participants can instantly vote on questions in a way that feels immersive and t
 | Blue/orange for agree/disagree | Neutral, non-judgmental (not green/red) | ✓ Good |
 | Immediate vote submission | Simpler UX than lock-in flow | ✓ Good |
 | Admin light / Participant dark themes | Projection readability vs immersive voting | ✓ Good |
+| Batches as runtime feature | Questions belong to batches, not separate collection entity | ✓ Good |
+| dnd-kit for drag-and-drop | Modern React 18+ support, accessible, well-maintained | ✓ Good |
+| Zod for JSON validation | Type-safe import/export with helpful error messages | ✓ Good |
+| localStorage for read/unread tracking | Simple persistence without database overhead | ✓ Good |
+| Decimal phase numbering (09.1) | Clear insertion semantics for urgent work | ✓ Good |
+| Direct batch submit (no review screen) | Faster flow, review screen proved unnecessary | ✓ Good |
 
 ---
-*Last updated: 2026-01-28 after starting v1.1 milestone*
+*Last updated: 2026-01-29 after v1.1 milestone*
