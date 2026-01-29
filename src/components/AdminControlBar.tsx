@@ -64,7 +64,7 @@ export function AdminControlBar({
   batches = [],
   onActivateBatch,
 }: AdminControlBarProps) {
-  const [timerDuration, setTimerDuration] = useState<number | null>(null);
+  const [timerDuration, setTimerDuration] = useState<number | null>(30); // Default to 30s
   const [barQuickText, setBarQuickText] = useState('');
 
   // Subscribe to activeBatchId for mode exclusion
