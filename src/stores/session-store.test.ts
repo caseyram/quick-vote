@@ -54,6 +54,7 @@ function makeBatch(overrides: Partial<Batch> = {}): Batch {
     session_id: 's1',
     name: 'Test Batch',
     position: 0,
+    status: 'pending',
     created_at: new Date().toISOString(),
     ...overrides,
   };

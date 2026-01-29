@@ -45,7 +45,7 @@ export default function AdminSession() {
   const [sessionVotes, setSessionVotes] = useState<Record<string, Vote[]>>({});
   const [quickQuestionLoading, setQuickQuestionLoading] = useState(false);
   const [lastClosedQuestionId, setLastClosedQuestionId] = useState<string | null>(null);
-  const [addingQuestionToBatchId, setAddingQuestionToBatchId] = useState<string | null>(null);
+  const [_addingQuestionToBatchId, _setAddingQuestionToBatchId] = useState<string | null>(null);
   const [pendingBatchId, setPendingBatchId] = useState<string | null>(null);
   const [resultsViewIndex, setResultsViewIndex] = useState(0);
 
@@ -324,7 +324,7 @@ export default function AdminSession() {
   const showProgressDashboard = activeBatchId !== null;
 
   // Compute whether a specific batch can be activated
-  function canActivateBatch(batch: Batch): boolean {
+  function _canActivateBatch(batch: Batch): boolean {
     if (batch.status !== 'pending') return false;
     if (isLiveQuestionActive) return false;
     if (isBatchActive && activeBatchId !== batch.id) return false;
@@ -543,7 +543,7 @@ export default function AdminSession() {
     setTransitioning(false);
   }
 
-  async function handleToggleAnonymous(question: Question) {
+  async function _handleToggleAnonymous(question: Question) {
     const newAnonymous = !question.anonymous;
     const { error: err } = await supabase
       .from('questions')
@@ -626,7 +626,7 @@ export default function AdminSession() {
     }
   }
 
-  async function handleQuestionReorder(batchId: string, questionIds: string[]) {
+  async function handleQuestionReorder(_batchId: string, questionIds: string[]) {
     // Update positions in parallel
     const updates = questionIds.map((id, index) =>
       supabase.from('questions').update({ position: index }).eq('id', id)
@@ -655,26 +655,19 @@ export default function AdminSession() {
   async function handleReorderItems(itemIds: string[]) {
     if (!session) return;
 
-    // Parse item IDs and update positions
-    const updates: Promise<unknown>[] = [];
-
-    itemIds.forEach((itemId, index) => {
+    // Update positions sequentially to avoid type issues with PostgrestFilterBuilder
+    for (let index = 0; index < itemIds.length; index++) {
+      const itemId = itemIds[index];
       if (itemId.startsWith('batch-')) {
         const batchId = itemId.replace('batch-', '');
-        updates.push(
-          supabase.from('batches').update({ position: index }).eq('id', batchId)
-        );
+        await supabase.from('batches').update({ position: index }).eq('id', batchId);
         useSessionStore.getState().updateBatch(batchId, { position: index });
       } else if (itemId.startsWith('question-')) {
         const questionId = itemId.replace('question-', '');
-        updates.push(
-          supabase.from('questions').update({ position: index }).eq('id', questionId)
-        );
+        await supabase.from('questions').update({ position: index }).eq('id', questionId);
         updateQuestion(questionId, { position: index });
       }
-    });
-
-    await Promise.all(updates);
+    }
   }
 
   async function handleActivateBatch(batchId: string) {
@@ -1031,7 +1024,7 @@ export default function AdminSession() {
               <div className="pt-4 border-t border-gray-200">
                 <SessionImportExport
                   sessionId={session.session_id}
-                  sessionName={session.name}
+                  sessionName={session.title}
                   onImportComplete={async () => {
                     // Refetch questions and batches after import
                     const { data: questionsData } = await supabase
@@ -1295,13 +1288,8 @@ export default function AdminSession() {
         onCloseVoting={handleCloseVotingInternal}
         onQuickQuestion={handleQuickQuestion}
         quickQuestionLoading={quickQuestionLoading}
-        // Pending batch props
+        // Batch props
         pendingBatchId={pendingBatchId}
-        pendingBatchQuestions={pendingBatchQuestions}
-        onAddToBatch={handleAddToBatch}
-        onActivatePendingBatch={handleActivatePendingBatch}
-        onClearPendingBatch={handleClearPendingBatch}
-        onRemoveFromBatch={handleRemoveFromBatch}
         onCloseBatch={() => {
           if (activeBatchId) {
             handleCloseBatch(activeBatchId);

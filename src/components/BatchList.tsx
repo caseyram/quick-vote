@@ -258,12 +258,12 @@ export function BatchList({
   onDeleteQuestion,
   onBatchNameChange,
   onQuestionReorder,
-  onAddQuestionToBatch,
+  onAddQuestionToBatch: _onAddQuestionToBatch,
   onCreateBatch,
   onDeleteBatch,
   onActivateBatch,
   onCloseBatch,
-  onMoveQuestionToBatch,
+  onMoveQuestionToBatch: _onMoveQuestionToBatch,
   onReorderItems,
 }: BatchListProps) {
   const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);

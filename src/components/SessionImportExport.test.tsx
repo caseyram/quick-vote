@@ -3,8 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SessionImportExport } from './SessionImportExport';
 
 // Mock session store
-const mockQuestions = vi.fn(() => []);
-const mockBatches = vi.fn(() => []);
+const mockQuestions = vi.fn((): any[] => []);
+const mockBatches = vi.fn((): any[] => []);
 
 vi.mock('../stores/session-store', () => ({
   useSessionStore: (selector: (state: any) => any) => {

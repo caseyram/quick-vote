@@ -134,9 +134,9 @@ describe('BatchList', () => {
     render(<BatchList {...defaultProps} />);
 
     // Items should appear in position order: b1 (0), q2 (1), b2 (2)
-    const allItems = screen.getAllByTestId(/batch-card|Unbatched/);
-    // First should be batch 1, then unbatched, then batch 2
-    // This is checked by rendering order
+    // Verify batches exist in the document
+    expect(screen.getByTestId('batch-card-b1')).toBeDefined();
+    expect(screen.getByTestId('batch-card-b2')).toBeDefined();
   });
 
   it('filters questions for each batch', () => {

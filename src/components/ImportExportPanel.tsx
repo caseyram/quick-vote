@@ -20,7 +20,8 @@ export function ImportExportPanel({ sessionId }: ImportExportPanelProps) {
   const [exportCopied, setExportCopied] = useState(false);
 
   function handleExport() {
-    const templates = questionsToTemplates(questions);
+    // Export questions without batch info (simple export)
+    const templates = questionsToTemplates(questions, []);
     const json = templatesToJson(templates);
     navigator.clipboard.writeText(json).then(() => {
       setExportCopied(true);
@@ -43,8 +44,9 @@ export function ImportExportPanel({ sessionId }: ImportExportPanelProps) {
         ? Math.max(...questions.map((q) => q.position)) + 1
         : 0;
 
-      const inserted = await bulkInsertQuestions(sessionId, templates, maxPos);
-      for (const q of inserted) {
+      // Import questions without batches (simple import)
+      const result = await bulkInsertQuestions(sessionId, templates, [], maxPos, 0);
+      for (const q of result.questions) {
         useSessionStore.getState().addQuestion(q);
       }
 

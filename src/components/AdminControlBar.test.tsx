@@ -36,6 +36,7 @@ const defaultProps = {
   onCloseVoting: vi.fn(),
   onQuickQuestion: vi.fn(),
   quickQuestionLoading: false,
+  onCloseBatch: vi.fn(),
 };
 
 describe('AdminControlBar', () => {
