@@ -340,14 +340,12 @@ export default function ParticipantSession() {
       let hasBatchActive = false;
       if (sessionData.status === 'active') {
         // First check for active batch
-        const { data: activeBatch, error: batchError } = await supabase
+        const { data: activeBatch } = await supabase
           .from('batches')
           .select('*')
           .eq('session_id', sessionId)
           .eq('status', 'active')
           .maybeSingle();
-
-        console.log('[ParticipantSession] loadInitial batch check:', { sessionId, activeBatch, batchError });
 
         if (!cancelled && activeBatch) {
           // Fetch questions belonging to this batch
