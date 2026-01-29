@@ -142,9 +142,9 @@ export default function VoteMultipleChoice({
   const isCompact = options.length > 4;
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Question text — scrollable for long questions */}
-      <div className="px-4 py-6 text-center overflow-y-auto max-h-[40%] shrink-0">
+    <div className="flex flex-col h-full overflow-y-auto">
+      {/* Question text */}
+      <div className="px-4 py-6 text-center shrink-0">
         <h2 className="text-2xl font-bold text-white">{question.text}</h2>
       </div>
 
