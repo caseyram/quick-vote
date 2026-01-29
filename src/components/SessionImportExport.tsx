@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { useSessionStore } from '../stores/session-store';
 import { validateImportFile, importSessionData, exportSessionData, type ImportData } from '../lib/session-import';
 import { downloadJSON, generateExportFilename } from '../lib/session-export';
+import { parseCsv, downloadCsvTemplate } from '../lib/csv-import';
+import { bulkInsertQuestions } from '../lib/question-templates';
 
 interface SessionImportExportProps {
   sessionId: string;
@@ -14,7 +16,10 @@ export function SessionImportExport({ sessionId, sessionName, onImportComplete }
   const batches = useSessionStore((s) => s.batches);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const csvFileInputRef = useRef<HTMLInputElement>(null);
   const [validatedData, setValidatedData] = useState<ImportData | null>(null);
+  const [csvPreview, setCsvPreview] = useState<{ questions: number; batches: number } | null>(null);
+  const [csvData, setCsvData] = useState<ReturnType<typeof parseCsv> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -70,9 +75,82 @@ export function SessionImportExport({ sessionId, sessionName, onImportComplete }
 
   function handleCancel() {
     setValidatedData(null);
+    setCsvPreview(null);
+    setCsvData(null);
     setError(null);
     setFileName(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+    if (csvFileInputRef.current) csvFileInputRef.current.value = '';
+  }
+
+  async function handleCsvFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setError(null);
+    setValidatedData(null);
+    setCsvPreview(null);
+    setCsvData(null);
+    setFileName(file.name);
+
+    try {
+      const content = await file.text();
+      const parsed = parseCsv(content);
+      setCsvData(parsed);
+      setCsvPreview({
+        questions: parsed.questions.length,
+        batches: parsed.batches.length,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to parse CSV');
+    }
+  }
+
+  async function handleCsvImport() {
+    if (!csvData) return;
+
+    setImporting(true);
+    setError(null);
+
+    try {
+      // Calculate next position
+      const unbatchedQuestions = questions.filter(q => q.batch_id === null);
+      const maxUnbatchedPos = unbatchedQuestions.length > 0
+        ? Math.max(...unbatchedQuestions.map(q => q.position))
+        : -1;
+      const maxBatchPos = batches.length > 0
+        ? Math.max(...batches.map(b => b.position))
+        : -1;
+      const nextPosition = Math.max(maxUnbatchedPos, maxBatchPos) + 1;
+
+      const result = await bulkInsertQuestions(
+        sessionId,
+        csvData.questions,
+        csvData.batches,
+        nextPosition,
+        nextPosition
+      );
+
+      // Add to store
+      for (const b of result.batches) {
+        useSessionStore.getState().addBatch(b);
+      }
+      for (const q of result.questions) {
+        useSessionStore.getState().addQuestion(q);
+      }
+
+      // Reset state
+      setCsvData(null);
+      setCsvPreview(null);
+      setFileName(null);
+      if (csvFileInputRef.current) csvFileInputRef.current.value = '';
+
+      onImportComplete?.({ batchCount: result.batches.length, questionCount: result.questions.length });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'CSV import failed');
+    } finally {
+      setImporting(false);
+    }
   }
 
   // Preview info from validated data
@@ -86,7 +164,7 @@ export function SessionImportExport({ sessionId, sessionName, onImportComplete }
   return (
     <div className="space-y-3">
       {/* Import / Export buttons */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <input
           ref={fileInputRef}
           type="file"
@@ -94,6 +172,27 @@ export function SessionImportExport({ sessionId, sessionName, onImportComplete }
           onChange={handleFileSelect}
           className="hidden"
         />
+        <input
+          ref={csvFileInputRef}
+          type="file"
+          accept=".csv,text/csv"
+          onChange={handleCsvFileSelect}
+          className="hidden"
+        />
+        <button
+          onClick={() => csvFileInputRef.current?.click()}
+          disabled={importing}
+          className="px-3 py-1.5 text-sm font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 disabled:text-gray-400 disabled:bg-gray-100 rounded-lg transition-colors"
+        >
+          Import CSV
+        </button>
+        <button
+          onClick={downloadCsvTemplate}
+          className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+        >
+          CSV Template
+        </button>
+        <span className="text-gray-300">|</span>
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={importing}
@@ -108,12 +207,12 @@ export function SessionImportExport({ sessionId, sessionName, onImportComplete }
         >
           {exportDownloaded ? 'Downloaded!' : 'Export JSON'}
         </button>
-        {fileName && !validatedData && !error && (
-          <span className="text-sm text-gray-500 truncate max-w-[200px]">
-            {fileName}
-          </span>
-        )}
       </div>
+      {fileName && !validatedData && !csvPreview && !error && (
+        <span className="text-sm text-gray-500 truncate max-w-[200px]">
+          {fileName}
+        </span>
+      )}
 
       {/* Validation error display */}
       {error && (
@@ -133,17 +232,42 @@ export function SessionImportExport({ sessionId, sessionName, onImportComplete }
         </div>
       )}
 
-      {/* Preview and confirm section */}
+      {/* Preview and confirm section - JSON */}
       {previewInfo && !error && (
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
           <p className="text-sm text-green-700">
-            Ready to import: {previewInfo.batches > 0 ? `${previewInfo.batches} batch${previewInfo.batches !== 1 ? 'es' : ''}, ` : ''}{previewInfo.questions} question{previewInfo.questions !== 1 ? 's' : ''}
+            Ready to import (JSON): {previewInfo.batches > 0 ? `${previewInfo.batches} batch${previewInfo.batches !== 1 ? 'es' : ''}, ` : ''}{previewInfo.questions} question{previewInfo.questions !== 1 ? 's' : ''}
           </p>
           <div className="flex gap-2">
             <button
               onClick={handleImport}
               disabled={importing}
               className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-500 disabled:bg-green-300 rounded-lg transition-colors"
+            >
+              {importing ? 'Importing...' : 'Import'}
+            </button>
+            <button
+              onClick={handleCancel}
+              disabled={importing}
+              className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-800"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Preview and confirm section - CSV */}
+      {csvPreview && !error && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg space-y-2">
+          <p className="text-sm text-emerald-700">
+            Ready to import (CSV): {csvPreview.batches > 0 ? `${csvPreview.batches} batch${csvPreview.batches !== 1 ? 'es' : ''}, ` : ''}{csvPreview.questions} question{csvPreview.questions !== 1 ? 's' : ''}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleCsvImport}
+              disabled={importing}
+              className="px-3 py-1.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-300 rounded-lg transition-colors"
             >
               {importing ? 'Importing...' : 'Import'}
             </button>
