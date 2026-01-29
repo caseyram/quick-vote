@@ -281,11 +281,18 @@ export default function AdminSession() {
     return () => clearInterval(interval);
   }, [isActive, session?.session_id]);
 
-  // Page-level countdown for active questions (used in control bar + hero display)
+  // Page-level countdown for active questions and batches (used in control bar + hero display)
   const handleCountdownComplete = useCallback(async () => {
+    // Check for active question first
     const activeQ = questions.find((q) => q.status === 'active');
     if (activeQ) {
       await handleCloseVotingInternal(activeQ.id);
+      return;
+    }
+    // Check for active batch
+    const currentActiveBatchId = useSessionStore.getState().activeBatchId;
+    if (currentActiveBatchId) {
+      await handleCloseBatch(currentActiveBatchId);
     }
   }, [questions]);
 
@@ -651,7 +658,7 @@ export default function AdminSession() {
     }
   }
 
-  async function handleActivateBatch(batchId: string) {
+  async function handleActivateBatch(batchId: string, timerDuration: number | null = null) {
     if (!session) return;
 
     // 1. Close any active live questions first
@@ -688,12 +695,17 @@ export default function AdminSession() {
     const batchQuestions = questions.filter((q) => q.batch_id === batchId);
     const questionIds = batchQuestions.map((q) => q.id);
 
-    // 5. Broadcast to participants
+    // 5. Broadcast to participants (include timer)
     channelRef.current?.send({
       type: 'broadcast',
       event: 'batch_activated',
-      payload: { batchId, questionIds },
+      payload: { batchId, questionIds, timerSeconds: timerDuration },
     });
+
+    // 6. Start countdown if timer is set
+    if (timerDuration) {
+      startCountdown(timerDuration * 1000);
+    }
   }
 
   async function handleCloseBatch(batchId: string) {
@@ -973,6 +985,8 @@ export default function AdminSession() {
               questionIds={activeBatchQuestionIds}
               participantCount={participantCount}
               voteCounts={questionVoteCounts}
+              countdownRemaining={countdownRemaining}
+              countdownRunning={countdownRunning}
             />
           )}
 

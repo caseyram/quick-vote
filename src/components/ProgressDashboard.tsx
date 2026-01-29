@@ -1,15 +1,20 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
+import { CountdownTimer } from './CountdownTimer';
 
 interface ProgressDashboardProps {
   questionIds: string[];
   participantCount: number;
   voteCounts: Record<string, number>; // questionId -> vote count
+  countdownRemaining?: number;
+  countdownRunning?: boolean;
 }
 
 export function ProgressDashboard({
   questionIds,
   participantCount,
   voteCounts,
+  countdownRemaining = 0,
+  countdownRunning = false,
 }: ProgressDashboardProps) {
   // Calculate totals
   const totalVotes = useMemo(
@@ -65,6 +70,14 @@ export function ProgressDashboard({
           <div className="text-sm font-medium text-gray-700 whitespace-nowrap">
             {completedParticipants}/{participantCount} complete
           </div>
+          {countdownRunning && (
+            <CountdownTimer
+              remainingSeconds={Math.ceil(countdownRemaining / 1000)}
+              isRunning={countdownRunning}
+              size="default"
+              theme="light"
+            />
+          )}
         </div>
 
         {/* Participant counts */}

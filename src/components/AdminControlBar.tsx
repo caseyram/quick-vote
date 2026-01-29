@@ -25,7 +25,7 @@ interface AdminControlBarProps {
   pendingBatchId?: string | null;
   onCloseBatch: () => void;
   batches?: Batch[];
-  onActivateBatch?: (batchId: string) => void;
+  onActivateBatch?: (batchId: string, timerDuration: number | null) => void;
 }
 
 const statusBadgeColors: Record<string, string> = {
@@ -126,7 +126,7 @@ export function AdminControlBar({
     if (nextItem.type === 'question') {
       onActivateQuestion(nextItem.question.id, timerDuration);
     } else if (nextItem.type === 'batch' && onActivateBatch) {
-      onActivateBatch(nextItem.batch.id);
+      onActivateBatch(nextItem.batch.id, timerDuration);
     }
   }
 

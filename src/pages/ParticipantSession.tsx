@@ -247,7 +247,7 @@ export default function ParticipantSession() {
 
       // 7. batch_activated: admin activated a batch of questions
       channel.on('broadcast', { event: 'batch_activated' }, async ({ payload }) => {
-        const { batchId, questionIds } = payload as { batchId: string; questionIds: string[] };
+        const { batchId, questionIds, timerSeconds } = payload as { batchId: string; questionIds: string[]; timerSeconds: number | null };
 
         // Validate non-empty
         if (!questionIds || questionIds.length === 0) {
@@ -266,6 +266,13 @@ export default function ParticipantSession() {
           setBatchQuestions(batchQs);
           setActiveBatchId(batchId);
           setView('batch-voting');
+
+          // Start countdown if timer is set
+          if (timerSeconds != null && timerSeconds > 0) {
+            startCountdown(timerSeconds * 1000);
+          } else {
+            stopCountdown();
+          }
         }
       });
 
@@ -273,6 +280,7 @@ export default function ParticipantSession() {
       channel.on('broadcast', { event: 'batch_closed' }, () => {
         setBatchQuestions([]);
         setActiveBatchId(null);
+        stopCountdown();
         setView('waiting');
         setWaitingMessage('Batch completed');
       });
@@ -556,17 +564,28 @@ export default function ParticipantSession() {
   // Batch voting state
   if (view === 'batch-voting' && batchQuestions.length > 0 && participantId) {
     return (
-      <>
+      <div className="h-dvh bg-gray-950 flex flex-col overflow-hidden">
         <ConnectionPill status={connectionStatus} />
-        <BatchVotingCarousel
-          questions={batchQuestions}
-          sessionId={sessionId!}
-          participantId={participantId}
-          displayName={participantName || null}
-          reasonsEnabled={session?.reasons_enabled ?? false}
-          onComplete={handleBatchComplete}
-        />
-      </>
+        {/* Timer at top when running */}
+        {isRunning && (
+          <div className="flex justify-center px-4 py-2 shrink-0">
+            <CountdownTimer
+              remainingSeconds={Math.ceil(remaining / 1000)}
+              isRunning={isRunning}
+            />
+          </div>
+        )}
+        <div className="flex-1 min-h-0">
+          <BatchVotingCarousel
+            questions={batchQuestions}
+            sessionId={sessionId!}
+            participantId={participantId}
+            displayName={participantName || null}
+            reasonsEnabled={session?.reasons_enabled ?? false}
+            onComplete={handleBatchComplete}
+          />
+        </div>
+      </div>
     );
   }
 
