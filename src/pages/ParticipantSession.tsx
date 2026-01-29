@@ -659,7 +659,7 @@ export default function ParticipantSession() {
 
     // Full-screen voting takeover
     return (
-      <div className="h-dvh bg-gray-950 flex flex-col overflow-hidden">
+      <div className="h-dvh bg-gray-950 flex flex-col">
         {/* Connection pill - always visible in top-right */}
         <ConnectionPill status={connectionStatus} />
 
@@ -686,25 +686,27 @@ export default function ParticipantSession() {
                   animate="center"
                   exit="exit"
                   transition={questionTransition}
-                  className="flex-1 flex flex-col min-h-0"
+                  className="flex-1 min-h-0 flex flex-col"
                 >
-                  {activeQuestion.type === 'agree_disagree' ? (
-                    <VoteAgreeDisagree
-                      question={activeQuestion}
-                      sessionId={sessionId!}
-                      participantId={participantId}
-                      displayName={participantName || null}
-                      reasonsEnabled={session?.reasons_enabled ?? false}
-                    />
-                  ) : (
-                    <VoteMultipleChoice
-                      question={activeQuestion}
-                      sessionId={sessionId!}
-                      participantId={participantId}
-                      displayName={participantName || null}
-                      reasonsEnabled={session?.reasons_enabled ?? false}
-                    />
-                  )}
+                  <div className="flex-1 min-h-0 overflow-y-auto">
+                    {activeQuestion.type === 'agree_disagree' ? (
+                      <VoteAgreeDisagree
+                        question={activeQuestion}
+                        sessionId={sessionId!}
+                        participantId={participantId}
+                        displayName={participantName || null}
+                        reasonsEnabled={session?.reasons_enabled ?? false}
+                      />
+                    ) : (
+                      <VoteMultipleChoice
+                        question={activeQuestion}
+                        sessionId={sessionId!}
+                        participantId={participantId}
+                        displayName={participantName || null}
+                        reasonsEnabled={session?.reasons_enabled ?? false}
+                      />
+                    )}
+                  </div>
                 </motion.div>
               </AnimatePresence>
             </div>
