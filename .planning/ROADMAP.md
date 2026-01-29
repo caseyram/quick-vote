@@ -132,11 +132,11 @@ Urgent insertion to address gap identified in Phase 6 verification: "Go Live" sh
   6. Results columns display in consistent order (agree/disagree positions stable)
   7. Results view uses horizontal space efficiently (less vertical scrolling)
   8. Admin can navigate between questions using left/right arrow buttons in results view
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 10-01: TBD
-- [ ] 10-02: TBD
+- [ ] 10-01-PLAN.md — Progress dashboard component with real-time vote counts and pulse animation
+- [ ] 10-02-PLAN.md — Results polish with read/unread reasons, consistent columns, and keyboard navigation
 
 ## Progress
 
@@ -150,8 +150,8 @@ Plans:
 | 8. Participant Batch Experience | v1.1 | 4/4 | Complete | 2026-01-28 |
 | 9. Session Management | v1.1 | 5/5 | Complete | 2026-01-29 |
 | 09.1. Consolidate Batch and Go Live | v1.1 | 2/2 | Complete | 2026-01-29 |
-| 10. Progress Dashboard & Results Polish | v1.1 | 0/TBD | Not started | - |
+| 10. Progress Dashboard & Results Polish | v1.1 | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-28*
-*Last updated: 2026-01-29 - Phase 09.1 complete (2/2 plans verified)*
+*Last updated: 2026-01-29 - Phase 10 planned (2 plans in 1 wave)*
