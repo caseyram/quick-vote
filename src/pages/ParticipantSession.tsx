@@ -73,14 +73,29 @@ export default function ParticipantSession() {
 
   const { remaining, isRunning, start: startCountdown, stop: stopCountdown } = useCountdown(handleTimerComplete);
 
+  // Helper to start countdown from stored expiration time
+  const restoreTimerFromExpiration = useCallback((timerExpiresAt: string | null) => {
+    if (!timerExpiresAt) {
+      stopCountdown();
+      return;
+    }
+    const expiresAt = new Date(timerExpiresAt).getTime();
+    const remainingMs = expiresAt - Date.now();
+    if (remainingMs > 0) {
+      startCountdown(remainingMs);
+    } else {
+      stopCountdown();
+    }
+  }, [startCountdown, stopCountdown]);
+
   // Re-fetch current state from DB (used on initial load and reconnection)
   const refetchState = useCallback(async () => {
     if (!sessionId) return;
 
-    // Fetch session status
+    // Fetch session status (include timer_expires_at for countdown restoration)
     const { data: statusData } = await supabase
       .from('sessions')
-      .select('id, session_id, title, status, reasons_enabled, created_at')
+      .select('id, session_id, title, status, reasons_enabled, timer_expires_at, created_at')
       .eq('session_id', sessionId)
       .single();
 
@@ -129,6 +144,8 @@ export default function ParticipantSession() {
           setBatchQuestions(batchQs);
           setActiveBatchId(activeBatch.id);
           setView('batch-voting');
+          // Restore timer from stored expiration
+          restoreTimerFromExpiration(statusData.timer_expires_at);
           return;
         }
       }
@@ -144,6 +161,8 @@ export default function ParticipantSession() {
       if (qData) {
         setActiveQuestion(qData);
         setView('voting');
+        // Restore timer from stored expiration
+        restoreTimerFromExpiration(statusData.timer_expires_at);
       } else {
         setActiveQuestion(null);
         setView('waiting');
@@ -156,7 +175,7 @@ export default function ParticipantSession() {
     setActiveQuestion(null);
     stopCountdown();
     setView('lobby');
-  }, [sessionId, setSession, stopCountdown, setBatchQuestions, setActiveBatchId]);
+  }, [sessionId, setSession, stopCountdown, setBatchQuestions, setActiveBatchId, restoreTimerFromExpiration]);
 
   // Handle batch completion - clears batch state and returns to waiting
   const handleBatchComplete = useCallback(() => {
@@ -320,10 +339,10 @@ export default function ParticipantSession() {
         return;
       }
 
-      // Fetch session (explicit columns, NO admin_token)
+      // Fetch session (explicit columns, NO admin_token, include timer_expires_at)
       const { data: sessionData, error: sessionError } = await supabase
         .from('sessions')
-        .select('id, session_id, title, status, reasons_enabled, created_at')
+        .select('id, session_id, title, status, reasons_enabled, timer_expires_at, created_at')
         .eq('session_id', sessionId)
         .single();
 
@@ -402,9 +421,15 @@ export default function ParticipantSession() {
       if (!cancelled) {
         if (hasBatchActive) {
           setView('batch-voting');
+          // Restore timer from stored expiration
+          restoreTimerFromExpiration(sessionData.timer_expires_at);
         } else {
           const derivedView = deriveView(sessionData.status, question);
           setView(derivedView);
+          // Restore timer if viewing active question
+          if (derivedView === 'voting') {
+            restoreTimerFromExpiration(sessionData.timer_expires_at);
+          }
         }
       }
     }
@@ -414,7 +439,7 @@ export default function ParticipantSession() {
     return () => {
       cancelled = true;
     };
-  }, [sessionId, setSession, setBatchQuestions, setActiveBatchId]);
+  }, [sessionId, setSession, setBatchQuestions, setActiveBatchId, restoreTimerFromExpiration]);
 
   // Derive view from session + activeQuestion state (used only for initial load)
   function deriveView(status: SessionStatus | undefined, question: Question | null): ParticipantView {

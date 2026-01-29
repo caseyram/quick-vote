@@ -328,6 +328,32 @@ export default function AdminSession() {
 
   // --- Handler extraction ---
 
+  // Helper to set timer_expires_at in database and local state
+  async function setTimerExpiration(durationSeconds: number | null) {
+    if (!session) return;
+    const expiresAt = durationSeconds
+      ? new Date(Date.now() + durationSeconds * 1000).toISOString()
+      : null;
+
+    await supabase
+      .from('sessions')
+      .update({ timer_expires_at: expiresAt })
+      .eq('session_id', session.session_id);
+
+    setSession({ ...session, timer_expires_at: expiresAt });
+  }
+
+  // Helper to clear timer_expires_at
+  async function clearTimerExpiration() {
+    if (!session) return;
+    await supabase
+      .from('sessions')
+      .update({ timer_expires_at: null })
+      .eq('session_id', session.session_id);
+
+    setSession({ ...session, timer_expires_at: null });
+  }
+
   async function handleActivateQuestion(questionId: string, timerDuration: number | null) {
     if (!session) return;
 
@@ -363,13 +389,17 @@ export default function AdminSession() {
       });
 
       if (timerDuration) {
+        await setTimerExpiration(timerDuration);
         startCountdown(timerDuration * 1000);
+      } else {
+        await clearTimerExpiration();
       }
     }
   }
 
   async function handleCloseVotingInternal(questionId: string) {
     stopCountdown();
+    await clearTimerExpiration();
 
     const { error } = await supabase
       .from('questions')
@@ -442,7 +472,10 @@ export default function AdminSession() {
       });
 
       if (timerDuration) {
+        await setTimerExpiration(timerDuration);
         startCountdown(timerDuration * 1000);
+      } else {
+        await clearTimerExpiration();
       }
     }
 
@@ -704,11 +737,17 @@ export default function AdminSession() {
 
     // 6. Start countdown if timer is set
     if (timerDuration) {
+      await setTimerExpiration(timerDuration);
       startCountdown(timerDuration * 1000);
+    } else {
+      await clearTimerExpiration();
     }
   }
 
   async function handleCloseBatch(batchId: string) {
+    stopCountdown();
+    await clearTimerExpiration();
+
     // Capture batch question IDs for post-close display before any state changes
     const batchQuestionIds = questions
       .filter(q => q.batch_id === batchId)
