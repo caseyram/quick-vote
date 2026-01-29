@@ -934,9 +934,22 @@ export default function AdminSession() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <h1 className="text-3xl font-bold text-gray-900">{session.title}</h1>
-              <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-700">
-                draft
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-700">
+                  draft
+                </span>
+                <button
+                  onClick={async () => {
+                    if (confirm('Delete this session? This cannot be undone.')) {
+                      await supabase.from('sessions').delete().eq('session_id', session.session_id);
+                      window.location.href = '/';
+                    }
+                  }}
+                  className="px-3 py-1 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
 
             {/* Participant link */}
@@ -1182,13 +1195,21 @@ export default function AdminSession() {
         <div className="min-h-screen bg-white pb-20">
           <div className="max-w-4xl mx-auto px-6 py-8">
             <SessionResults sessionId={session.session_id} theme="light" />
-            <div className="text-center mt-8">
+            <div className="text-center mt-8 space-y-3">
               <a
                 href="/"
                 className="inline-block px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors"
               >
                 Start New Session
               </a>
+              <div>
+                <a
+                  href="/admin"
+                  className="text-indigo-600 hover:text-indigo-500 text-sm font-medium"
+                >
+                  View All Sessions →
+                </a>
+              </div>
             </div>
           </div>
         </div>

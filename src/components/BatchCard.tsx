@@ -290,29 +290,35 @@ export function BatchCard({
             </div>
           ) : (
             <>
-              <DndContext
-                id={dndContextId}
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
+              {/* Isolate inner DndContext from outer by stopping event propagation */}
+              <div
+                onPointerDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
               >
-                <SortableContext
-                  items={sortedQuestions.map((q) => q.id)}
-                  strategy={verticalListSortingStrategy}
+                <DndContext
+                  id={dndContextId}
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
                 >
-                  <div className="space-y-2">
-                    {sortedQuestions.map((question, index) => (
-                      <BatchQuestionItem
-                        key={question.id}
-                        question={question}
-                        index={index}
-                        onEdit={onEditQuestion}
-                        onDelete={onDeleteQuestion}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
+                  <SortableContext
+                    items={sortedQuestions.map((q) => q.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-2">
+                      {sortedQuestions.map((question, index) => (
+                        <BatchQuestionItem
+                          key={question.id}
+                          question={question}
+                          index={index}
+                          onEdit={onEditQuestion}
+                          onDelete={onDeleteQuestion}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              </div>
               {isAddingQuestion ? (
                 <div className="mt-3 bg-gray-900 rounded-lg p-4">
                   <QuestionForm
