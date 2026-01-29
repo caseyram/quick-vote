@@ -5,4 +5,10 @@
   --color-surface-elevated: oklch(0.205 0.015 264);
   --color-vote-agree: oklch(0.637 0.18 243);
   --color-vote-disagree: oklch(0.702 0.17 48);
+  --animation-pulse-update: pulse-update 0.6s ease-out;
+}
+
+@keyframes pulse-update {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+  50% { box-shadow: 0 0 12px 4px rgba(59, 130, 246, 0.4); }
 }
