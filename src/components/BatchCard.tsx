@@ -286,7 +286,7 @@ export function BatchCard({
                     onClick={onAddQuestion}
                     className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded transition-colors"
                   >
-                    + Add Question
+                    + Add to Batch
                   </button>
                 </>
               )}
@@ -302,7 +302,6 @@ export function BatchCard({
                   id={dndContextId}
                   sensors={sensors}
                   collisionDetection={closestCenter}
-                  onDragStart={() => console.log('[BatchCard] drag start in batch:', batch.name)}
                   onDragEnd={handleDragEnd}
                 >
                   <SortableContext
@@ -338,7 +337,7 @@ export function BatchCard({
                   onClick={onAddQuestion}
                   className="mt-3 w-full px-3 py-2 border border-dashed border-gray-600 hover:border-indigo-500 text-gray-400 hover:text-indigo-400 text-sm rounded transition-colors"
                 >
-                  + Add Question
+                  + Add to Batch
                 </button>
               )}
             </>

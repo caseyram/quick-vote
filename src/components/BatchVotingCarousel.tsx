@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence, useAnimate } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import VoteAgreeDisagree from './VoteAgreeDisagree';
@@ -46,29 +46,38 @@ export function BatchVotingCarousel({
   // Local state for pending votes - not persisted until Submit
   const [pendingVotes, setPendingVotes] = useState<Map<string, PendingVote>>(new Map());
 
-  // Handle selection change from vote components
-  const handleSelectionChange = useCallback((questionId: string) => {
-    return (selection: string | null, reason?: string) => {
-      setPendingVotes(prev => {
-        const next = new Map(prev);
-        if (selection) {
-          next.set(questionId, { value: selection, reason });
-        } else {
-          next.delete(questionId);
-        }
-        return next;
-      });
+  // Derive current question early so we can use it in memoized callbacks
+  const currentQuestion = questions[currentIndex];
 
-      // Subtle pulse on progress indicator as completion feedback
-      if (selection && progressRef.current) {
-        animateProgress(
-          progressRef.current,
-          { scale: [1, 1.1, 1] },
-          { duration: 0.3, ease: 'easeOut' }
-        );
+  // Handle selection change from vote components - stable callback that includes questionId
+  const handleSelectionChange = useCallback((questionId: string, selection: string | null, reason?: string) => {
+    setPendingVotes(prev => {
+      const next = new Map(prev);
+      if (selection) {
+        next.set(questionId, { value: selection, reason });
+      } else {
+        next.delete(questionId);
       }
-    };
+      return next;
+    });
+
+    // Subtle pulse on progress indicator as completion feedback
+    if (selection && progressRef.current) {
+      animateProgress(
+        progressRef.current,
+        { scale: [1, 1.1, 1] },
+        { duration: 0.3, ease: 'easeOut' }
+      );
+    }
   }, [animateProgress, progressRef]);
+
+  // Create a stable callback for the current question
+  const currentQuestionSelectionChange = useMemo(() => {
+    if (!currentQuestion) return undefined;
+    return (selection: string | null, reason?: string) => {
+      handleSelectionChange(currentQuestion.id, selection, reason);
+    };
+  }, [currentQuestion?.id, handleSelectionChange]);
 
   // Keyboard navigation (desktop only)
   useEffect(() => {
@@ -95,7 +104,6 @@ export function BatchVotingCarousel({
     };
   }, [questions.length]);
 
-  const currentQuestion = questions[currentIndex];
   const isFirstQuestion = currentIndex === 0;
   const isLastQuestion = currentIndex === questions.length - 1;
 
@@ -200,7 +208,7 @@ export function BatchVotingCarousel({
                     displayName={displayName}
                     reasonsEnabled={reasonsEnabled}
                     batchMode={true}
-                    onSelectionChange={handleSelectionChange(currentQuestion.id)}
+                    onSelectionChange={currentQuestionSelectionChange}
                     initialSelection={currentVote?.value ?? null}
                     initialReason={currentVote?.reason ?? ''}
                   />
@@ -212,7 +220,7 @@ export function BatchVotingCarousel({
                     displayName={displayName}
                     reasonsEnabled={reasonsEnabled}
                     batchMode={true}
-                    onSelectionChange={handleSelectionChange(currentQuestion.id)}
+                    onSelectionChange={currentQuestionSelectionChange}
                     initialSelection={currentVote?.value ?? null}
                     initialReason={currentVote?.reason ?? ''}
                   />

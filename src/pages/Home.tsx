@@ -92,15 +92,6 @@ export default function Home() {
         </div>
 
         <PastSessions />
-
-        <div className="text-center">
-          <a
-            href="/admin"
-            className="text-indigo-400 hover:text-indigo-300 text-sm font-medium"
-          >
-            Manage All Sessions →
-          </a>
-        </div>
       </div>
     </AdminPasswordGate>
   );

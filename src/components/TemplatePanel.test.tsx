@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import type { Question } from '../types/database';
+import type { Question, Batch } from '../types/database';
 
 const mockQuestions: Question[] = [
   {
@@ -9,11 +9,15 @@ const mockQuestions: Question[] = [
   },
 ];
 
+const mockBatches: Batch[] = [];
+
 vi.mock('../stores/session-store', () => ({
   useSessionStore: Object.assign(
-    vi.fn((selector: (s: { questions: Question[] }) => unknown) => selector({ questions: mockQuestions })),
+    vi.fn((selector: (s: { questions: Question[]; batches: Batch[] }) => unknown) =>
+      selector({ questions: mockQuestions, batches: mockBatches })
+    ),
     {
-      getState: vi.fn(() => ({ addQuestion: vi.fn() })),
+      getState: vi.fn(() => ({ addQuestion: vi.fn(), addBatch: vi.fn() })),
     }
   ),
 }));
@@ -26,7 +30,7 @@ vi.mock('../lib/question-templates', () => ({
   getSavedTemplates: (...args: unknown[]) => mockSavedTemplates(...args),
   saveTemplate: (...args: unknown[]) => mockSaveTemplate(...args),
   deleteTemplate: (...args: unknown[]) => mockDeleteTemplate(...args),
-  bulkInsertQuestions: vi.fn().mockResolvedValue([]),
+  bulkInsertQuestions: vi.fn().mockResolvedValue({ questions: [], batches: [] }),
 }));
 
 import { TemplatePanel } from './TemplatePanel';
@@ -61,7 +65,7 @@ describe('TemplatePanel', () => {
 
   it('calls saveTemplate when save clicked', () => {
     mockSavedTemplates.mockReturnValueOnce([]).mockReturnValue([
-      { name: 'My Template', questions: [], createdAt: new Date().toISOString() },
+      { name: 'My Template', questions: [], batches: [], createdAt: new Date().toISOString() },
     ]);
     render(<TemplatePanel sessionId="s1" />);
 
@@ -69,12 +73,12 @@ describe('TemplatePanel', () => {
     fireEvent.change(input, { target: { value: 'My Template' } });
     fireEvent.click(screen.getByText('Save as Template'));
 
-    expect(mockSaveTemplate).toHaveBeenCalledWith('My Template', mockQuestions);
+    expect(mockSaveTemplate).toHaveBeenCalledWith('My Template', mockQuestions, mockBatches);
   });
 
   it('renders saved templates with Load and Delete buttons', () => {
     mockSavedTemplates.mockReturnValue([
-      { name: 'Sprint Retro', questions: [{ text: 'Q1' }], createdAt: '2024-01-01T00:00:00.000Z' },
+      { name: 'Sprint Retro', questions: [{ text: 'Q1' }], batches: [], createdAt: '2024-01-01T00:00:00.000Z' },
     ]);
     render(<TemplatePanel sessionId="s1" />);
 
@@ -88,7 +92,7 @@ describe('TemplatePanel', () => {
 
   it('calls deleteTemplate when Delete clicked', () => {
     mockSavedTemplates.mockReturnValueOnce([
-      { name: 'Old', questions: [], createdAt: '2024-01-01T00:00:00.000Z' },
+      { name: 'Old', questions: [], batches: [], createdAt: '2024-01-01T00:00:00.000Z' },
     ]).mockReturnValue([]);
     render(<TemplatePanel sessionId="s1" />);
 
@@ -98,7 +102,7 @@ describe('TemplatePanel', () => {
 
   it('shows plural questions count', () => {
     mockSavedTemplates.mockReturnValue([
-      { name: 'Template', questions: [{ text: 'Q1' }, { text: 'Q2' }], createdAt: '2024-01-01T00:00:00.000Z' },
+      { name: 'Template', questions: [{ text: 'Q1' }, { text: 'Q2' }], batches: [], createdAt: '2024-01-01T00:00:00.000Z' },
     ]);
     render(<TemplatePanel sessionId="s1" />);
     expect(screen.getByText((content, element) => {

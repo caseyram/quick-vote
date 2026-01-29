@@ -21,24 +21,18 @@ interface AdminControlBarProps {
   onCloseVoting: (questionId: string) => void;
   onQuickQuestion: (text: string, timerDuration: number | null) => void;
   quickQuestionLoading: boolean;
-  // Pending batch props
-  pendingBatchId: string | null;
-  pendingBatchQuestions: Question[];
-  onAddToBatch: (text: string) => void;
-  onActivatePendingBatch: () => void;
-  onClearPendingBatch: () => void;
-  onRemoveFromBatch: (questionId: string) => void;
+  // Batch props
+  pendingBatchId?: string | null;
   onCloseBatch: () => void;
-  // Existing batches from draft mode
   batches?: Batch[];
   onActivateBatch?: (batchId: string) => void;
 }
 
 const statusBadgeColors: Record<string, string> = {
   draft: 'bg-gray-200 text-gray-700',
-  lobby: 'bg-yellow-100 text-yellow-800',
-  active: 'bg-green-100 text-green-800',
-  ended: 'bg-red-100 text-red-800',
+  lobby: 'bg-blue-100 text-blue-800',
+  active: 'bg-yellow-100 text-yellow-800',
+  ended: 'bg-green-100 text-green-800',
 };
 
 const timerOptions = [
@@ -66,19 +60,12 @@ export function AdminControlBar({
   onQuickQuestion,
   quickQuestionLoading,
   pendingBatchId,
-  pendingBatchQuestions,
-  onAddToBatch,
-  onActivatePendingBatch,
-  onClearPendingBatch,
-  onRemoveFromBatch,
   onCloseBatch,
   batches = [],
   onActivateBatch,
 }: AdminControlBarProps) {
   const [timerDuration, setTimerDuration] = useState<number | null>(null);
   const [barQuickText, setBarQuickText] = useState('');
-  const [batchListExpanded, setBatchListExpanded] = useState(false);
-  const [existingBatchDropdown, setExistingBatchDropdown] = useState(false);
 
   // Subscribe to activeBatchId for mode exclusion
   const activeBatchId = useSessionStore((state) => state.activeBatchId);
@@ -89,23 +76,44 @@ export function AdminControlBar({
   const isActive = status === 'active';
   const isEnded = status === 'ended';
 
-  // Find the next pending question for activation (excluding pending batch questions)
-  const pendingQuestions = questions.filter(
-    (q) => q.status === 'pending' && q.batch_id !== pendingBatchId
+  // Find the next pending unbatched question
+  const pendingUnbatchedQuestions = questions.filter(
+    (q) => q.status === 'pending' && q.batch_id === null
   );
   const activeIndex = activeQuestion
     ? questions.findIndex((q) => q.id === activeQuestion.id)
     : -1;
-  const nextPending = pendingQuestions[0] ?? null;
-
-  const hasPendingBatch = pendingBatchQuestions.length > 0;
 
   // Filter existing batches that have questions and are still pending (can be activated)
   const activatableBatches = batches.filter((b) => {
     const batchQuestions = questions.filter((q) => q.batch_id === b.id);
     return b.status === 'pending' && batchQuestions.length > 0 && b.id !== pendingBatchId;
   });
-  const hasExistingBatches = activatableBatches.length > 0;
+
+  // Compute the "next item" to activate - sorted by position
+  // This interleaves unbatched questions and batches
+  type NextItem =
+    | { type: 'question'; question: Question; position: number }
+    | { type: 'batch'; batch: Batch; position: number; questionCount: number };
+
+  const nextItems: NextItem[] = [];
+
+  // Add unbatched pending questions
+  for (const q of pendingUnbatchedQuestions) {
+    nextItems.push({ type: 'question', question: q, position: q.position });
+  }
+
+  // Add activatable batches
+  for (const b of activatableBatches) {
+    const batchQuestions = questions.filter((q) => q.batch_id === b.id);
+    nextItems.push({ type: 'batch', batch: b, position: b.position, questionCount: batchQuestions.length });
+  }
+
+  // Sort by position
+  nextItems.sort((a, b) => a.position - b.position);
+
+  const nextItem = nextItems[0] ?? null;
+  const hasNextItem = nextItem !== null;
 
   function handleBarQuickSubmit() {
     if (!barQuickText.trim() || quickQuestionLoading) return;
@@ -113,64 +121,28 @@ export function AdminControlBar({
     setBarQuickText('');
   }
 
-  function handleAddToBatchSubmit() {
-    if (!barQuickText.trim()) return;
-    onAddToBatch(barQuickText);
-    setBarQuickText('');
+  function handleActivateNext() {
+    if (!nextItem) return;
+    if (nextItem.type === 'question') {
+      onActivateQuestion(nextItem.question.id, timerDuration);
+    } else if (nextItem.type === 'batch' && onActivateBatch) {
+      onActivateBatch(nextItem.batch.id);
+    }
   }
 
-  function handleGoLive() {
-    if (hasPendingBatch) {
-      // Activate the pending batch
-      onActivatePendingBatch();
-    } else if (barQuickText.trim()) {
-      // Single question go live
-      handleBarQuickSubmit();
+  // Get display label for next item
+  function getNextItemLabel(): string {
+    if (!nextItem) return 'Activate';
+    if (nextItem.type === 'question') {
+      const qIndex = questions.findIndex((q) => q.id === nextItem.question.id) + 1;
+      return `Activate Q${qIndex}`;
+    } else {
+      return `Activate "${nextItem.batch.name}" (${nextItem.questionCount}Q)`;
     }
   }
 
   return (
-    <>
-      {/* Pending batch dropdown - appears above the control bar */}
-      {batchListExpanded && hasPendingBatch && (
-        <div className="fixed bottom-14 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-[60] max-h-64 overflow-y-auto">
-          <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700">
-              Batch Questions ({pendingBatchQuestions.length})
-            </span>
-            <button
-              onClick={onClearPendingBatch}
-              className="text-xs text-red-600 hover:text-red-700 font-medium"
-            >
-              Clear All
-            </button>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {pendingBatchQuestions.map((q, idx) => (
-              <div
-                key={q.id}
-                className="px-4 py-2 flex items-center justify-between hover:bg-gray-50"
-              >
-                <span className="text-sm text-gray-700 truncate flex-1">
-                  <span className="text-gray-400 font-mono mr-2">{idx + 1}.</span>
-                  {q.text}
-                </span>
-                <button
-                  onClick={() => onRemoveFromBatch(q.id)}
-                  className="ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors"
-                  title="Remove from batch"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-gray-200 shadow-sm z-40 flex items-center px-4 gap-3">
+    <div className="fixed bottom-0 left-0 right-0 h-14 bg-white border-t border-gray-200 shadow-sm z-40 flex items-center px-4 gap-3">
         {/* Left: Status badge + count */}
         <div className="flex items-center gap-2 shrink-0">
           <span
@@ -244,100 +216,29 @@ export function AdminControlBar({
                     Close Batch
                   </button>
                 </div>
-              ) : nextPending && !hasPendingBatch ? (
-                <>
-                  {/* Timer selection pills */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    {timerOptions.map((opt) => (
-                      <button
-                        key={opt.label}
-                        onClick={() => setTimerDuration(opt.value)}
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
-                          timerDuration === opt.value
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Activate next question */}
-                  <button
-                    onClick={() => onActivateQuestion(nextPending.id, timerDuration)}
-                    className="px-3 py-1.5 text-white text-xs font-medium rounded-lg transition-colors shrink-0 bg-green-600 hover:bg-green-500"
-                  >
-                    Activate Q{questions.findIndex((q) => q.id === nextPending.id) + 1}
-                  </button>
-                </>
               ) : (
-                /* Quick question input with Add to Batch option */
+                /* Simplified: Timer + Quick input + Activate Next (batch or question) */
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  {/* Existing batches dropdown */}
-                  {hasExistingBatches && onActivateBatch && (
-                    <div className="relative">
-                      <button
-                        onClick={() => setExistingBatchDropdown(!existingBatchDropdown)}
-                        className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200 transition-colors shrink-0"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
-                        Batches ({activatableBatches.length})
-                        <svg
-                          className={`w-3 h-3 transition-transform ${existingBatchDropdown ? 'rotate-180' : ''}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                  {/* Timer selection pills - only show for single question activation */}
+                  {nextItem?.type === 'question' && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      {timerOptions.map((opt) => (
+                        <button
+                          key={opt.label}
+                          onClick={() => setTimerDuration(opt.value)}
+                          className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                            timerDuration === opt.value
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          }`}
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                        </svg>
-                      </button>
-                      {existingBatchDropdown && (
-                        <div className="absolute bottom-full mb-1 left-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[200px] max-h-48 overflow-y-auto">
-                          {activatableBatches.map((batch) => {
-                            const batchQuestionCount = questions.filter((q) => q.batch_id === batch.id).length;
-                            return (
-                              <button
-                                key={batch.id}
-                                onClick={() => {
-                                  onActivateBatch(batch.id);
-                                  setExistingBatchDropdown(false);
-                                }}
-                                className="w-full px-3 py-2 text-left text-sm hover:bg-green-50 flex items-center justify-between gap-2"
-                              >
-                                <span className="truncate text-gray-700">{batch.name}</span>
-                                <span className="text-xs text-gray-400 shrink-0">{batchQuestionCount}Q</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
+                          {opt.label}
+                        </button>
+                      ))}
                     </div>
                   )}
 
-                  {/* Pending batch indicator */}
-                  {hasPendingBatch && (
-                    <button
-                      onClick={() => setBatchListExpanded(!batchListExpanded)}
-                      className="flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium hover:bg-indigo-200 transition-colors shrink-0"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
-                      {pendingBatchQuestions.length} in batch
-                      <svg
-                        className={`w-3 h-3 transition-transform ${batchListExpanded ? 'rotate-180' : ''}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                      </svg>
-                    </button>
-                  )}
-
+                  {/* Quick question input */}
                   <input
                     type="text"
                     value={barQuickText}
@@ -347,38 +248,29 @@ export function AdminControlBar({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && barQuickText.trim()) {
                         e.preventDefault();
-                        // If we have a batch, add to batch; otherwise go live
-                        if (hasPendingBatch) {
-                          handleAddToBatchSubmit();
-                        } else {
-                          handleBarQuickSubmit();
-                        }
+                        handleBarQuickSubmit();
                       }
                     }}
                   />
 
-                  {/* Add to Batch button */}
+                  {/* Go Live button - creates and activates quick question */}
                   <button
-                    onClick={handleAddToBatchSubmit}
-                    disabled={!barQuickText.trim()}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition-colors shrink-0"
-                    title="Add question to batch"
-                  >
-                    + Batch
-                  </button>
-
-                  {/* Go Live button */}
-                  <button
-                    onClick={handleGoLive}
-                    disabled={(!barQuickText.trim() && !hasPendingBatch) || quickQuestionLoading}
+                    onClick={handleBarQuickSubmit}
+                    disabled={!barQuickText.trim() || quickQuestionLoading}
                     className="px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition-colors shrink-0"
                   >
-                    {quickQuestionLoading
-                      ? 'Going...'
-                      : hasPendingBatch
-                        ? 'Go Live'
-                        : 'Go Live'}
+                    {quickQuestionLoading ? 'Going...' : 'Go Live'}
                   </button>
+
+                  {/* Activate Next button - activates next pending item (batch or question) */}
+                  {hasNextItem && (
+                    <button
+                      onClick={handleActivateNext}
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition-colors shrink-0"
+                    >
+                      {getNextItemLabel()}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -420,8 +312,7 @@ export function AdminControlBar({
               {transitioning ? 'Ending...' : 'End Session'}
             </button>
           )}
-        </div>
       </div>
-    </>
+    </div>
   );
 }

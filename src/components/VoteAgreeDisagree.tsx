@@ -40,13 +40,21 @@ export default function VoteAgreeDisagree({
   const [sometimesRef, animateSometimes] = useAnimate();
   const [disagreeRef, animateDisagree] = useAnimate();
   const prevSelected = useRef<string | null>(null);
+  const prevQuestionId = useRef<string | null>(null);
   const [pendingSelection, setPendingSelection] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [reason, setReason] = useState('');
 
   // Fetch existing vote on mount or when question changes
   // In batch mode, initialize from props instead of fetching
+  // Note: initialSelection/initialReason are captured at question change only to avoid cycles
   useEffect(() => {
+    // Skip if question hasn't changed (prevents infinite loops from prop updates)
+    if (prevQuestionId.current === question.id) {
+      return;
+    }
+    prevQuestionId.current = question.id;
+
     let cancelled = false;
 
     async function fetchExistingVote() {
@@ -69,7 +77,7 @@ export default function VoteAgreeDisagree({
     setSubmitted(false);
 
     if (batchMode) {
-      // In batch mode, initialize from props
+      // In batch mode, initialize from props (captured at question change)
       setPendingSelection(initialSelection);
       setReason(initialReason);
     } else {

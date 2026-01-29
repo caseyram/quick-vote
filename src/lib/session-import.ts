@@ -8,6 +8,7 @@ const QuestionImportSchema = z.object({
   type: z.enum(['agree_disagree', 'multiple_choice']),
   options: z.array(z.string()).nullable(),
   anonymous: z.boolean(),
+  position: z.number().optional(), // Original position for interleaving with unbatched questions
   // Votes in import file are ignored (structure only import)
   votes: z.array(z.any()).optional(),
 });
@@ -71,6 +72,7 @@ export function exportSessionData(
       type: string;
       options: string[] | null;
       anonymous: boolean;
+      position: number;
     }>;
   }> = [];
 
@@ -88,22 +90,25 @@ export function exportSessionData(
         type: q.type,
         options: q.options,
         anonymous: q.anonymous,
+        position: q.position,
       })),
     });
   }
 
-  // Add unbatched questions under special '_unbatched' batch
+  // Add unbatched questions under special '_unbatched' pseudo-batch
+  // Position is -1 to indicate this is not a real batch (filtered out during import)
   const unbatched = batchedQuestions.get(null) ?? [];
   if (unbatched.length > 0) {
     const sortedUnbatched = [...unbatched].sort((a, b) => a.position - b.position);
     exportBatches.push({
       name: '_unbatched',
-      position: exportBatches.length,
+      position: -1,
       questions: sortedUnbatched.map(q => ({
         text: q.text,
         type: q.type,
         options: q.options,
         anonymous: q.anonymous,
+        position: q.position,
       })),
     });
   }
@@ -206,23 +211,94 @@ export async function importSessionData(
 
   let totalQuestions = 0;
 
-  // Filter out _unbatched pseudo-batch (used in export for unbatched questions)
+  // Separate real batches from _unbatched pseudo-batch
   const batchesToInsert = data.batches.filter(b => b.name !== '_unbatched');
+  const unbatchedBatch = data.batches.find(b => b.name === '_unbatched');
 
-  // Insert batches
-  let insertedBatches: Array<{ id: string; name: string }> = [];
+  // Build ordered question list FIRST by interleaving batches and unbatched questions
+  // Strategy: Sort batches by position, then interleave unbatched questions
+  // based on their position values (which indicate where they slot in relative to batches)
+
+  const sortedBatches = [...batchesToInsert].sort((a, b) => a.position - b.position);
+  const unbatchedQuestions = (unbatchedBatch?.questions ?? []).map((q, idx) => ({
+    question: q,
+    position: q.position ?? (10000 + idx), // Fallback to end if no position
+  }));
+
+  // Build the final ordered list
+  // Unbatched question position N means it comes AFTER the batch at position N-1
+  // So position 1 = after batch 0, position 4 = after batch 3, etc.
+  const allQuestions: Array<{
+    originalBatchPosition: number | null; // null for unbatched, used to map to batch
+    question: typeof data.batches[0]['questions'][0];
+  }> = [];
+
+  let unbatchedIdx = 0;
+  // Sort unbatched by position
+  unbatchedQuestions.sort((a, b) => a.position - b.position);
+
+  for (let batchIdx = 0; batchIdx < sortedBatches.length; batchIdx++) {
+    const batch = sortedBatches[batchIdx];
+    const nextBatchPos = sortedBatches[batchIdx + 1]?.position ?? Infinity;
+
+    // Add all questions from this batch (sorted by their relative position)
+    const sortedQuestions = [...batch.questions].sort(
+      (a, b) => (a.position ?? 0) - (b.position ?? 0)
+    );
+    for (const question of sortedQuestions) {
+      allQuestions.push({ originalBatchPosition: batch.position, question });
+    }
+
+    // Add any unbatched questions that come between this batch and the next
+    // Unbatched position X means it comes after batch at position X-1
+    // So if current batch is at position 0 and next is at position 2,
+    // unbatched questions with positions 1 would go here
+    while (
+      unbatchedIdx < unbatchedQuestions.length &&
+      unbatchedQuestions[unbatchedIdx].position < nextBatchPos
+    ) {
+      allQuestions.push({
+        originalBatchPosition: null,
+        question: unbatchedQuestions[unbatchedIdx].question,
+      });
+      unbatchedIdx++;
+    }
+  }
+
+  // Add any remaining unbatched questions at the end
+  while (unbatchedIdx < unbatchedQuestions.length) {
+    allQuestions.push({
+      originalBatchPosition: null,
+      question: unbatchedQuestions[unbatchedIdx].question,
+    });
+    unbatchedIdx++;
+  }
+
+  // Calculate correct batch positions based on where their first question appears
+  // in the interleaved list (this ensures batch position matches question positions)
+  const batchNewPositions = new Map<number, number>(); // originalBatchPosition -> newPosition
+  for (let i = 0; i < allQuestions.length; i++) {
+    const origPos = allQuestions[i].originalBatchPosition;
+    if (origPos !== null && !batchNewPositions.has(origPos)) {
+      // First question of this batch - batch position = this question's position
+      batchNewPositions.set(origPos, questionStartPos + i);
+    }
+  }
+
+  // Insert batches with corrected positions
+  let insertedBatches: Array<{ id: string; name: string; position: number }> = [];
   if (batchesToInsert.length > 0) {
-    const batchInserts = batchesToInsert.map((batch, idx) => ({
+    const batchInserts = batchesToInsert.map((batch) => ({
       session_id: sessionId,
       name: batch.name,
-      position: batchStartPos + idx,
+      position: batchNewPositions.get(batch.position) ?? (batchStartPos + batch.position),
       status: 'pending' as const,
     }));
 
     const { data: batches, error: batchError } = await supabase
       .from('batches')
       .insert(batchInserts)
-      .select('id, name');
+      .select('id, name, position');
 
     if (batchError) {
       throw new Error(`Failed to import batches: ${batchError.message}`);
@@ -230,36 +306,41 @@ export async function importSessionData(
     insertedBatches = batches ?? [];
   }
 
-  // Create batch name to ID map for question association
-  const batchIdMap = new Map(insertedBatches.map(b => [b.name, b.id]));
-
-  // Insert questions for each batch
-  let questionPos = questionStartPos;
-  for (const batch of data.batches) {
-    // _unbatched questions have null batch_id
-    const batchId = batch.name === '_unbatched' ? null : batchIdMap.get(batch.name) ?? null;
-
-    const questionInserts = batch.questions.map(q => ({
-      session_id: sessionId,
-      batch_id: batchId,
-      text: q.text,
-      type: q.type,
-      options: q.options,
-      anonymous: q.anonymous,
-      position: questionPos++,
-      status: 'pending' as const,
-    }));
-
-    if (questionInserts.length > 0) {
-      const { error: qError } = await supabase
-        .from('questions')
-        .insert(questionInserts);
-
-      if (qError) {
-        throw new Error(`Failed to import questions: ${qError.message}`);
-      }
-      totalQuestions += questionInserts.length;
+  // Create batch original position to ID map for question association
+  // Using original position as key since batch names can be duplicated
+  const batchIdByOriginalPosition = new Map<number, string>();
+  for (const batch of batchesToInsert) {
+    const insertedBatch = insertedBatches.find(
+      ib => ib.position === batchNewPositions.get(batch.position)
+    );
+    if (insertedBatch) {
+      batchIdByOriginalPosition.set(batch.position, insertedBatch.id);
     }
+  }
+
+  // Insert questions in the computed order
+  const questionInserts = allQuestions.map((item, idx) => ({
+    session_id: sessionId,
+    batch_id: item.originalBatchPosition === null
+      ? null
+      : batchIdByOriginalPosition.get(item.originalBatchPosition) ?? null,
+    text: item.question.text,
+    type: item.question.type,
+    options: item.question.options,
+    anonymous: item.question.anonymous,
+    position: questionStartPos + idx,
+    status: 'pending' as const,
+  }));
+
+  if (questionInserts.length > 0) {
+    const { error: qError } = await supabase
+      .from('questions')
+      .insert(questionInserts);
+
+    if (qError) {
+      throw new Error(`Failed to import questions: ${qError.message}`);
+    }
+    totalQuestions = questionInserts.length;
   }
 
   return {

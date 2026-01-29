@@ -9,7 +9,6 @@ import {
   DragOverlay,
   type DragStartEvent,
   type DragEndEvent,
-  type DragOverEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -184,7 +183,6 @@ function SortableBatchCard({
   onDeleteBatch,
   onActivateBatch,
   onCloseBatch,
-  isOver,
 }: {
   batch: Batch;
   sessionId: string;
@@ -204,7 +202,6 @@ function SortableBatchCard({
   onDeleteBatch: () => void;
   onActivateBatch: (batchId: string) => void;
   onCloseBatch: (batchId: string) => void;
-  isOver?: boolean;
 }) {
   const {
     attributes,
@@ -222,7 +219,7 @@ function SortableBatchCard({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={isOver ? 'ring-2 ring-indigo-500 rounded-lg' : ''}>
+    <div ref={setNodeRef} style={style}>
       <BatchCard
         sessionId={sessionId}
         batch={batch}
@@ -273,7 +270,6 @@ export function BatchList({
   const [addingToBatchId, setAddingToBatchId] = useState<string | null>(null);
   const [addingUnbatchedQuestion, setAddingUnbatchedQuestion] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [overId, setOverId] = useState<string | null>(null);
 
   // Unique ID for this DndContext to prevent conflicts with nested DndContext in BatchCard
   const dndContextId = useId();
@@ -288,9 +284,6 @@ export function BatchList({
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-
-  // When a batch is expanded, we skip the outer DndContext to avoid interference
-  const skipOuterDnd = expandedBatchId !== null;
 
   // Create interleaved list sorted by position
   const interleavedItems = useMemo(() => {
@@ -345,51 +338,29 @@ export function BatchList({
 
   function handleDragStart(event: DragStartEvent) {
     const id = event.active.id as string;
-    console.log('[BatchList] drag start:', id);
     // Ignore events from nested batch item drags
     if (id.startsWith('batch-item-')) {
-      console.log('[BatchList] ignoring nested batch item drag');
       return;
     }
     setActiveId(id);
-  }
-
-  function handleDragOver(event: DragOverEvent) {
-    const { over, active } = event;
-    // Ignore events from nested batch item drags
-    if ((active.id as string).startsWith('batch-item-')) return;
-    console.log('[BatchList] drag over:', over?.id);
-    setOverId(over?.id as string | null);
   }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     const activeIdStr = active.id as string;
 
-    console.log('[BatchList] drag end:', activeIdStr);
-
     // Ignore events from nested batch item drags
     if (activeIdStr.startsWith('batch-item-')) {
-      console.log('[BatchList] ignoring nested batch item drag end');
       return;
     }
 
     setActiveId(null);
-    setOverId(null);
 
     if (!over || active.id === over.id) return;
 
     const overIdStr = over.id as string;
 
-    // Check if dragging a question onto a batch (to move it into the batch)
-    if (activeIdStr.startsWith('question-') && overIdStr.startsWith('batch-')) {
-      const questionId = activeIdStr.replace('question-', '');
-      const batchId = overIdStr.replace('batch-', '');
-      onMoveQuestionToBatch?.(questionId, batchId);
-      return;
-    }
-
-    // Otherwise, reorder items
+    // Reorder items (questions and batches can be reordered relative to each other)
     if (onReorderItems) {
       const oldIndex = sortableIds.indexOf(activeIdStr);
       const newIndex = sortableIds.indexOf(overIdStr);
@@ -414,7 +385,7 @@ export function BatchList({
       <div className="space-y-4">
         <div className="text-center py-8">
           <p className="text-gray-500 mb-4">
-            No questions yet. Create a batch or add individual questions.
+            No questions yet. Create a batch to group questions, or add standalone questions.
           </p>
         </div>
         <div className="flex gap-3">
@@ -430,7 +401,7 @@ export function BatchList({
             onClick={() => setAddingUnbatchedQuestion(true)}
             className="flex-1 px-4 py-2 border border-dashed border-gray-600 hover:border-indigo-500 text-gray-400 hover:text-indigo-400 rounded-lg transition-colors"
           >
-            + Add Question
+            + Standalone Question
           </button>
         </div>
       </div>
@@ -461,25 +432,55 @@ export function BatchList({
             disabled
             className="flex-1 px-4 py-2 border border-dashed border-gray-300 text-gray-300 rounded-lg cursor-not-allowed"
           >
-            + Add Question
+            + Standalone Question
           </button>
         </div>
       </div>
     );
   }
 
-  // Render items - used both with and without DndContext wrapper
-  const renderItems = () => (
+  // Render mixed items - expanded batch is static, everything else is sortable
+  const renderMixedItems = () => (
     <>
       {interleavedItems.map((item) => {
         if (item.type === 'batch') {
+          // If this batch is expanded, render it statically to avoid DndContext conflicts
+          if (expandedBatchId === item.batch.id) {
+            return (
+              <BatchCard
+                key={item.id}
+                batch={item.batch}
+                sessionId={sessionId}
+                questions={getBatchQuestions(item.batch.id)}
+                isExpanded={true}
+                isAddingQuestion={addingToBatchId === item.batch.id}
+                isActive={activeBatchId === item.batch.id}
+                canActivate={canActivateBatch(item.batch)}
+                showActivateButton={showActivateButton}
+                onToggle={() => handleBatchToggle(item.batch.id)}
+                onNameChange={(name) => onBatchNameChange(item.batch.id, name)}
+                onQuestionReorder={(ids) => onQuestionReorder(item.batch.id, ids)}
+                onEditQuestion={onEditQuestion}
+                onDeleteQuestion={onDeleteQuestion}
+                onAddQuestion={() => {
+                  setExpandedBatchId(item.batch.id);
+                  setAddingToBatchId(item.batch.id);
+                }}
+                onAddQuestionDone={() => setAddingToBatchId(null)}
+                onDeleteBatch={() => onDeleteBatch(item.batch.id)}
+                onActivate={onActivateBatch}
+                onClose={onCloseBatch}
+              />
+            );
+          }
+          // Collapsed batches are sortable
           return (
             <SortableBatchCard
               key={item.id}
               batch={item.batch}
               sessionId={sessionId}
               questions={getBatchQuestions(item.batch.id)}
-              isExpanded={expandedBatchId === item.batch.id}
+              isExpanded={false}
               isAddingQuestion={addingToBatchId === item.batch.id}
               isActive={activeBatchId === item.batch.id}
               canActivate={canActivateBatch(item.batch)}
@@ -497,7 +498,6 @@ export function BatchList({
               onDeleteBatch={() => onDeleteBatch(item.batch.id)}
               onActivateBatch={onActivateBatch}
               onCloseBatch={onCloseBatch}
-              isOver={overId === item.id && activeId?.startsWith('question-')}
             />
           );
         }
@@ -519,42 +519,41 @@ export function BatchList({
     </>
   );
 
+  // Filter sortable IDs to exclude the expanded batch (it's rendered statically)
+  const activeSortableIds = expandedBatchId
+    ? sortableIds.filter((id) => id !== `batch-${expandedBatchId}`)
+    : sortableIds;
+
   return (
     <div className="space-y-3">
-      {/* Skip outer DndContext when a batch is expanded to avoid interference */}
-      {skipOuterDnd ? (
-        <div className="space-y-3">{renderItems()}</div>
-      ) : (
-        <DndContext
-          id={dndContextId}
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-            {renderItems()}
-          </SortableContext>
+      <DndContext
+        id={dndContextId}
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={activeSortableIds} strategy={verticalListSortingStrategy}>
+          <div className="space-y-3">{renderMixedItems()}</div>
+        </SortableContext>
 
-          {/* Drag overlay for visual feedback */}
-          <DragOverlay>
-            {activeItem && activeItem.type === 'question' && (
-              <div className="bg-gray-800 border border-indigo-500 rounded-lg p-4 shadow-lg opacity-90">
-                <p className="text-white">{activeItem.question.text}</p>
-              </div>
-            )}
-            {activeItem && activeItem.type === 'batch' && (
-              <div className="bg-gray-800 border border-indigo-500 rounded-lg p-4 shadow-lg opacity-90">
-                <p className="text-white font-medium">{activeItem.batch.name}</p>
-                <p className="text-gray-400 text-sm">
-                  {getBatchQuestions(activeItem.batch.id).length} questions
-                </p>
-              </div>
-            )}
-          </DragOverlay>
-        </DndContext>
-      )}
+        {/* Drag overlay for visual feedback */}
+        <DragOverlay>
+          {activeItem && activeItem.type === 'question' && (
+            <div className="bg-gray-800 border border-indigo-500 rounded-lg p-4 shadow-lg opacity-90">
+              <p className="text-white">{activeItem.question.text}</p>
+            </div>
+          )}
+          {activeItem && activeItem.type === 'batch' && (
+            <div className="bg-gray-800 border border-indigo-500 rounded-lg p-4 shadow-lg opacity-90">
+              <p className="text-white font-medium">{activeItem.batch.name}</p>
+              <p className="text-gray-400 text-sm">
+                {getBatchQuestions(activeItem.batch.id).length} questions
+              </p>
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
 
       {/* Add unbatched question form */}
       {addingUnbatchedQuestion && (
@@ -582,7 +581,7 @@ export function BatchList({
             onClick={() => setAddingUnbatchedQuestion(true)}
             className="flex-1 px-4 py-2 border border-dashed border-gray-600 hover:border-indigo-500 text-gray-400 hover:text-indigo-400 rounded-lg transition-colors"
           >
-            + Add Question
+            + Standalone Question
           </button>
         </div>
       )}

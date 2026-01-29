@@ -14,8 +14,8 @@ interface SessionWithStats extends Session {
 const statusColors: Record<string, string> = {
   draft: 'bg-gray-200 text-gray-700',
   lobby: 'bg-blue-100 text-blue-700',
-  active: 'bg-green-100 text-green-700',
-  ended: 'bg-gray-200 text-gray-500',
+  active: 'bg-yellow-100 text-yellow-700',
+  ended: 'bg-green-100 text-green-700',
 };
 
 export default function AdminList() {
@@ -50,8 +50,11 @@ export default function AdminList() {
           question_count: Array.isArray(session.questions) && session.questions.length > 0
             ? session.questions[0].count
             : 0,
+          // Count unique participants, excluding the session creator (admin)
           participant_count: new Set(
-            (session.votes ?? []).map((v: { participant_id: string }) => v.participant_id)
+            (session.votes ?? [])
+              .filter((v: { participant_id: string }) => v.participant_id !== session.created_by)
+              .map((v: { participant_id: string }) => v.participant_id)
           ).size,
           questions: undefined,
           votes: undefined,

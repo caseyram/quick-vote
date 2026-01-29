@@ -1,28 +1,52 @@
 import { supabase } from './supabase';
-import type { Question, VoteType } from '../types/database';
+import type { Question, Batch, VoteType } from '../types/database';
 
 export interface QuestionTemplate {
   text: string;
   type: VoteType;
   options: string[] | null;
   anonymous: boolean;
+  batchIndex: number | null; // Index into batches array, null = unbatched
+  position: number; // Original position for ordering
+}
+
+export interface BatchTemplate {
+  name: string;
+  position: number;
 }
 
 export interface SavedTemplate {
   name: string;
   questions: QuestionTemplate[];
+  batches: BatchTemplate[];
   createdAt: string;
 }
 
 const STORAGE_KEY = 'quickvote_templates';
 
-export function questionsToTemplates(questions: Question[]): QuestionTemplate[] {
+export function questionsToTemplates(questions: Question[], batches: Batch[]): QuestionTemplate[] {
+  // Create a map from batch_id to index in the batches array (sorted by position)
+  const sortedBatches = [...batches].sort((a, b) => a.position - b.position);
+  const batchIdToIndex = new Map<string, number>();
+  sortedBatches.forEach((b, idx) => batchIdToIndex.set(b.id, idx));
+
   return questions.map((q) => ({
     text: q.text,
     type: q.type,
     options: q.options,
     anonymous: q.anonymous,
+    batchIndex: q.batch_id ? (batchIdToIndex.get(q.batch_id) ?? null) : null,
+    position: q.position,
   }));
+}
+
+export function batchesToTemplates(batches: Batch[]): BatchTemplate[] {
+  return [...batches]
+    .sort((a, b) => a.position - b.position)
+    .map((b) => ({
+      name: b.name,
+      position: b.position,
+    }));
 }
 
 export function templatesToJson(templates: QuestionTemplate[]): string {
@@ -66,6 +90,8 @@ export function jsonToTemplates(json: string): QuestionTemplate[] {
       type: obj.type as VoteType,
       options,
       anonymous: typeof obj.anonymous === 'boolean' ? obj.anonymous : true,
+      batchIndex: typeof obj.batchIndex === 'number' ? obj.batchIndex : null,
+      position: typeof obj.position === 'number' ? obj.position : index,
     };
   });
 }
@@ -74,17 +100,31 @@ export function getSavedTemplates(): SavedTemplate[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as SavedTemplate[];
+    const parsed = JSON.parse(raw) as SavedTemplate[];
+    // Backwards compatibility: add empty batches array if missing, default positions
+    return parsed.map((t) => ({
+      ...t,
+      batches: (t.batches ?? []).map((b, idx) => ({
+        ...b,
+        position: b.position ?? idx,
+      })),
+      questions: t.questions.map((q, idx) => ({
+        ...q,
+        batchIndex: q.batchIndex ?? null,
+        position: q.position ?? idx,
+      })),
+    }));
   } catch {
     return [];
   }
 }
 
-export function saveTemplate(name: string, questions: Question[]): void {
+export function saveTemplate(name: string, questions: Question[], batches: Batch[]): void {
   const templates = getSavedTemplates();
   templates.push({
     name,
-    questions: questionsToTemplates(questions),
+    questions: questionsToTemplates(questions, batches),
+    batches: batchesToTemplates(batches),
     createdAt: new Date().toISOString(),
   });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
@@ -97,24 +137,58 @@ export function deleteTemplate(name: string): void {
 
 export async function bulkInsertQuestions(
   sessionId: string,
-  templates: QuestionTemplate[],
-  startPosition: number
-): Promise<Question[]> {
-  const rows = templates.map((t, i) => ({
+  questionTemplates: QuestionTemplate[],
+  batchTemplates: BatchTemplate[],
+  startQuestionPosition: number,
+  startBatchPosition: number
+): Promise<{ questions: Question[]; batches: Batch[] }> {
+  // 1. Create batches first (if any)
+  const createdBatches: Batch[] = [];
+  if (batchTemplates.length > 0) {
+    const batchRows = batchTemplates.map((b) => ({
+      session_id: sessionId,
+      name: b.name,
+      position: startBatchPosition + b.position,
+      status: 'pending' as const,
+    }));
+
+    const { data: batchData, error: batchError } = await supabase
+      .from('batches')
+      .insert(batchRows)
+      .select();
+
+    if (batchError) throw batchError;
+    createdBatches.push(...(batchData ?? []));
+  }
+
+  // 2. Map batch index to created batch ID (match by sorted order)
+  const sortedCreatedBatches = [...createdBatches].sort((a, b) => a.position - b.position);
+  const batchIndexToId = new Map<number, string>();
+  sortedCreatedBatches.forEach((b, idx) => {
+    batchIndexToId.set(idx, b.id);
+  });
+
+  // 3. Create questions with batch_id references, preserving original positions
+  const questionRows = questionTemplates.map((t) => ({
     session_id: sessionId,
     text: t.text,
     type: t.type,
     options: t.options,
     anonymous: t.anonymous,
-    position: startPosition + i,
+    position: startQuestionPosition + t.position,
     status: 'pending' as const,
+    batch_id: t.batchIndex !== null ? (batchIndexToId.get(t.batchIndex) ?? null) : null,
   }));
 
-  const { data, error } = await supabase
+  const { data: questionData, error: questionError } = await supabase
     .from('questions')
-    .insert(rows)
+    .insert(questionRows)
     .select();
 
-  if (error) throw error;
-  return data ?? [];
+  if (questionError) throw questionError;
+
+  return {
+    questions: questionData ?? [],
+    batches: createdBatches,
+  };
 }

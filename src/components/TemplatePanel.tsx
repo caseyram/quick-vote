@@ -14,6 +14,7 @@ interface TemplatePanelProps {
 
 export function TemplatePanel({ sessionId }: TemplatePanelProps) {
   const questions = useSessionStore((s) => s.questions);
+  const batches = useSessionStore((s) => s.batches);
   const [templates, setTemplates] = useState<SavedTemplate[]>(() => getSavedTemplates());
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,7 +24,7 @@ export function TemplatePanel({ sessionId }: TemplatePanelProps) {
     const trimmed = name.trim();
     if (!trimmed) return;
     if (questions.length === 0) return;
-    saveTemplate(trimmed, questions);
+    saveTemplate(trimmed, questions, batches);
     setTemplates(getSavedTemplates());
     setName('');
   }
@@ -37,11 +38,27 @@ export function TemplatePanel({ sessionId }: TemplatePanelProps) {
     setLoading(true);
     setError(null);
     try {
-      const maxPos = questions.length > 0
+      const maxQuestionPos = questions.length > 0
         ? Math.max(...questions.map((q) => q.position)) + 1
         : 0;
-      const inserted = await bulkInsertQuestions(sessionId, template.questions, maxPos);
-      for (const q of inserted) {
+      const maxBatchPos = batches.length > 0
+        ? Math.max(...batches.map((b) => b.position)) + 1
+        : 0;
+
+      const { questions: insertedQuestions, batches: insertedBatches } = await bulkInsertQuestions(
+        sessionId,
+        template.questions,
+        template.batches,
+        maxQuestionPos,
+        maxBatchPos
+      );
+
+      // Add batches to store first (so questions can reference them)
+      for (const b of insertedBatches) {
+        useSessionStore.getState().addBatch(b);
+      }
+      // Then add questions
+      for (const q of insertedQuestions) {
         useSessionStore.getState().addQuestion(q);
       }
     } catch (err) {
@@ -90,7 +107,8 @@ export function TemplatePanel({ sessionId }: TemplatePanelProps) {
                 <p className="text-sm font-medium text-gray-800 truncate">{t.name}</p>
                 <p className="text-xs text-gray-500">
                   {t.questions.length} question{t.questions.length !== 1 ? 's' : ''}
-                  {' \u00b7 '}
+                  {t.batches.length > 0 && ` · ${t.batches.length} batch${t.batches.length !== 1 ? 'es' : ''}`}
+                  {' · '}
                   {new Date(t.createdAt).toLocaleDateString()}
                 </p>
               </div>

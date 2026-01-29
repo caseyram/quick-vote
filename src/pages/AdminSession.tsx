@@ -47,8 +47,7 @@ export default function AdminSession() {
   const [lastClosedQuestionId, setLastClosedQuestionId] = useState<string | null>(null);
   const [addingQuestionToBatchId, setAddingQuestionToBatchId] = useState<string | null>(null);
   const [pendingBatchId, setPendingBatchId] = useState<string | null>(null);
-  const [lastActiveBatchId, setLastActiveBatchId] = useState<string | null>(null);
-  const [lastBatchQuestionIds, setLastBatchQuestionIds] = useState<string[]>([]);
+  const [resultsViewIndex, setResultsViewIndex] = useState(0);
 
   // Track session ID in a ref for the channel setup callback
   const sessionIdRef = useRef<string | null>(null);
@@ -307,9 +306,22 @@ export default function AdminSession() {
     [questions]
   );
 
+  // Sync resultsViewIndex when a question is closed
+  useEffect(() => {
+    if (lastClosedQuestionId && closedQuestions.length > 0) {
+      const idx = closedQuestions.findIndex((q) => q.id === lastClosedQuestionId);
+      if (idx !== -1) {
+        setResultsViewIndex(idx);
+      }
+    }
+  }, [lastClosedQuestionId, closedQuestions]);
+
   // Derived state for batch activation mode enforcement
   const isLiveQuestionActive = activeQuestion !== null;
   const isBatchActive = activeBatchId !== null;
+
+  // Show progress dashboard only during active batch voting
+  const showProgressDashboard = activeBatchId !== null;
 
   // Compute whether a specific batch can be activated
   function canActivateBatch(batch: Batch): boolean {
@@ -621,8 +633,10 @@ export default function AdminSession() {
     );
     await Promise.all(updates);
 
-    // Optimistic update in store
-    useSessionStore.getState().reorderQuestions(questionIds);
+    // Optimistic update in store - only update positions for these specific questions
+    questionIds.forEach((id, index) => {
+      updateQuestion(id, { position: index });
+    });
   }
 
   async function handleMoveQuestionToBatch(questionId: string, batchId: string | null) {
@@ -691,10 +705,9 @@ export default function AdminSession() {
       return;
     }
 
-    // 3. Update local store and clear last batch state
+    // 3. Update local store
     setActiveBatchId(batchId);
-    setLastActiveBatchId(null);
-    setLastBatchQuestionIds([]);
+    setResultsViewIndex(0);
     useSessionStore.getState().updateBatch(batchId, { status: 'active' });
 
     // 4. Get question IDs for this batch
@@ -735,9 +748,11 @@ export default function AdminSession() {
         }
       }
 
-      // 3. Update local store and capture for post-close display
-      setLastActiveBatchId(batchId);
-      setLastBatchQuestionIds(batchQuestionIds);
+      // 3. Update local store
+      // Set lastClosedQuestionId to first batch question so navigation syncs
+      if (batchQuestionIds.length > 0) {
+        setLastClosedQuestionId(batchQuestionIds[0]);
+      }
       setActiveBatchId(null);
       useSessionStore.getState().updateBatch(batchId, { status: 'closed' });
 
@@ -1075,17 +1090,17 @@ export default function AdminSession() {
             <ParticipantCount count={participantCount} size="default" />
           </div>
 
-          {/* Progress Dashboard - during active batch or showing final stats after close */}
-          {(activeBatchId || lastActiveBatchId) && (
+          {/* Progress Dashboard - only during active batch voting */}
+          {showProgressDashboard && (
             <ProgressDashboard
-              questionIds={activeBatchId ? activeBatchQuestionIds : lastBatchQuestionIds}
+              questionIds={activeBatchQuestionIds}
               participantCount={participantCount}
               voteCounts={questionVoteCounts}
             />
           )}
 
           {/* Hero fills viewport minus header (56px), control bar (56px), and optional dashboard */}
-          <div className="max-w-6xl mx-auto px-6" style={{ height: (activeBatchId || lastActiveBatchId) ? 'calc(100dvh - 12rem)' : 'calc(100dvh - 7rem)' }}>
+          <div className="max-w-6xl mx-auto px-6" style={{ height: showProgressDashboard ? 'calc(100dvh - 12rem)' : 'calc(100dvh - 7rem)' }}>
             {/* Hero active question */}
             {activeQuestion ? (
               <ActiveQuestionHero
@@ -1096,18 +1111,60 @@ export default function AdminSession() {
                 countdownRemaining={countdownRemaining}
                 countdownRunning={countdownRunning}
               />
-            ) : (
-              <div className="h-full flex flex-col">
-                {/* Show last closed question results prominently */}
-                {lastClosedQuestionId ? (() => {
-                  const closedQ = questions.find((q) => q.id === lastClosedQuestionId);
-                  if (!closedQ) return null;
-                  const votes = sessionVotes[closedQ.id] ?? [];
-                  const qIndex = questions.findIndex((q) => q.id === closedQ.id);
-                  return (
+            ) : closedQuestions.length > 0 ? (
+              /* Show closed question results with navigation through ALL closed questions */
+              (() => {
+                // Clamp index to valid range
+                const safeIndex = Math.max(0, Math.min(resultsViewIndex, closedQuestions.length - 1));
+                const currentQuestion = closedQuestions[safeIndex];
+                if (!currentQuestion) return null;
+                const votes = sessionVotes[currentQuestion.id] ?? [];
+                const qIndex = questions.findIndex((q) => q.id === currentQuestion.id);
+
+                // Check if this is a batch question for context display
+                const batch = currentQuestion.batch_id
+                  ? batches.find((b) => b.id === currentQuestion.batch_id)
+                  : null;
+
+                return (
+                  <div className="h-full flex flex-col relative">
+                    {/* Results navigation header */}
+                    <div className="flex items-center justify-between py-3 border-b border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-gray-500">
+                          {batch ? `${batch.name} Results` : 'Results'}
+                        </span>
+                        <span className="text-sm text-gray-400">
+                          Question {safeIndex + 1} of {closedQuestions.length}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setResultsViewIndex((i) => Math.max(0, i - 1))}
+                          disabled={safeIndex === 0}
+                          className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          aria-label="Previous question"
+                        >
+                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => setResultsViewIndex((i) => Math.min(closedQuestions.length - 1, i + 1))}
+                          disabled={safeIndex === closedQuestions.length - 1}
+                          className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          aria-label="Next question"
+                        >
+                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                    {/* Question results */}
                     <div className="flex-1 min-h-0">
                       <ActiveQuestionHero
-                        question={closedQ}
+                        question={currentQuestion}
                         questionIndex={qIndex}
                         totalQuestions={questions.length}
                         votes={votes}
@@ -1115,20 +1172,22 @@ export default function AdminSession() {
                         countdownRunning={false}
                       />
                     </div>
-                  );
-                })() : (
-                  /* Waiting state - prompt to use control bar */
-                  <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center space-y-2">
-                      <p className="text-xl text-gray-400">
-                        Ready for questions
-                      </p>
-                      <p className="text-sm text-gray-300">
-                        Use the control bar below to add questions
-                      </p>
-                    </div>
                   </div>
-                )}
+                );
+              })()
+            ) : (
+              /* Waiting state - prompt to use control bar */
+              <div className="h-full flex flex-col">
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center space-y-2">
+                    <p className="text-xl text-gray-400">
+                      Ready for questions
+                    </p>
+                    <p className="text-sm text-gray-300">
+                      Use the control bar below to add questions
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -1204,7 +1263,7 @@ export default function AdminSession() {
               </a>
               <div>
                 <a
-                  href="/admin"
+                  href="/"
                   className="text-indigo-600 hover:text-indigo-500 text-sm font-medium"
                 >
                   View All Sessions →
@@ -1273,7 +1332,7 @@ function ActiveQuestionHero({
   countdownRemaining: number;
   countdownRunning: boolean;
 }) {
-  const [reasonsExpanded, setReasonsExpanded] = useState(false);
+  const [reasonsCollapsed, setReasonsCollapsed] = useState(false);
   const aggregated = useMemo(() => aggregateVotes(votes), [votes]);
   const barData = useMemo(() => {
     return aggregated.map((vc, index) => {
@@ -1338,22 +1397,22 @@ function ActiveQuestionHero({
 
       {/* Bar chart fills remaining space when voting is closed */}
       {isClosed && aggregated.length > 0 && (
-        <div className={`mt-4 mx-auto w-full max-w-4xl ${reasonsExpanded ? 'h-48 shrink-0' : 'flex-1 min-h-0'}`}>
+        <div className={`mt-4 mx-auto w-full max-w-4xl ${!reasonsCollapsed ? 'h-48 shrink-0' : 'flex-1 min-h-0'}`}>
           <BarChart data={barData} totalVotes={votes.length} size="fill" theme="light" />
         </div>
       )}
 
-      {/* Expandable reasons panel — grouped under bar columns */}
+      {/* Reasons panel — shown by default when closed, grouped under bar columns */}
       {isClosed && totalReasons > 0 && (
         <div className="shrink-0 mt-3">
           <button
-            onClick={() => setReasonsExpanded((prev) => !prev)}
+            onClick={() => setReasonsCollapsed((prev) => !prev)}
             className="text-lg font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
           >
-            {reasonsExpanded ? 'Hide' : 'Show'} Reasons ({totalReasons})
-            <span className="ml-1">{reasonsExpanded ? '\u25B2' : '\u25BC'}</span>
+            {reasonsCollapsed ? 'Show' : 'Hide'} Reasons ({totalReasons})
+            <span className="ml-1">{reasonsCollapsed ? '\u25BC' : '\u25B2'}</span>
           </button>
-          {reasonsExpanded && (
+          {!reasonsCollapsed && (
             <div className="mt-3 max-h-[35vh] overflow-y-auto">
               <div className="flex gap-6 justify-center max-w-6xl mx-auto px-4">
                 {reasonsByColumn.map((col) => (
