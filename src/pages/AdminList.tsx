@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { nanoid } from 'nanoid';
 import { supabase } from '../lib/supabase';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { exportSession, downloadJSON, generateExportFilename } from '../lib/session-export';
 import type { Session } from '../types/database';
 
 interface SessionWithStats extends Session {
@@ -26,6 +27,7 @@ export default function AdminList() {
   const [deleteTarget, setDeleteTarget] = useState<SessionWithStats | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [exporting, setExporting] = useState<string | null>(null);
 
   // Fetch sessions with stats
   useEffect(() => {
@@ -108,6 +110,18 @@ export default function AdminList() {
     }
   }
 
+  // Export session
+  async function handleExport(session: SessionWithStats) {
+    setExporting(session.session_id);
+    try {
+      const data = await exportSession(session.session_id);
+      const filename = generateExportFilename(session.title);
+      downloadJSON(data, filename);
+    } finally {
+      setExporting(null);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -182,10 +196,17 @@ export default function AdminList() {
                       Open
                     </button>
                     <button
-                      onClick={() => {/* Export will be wired in Plan 03 */}}
-                      className="px-2.5 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                      onClick={() => navigate(`/admin/review/${session.session_id}`)}
+                      className="px-2.5 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
                     >
-                      Export
+                      Review
+                    </button>
+                    <button
+                      onClick={() => handleExport(session)}
+                      disabled={exporting === session.session_id}
+                      className="px-2.5 py-1 text-xs font-medium text-emerald-600 hover:text-emerald-500 disabled:text-gray-400 transition-colors"
+                    >
+                      {exporting === session.session_id ? 'Exporting...' : 'Export'}
                     </button>
                     <button
                       onClick={() => setDeleteTarget(session)}
