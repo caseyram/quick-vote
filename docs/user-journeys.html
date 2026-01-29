@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickVote - Critical User Journeys</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-yellow: #eab308;
+            --accent-red: #ef4444;
+            --accent-purple: #a855f7;
+            --accent-cyan: #06b6d4;
+            --border: #475569;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h2::before {
+            content: '';
+            width: 4px;
+            height: 1.5rem;
+            background: var(--accent-blue);
+            border-radius: 2px;
+        }
+
+        h3 {
+            font-size: 1.2rem;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--text-primary);
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .journey-card {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .journey-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .journey-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .journey-title {
+            flex: 1;
+        }
+
+        .journey-title h4 {
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .journey-title span {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .journey-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-critical { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .badge-important { background: rgba(234, 179, 8, 0.2); color: var(--accent-yellow); }
+        .badge-standard { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+
+        .flow-container {
+            margin: 1.5rem 0;
+            overflow-x: auto;
+        }
+
+        .flow {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            min-width: max-content;
+        }
+
+        .flow-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 140px;
+        }
+
+        .step-box {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            text-align: center;
+            width: 130px;
+            transition: all 0.2s;
+        }
+
+        .step-box:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .step-number {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .step-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .step-actor {
+            font-size: 0.7rem;
+            color: var(--accent-cyan);
+        }
+
+        .flow-arrow {
+            display: flex;
+            align-items: center;
+            padding: 0 0.5rem;
+            color: var(--accent-blue);
+            font-size: 1.2rem;
+        }
+
+        .step-details {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 130px;
+        }
+
+        .decision-point {
+            background: rgba(234, 179, 8, 0.1);
+            border-color: var(--accent-yellow);
+        }
+
+        .decision-point .step-actor {
+            color: var(--accent-yellow);
+        }
+
+        .success-point {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: var(--accent-green);
+        }
+
+        .success-point .step-actor {
+            color: var(--accent-green);
+        }
+
+        .error-point {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--accent-red);
+        }
+
+        .error-point .step-actor {
+            color: var(--accent-red);
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .metric {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .touchpoints {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .touchpoint {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        .touchpoint-label {
+            color: var(--text-secondary);
+            margin-right: 0.5rem;
+        }
+
+        .touchpoint-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
+
+        .alt-paths {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .alt-paths h5 {
+            color: var(--accent-blue);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .alt-paths ul {
+            margin-left: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .alt-paths li {
+            margin-bottom: 0.25rem;
+        }
+
+        .error-scenarios {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .error-scenarios h5 {
+            color: var(--accent-red);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .error-scenarios ul {
+            margin-left: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .persona {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .persona-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .persona-info h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .persona-info p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        .nav-link {
+            display: inline-block;
+            margin-top: 1rem;
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Critical User Journeys</h1>
+            <p class="subtitle">End-to-end user flows through QuickVote</p>
+            <a href="index.html" class="nav-link">← Back to Documentation</a>
+        </header>
+
+        <!-- User Personas -->
+        <section class="section">
+            <h2>User Personas</h2>
+            <p>QuickVote serves two primary user types with distinct goals and interaction patterns.</p>
+
+            <div class="persona">
+                <div class="persona-avatar" style="background: linear-gradient(135deg, #a855f7, #7c3aed);">👨‍🏫</div>
+                <div class="persona-info">
+                    <h4>Admin (Session Creator)</h4>
+                    <p>Presenters, teachers, meeting facilitators who create and control voting sessions. They manage questions, control timing, and view results on a projected screen.</p>
+                </div>
+            </div>
+
+            <div class="persona">
+                <div class="persona-avatar" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">📱</div>
+                <div class="persona-info">
+                    <h4>Participant (Voter)</h4>
+                    <p>Audience members who join sessions via QR code or link on their mobile devices. They vote on questions and optionally provide reasons for their choices.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Journey 1: Create and Run a Session -->
+        <section class="section">
+            <h2>Journey 1: Create and Run a Live Session</h2>
+
+            <div class="journey-card">
+                <div class="journey-header">
+                    <div class="journey-icon" style="background: linear-gradient(135deg, #a855f7, #7c3aed);">🎯</div>
+                    <div class="journey-title">
+                        <h4>Admin: Complete Session Lifecycle</h4>
+                        <span>From session creation to viewing final results</span>
+                    </div>
+                    <span class="journey-badge badge-critical">Critical Path</span>
+                </div>
+
+                <div class="flow-container">
+                    <div class="flow">
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 1</div>
+                                <div class="step-title">Create Session</div>
+                                <div class="step-actor">Home Page</div>
+                            </div>
+                            <div class="step-details">Click "New Session" button</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 2</div>
+                                <div class="step-title">Add Questions</div>
+                                <div class="step-actor">Admin Dashboard</div>
+                            </div>
+                            <div class="step-details">Create or import questions</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box decision-point">
+                                <div class="step-number">Step 3</div>
+                                <div class="step-title">Open Lobby</div>
+                                <div class="step-actor">Decision</div>
+                            </div>
+                            <div class="step-details">Display QR code for joining</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 4</div>
+                                <div class="step-title">Start Session</div>
+                                <div class="step-actor">Admin Dashboard</div>
+                            </div>
+                            <div class="step-details">Begin accepting votes</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 5</div>
+                                <div class="step-title">Activate Question</div>
+                                <div class="step-actor">Admin Dashboard</div>
+                            </div>
+                            <div class="step-details">Push to participants</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 6</div>
+                                <div class="step-title">Monitor Votes</div>
+                                <div class="step-actor">Live Bar Chart</div>
+                            </div>
+                            <div class="step-details">Watch real-time results</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 7</div>
+                                <div class="step-title">Close Question</div>
+                                <div class="step-actor">Admin Dashboard</div>
+                            </div>
+                            <div class="step-details">Lock voting, show results</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box success-point">
+                                <div class="step-number">Step 8</div>
+                                <div class="step-title">End Session</div>
+                                <div class="step-actor">Complete</div>
+                            </div>
+                            <div class="step-details">Export or review results</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value">~2 min</div>
+                        <div class="metric-label">Setup Time</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">8</div>
+                        <div class="metric-label">Steps to Complete</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">3</div>
+                        <div class="metric-label">Page Transitions</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">Real-time</div>
+                        <div class="metric-label">Vote Updates</div>
+                    </div>
+                </div>
+
+                <div class="touchpoints">
+                    <div class="touchpoint">
+                        <span class="touchpoint-label">Entry:</span>
+                        <span class="touchpoint-value">Home Page</span>
+                    </div>
+                    <div class="touchpoint">
+                        <span class="touchpoint-label">Primary Screen:</span>
+                        <span class="touchpoint-value">Admin Dashboard</span>
+                    </div>
+                    <div class="touchpoint">
+                        <span class="touchpoint-label">Exit:</span>
+                        <span class="touchpoint-value">Session Review / Export</span>
+                    </div>
+                </div>
+
+                <div class="alt-paths">
+                    <h5>Alternative Paths</h5>
+                    <ul>
+                        <li><strong>Import questions:</strong> Load from JSON template instead of manual creation</li>
+                        <li><strong>Clone session:</strong> Copy questions from a previous session</li>
+                        <li><strong>Batch voting:</strong> Group questions for carousel-style voting</li>
+                        <li><strong>On-the-fly question:</strong> Add questions mid-session</li>
+                    </ul>
+                </div>
+
+                <div class="error-scenarios">
+                    <h5>Error Scenarios</h5>
+                    <ul>
+                        <li><strong>Lost connection:</strong> Auto-reconnect with 10s grace period</li>
+                        <li><strong>No participants:</strong> Session continues, admin can wait</li>
+                        <li><strong>Browser refresh:</strong> State restored from Supabase</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Journey 2: Participant Voting -->
+        <section class="section">
+            <h2>Journey 2: Join and Vote in a Session</h2>
+
+            <div class="journey-card">
+                <div class="journey-header">
+                    <div class="journey-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">📱</div>
+                    <div class="journey-title">
+                        <h4>Participant: Mobile Voting Experience</h4>
+                        <span>From QR scan to submitting votes</span>
+                    </div>
+                    <span class="journey-badge badge-critical">Critical Path</span>
+                </div>
+
+                <div class="flow-container">
+                    <div class="flow">
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 1</div>
+                                <div class="step-title">Scan QR Code</div>
+                                <div class="step-actor">Phone Camera</div>
+                            </div>
+                            <div class="step-details">Or tap shared link</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 2</div>
+                                <div class="step-title">Auto Auth</div>
+                                <div class="step-actor">Background</div>
+                            </div>
+                            <div class="step-details">Anonymous JWT issued</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 3</div>
+                                <div class="step-title">Join Lobby</div>
+                                <div class="step-actor">Waiting Screen</div>
+                            </div>
+                            <div class="step-details">Wait for session start</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 4</div>
+                                <div class="step-title">Receive Question</div>
+                                <div class="step-actor">WebSocket Push</div>
+                            </div>
+                            <div class="step-details">Admin activates question</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 5</div>
+                                <div class="step-title">Select Answer</div>
+                                <div class="step-actor">Vote UI</div>
+                            </div>
+                            <div class="step-details">Tap option + haptic</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box success-point">
+                                <div class="step-number">Step 6</div>
+                                <div class="step-title">Vote Confirmed</div>
+                                <div class="step-actor">Complete</div>
+                            </div>
+                            <div class="step-details">Wait for next question</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value">&lt;5 sec</div>
+                        <div class="metric-label">Time to Join</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">1 tap</div>
+                        <div class="metric-label">To Vote</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">0</div>
+                        <div class="metric-label">Forms to Fill</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">0</div>
+                        <div class="metric-label">Account Required</div>
+                    </div>
+                </div>
+
+                <div class="alt-paths">
+                    <h5>Alternative Paths</h5>
+                    <ul>
+                        <li><strong>Add reason:</strong> Optional text explanation for vote choice</li>
+                        <li><strong>Change vote:</strong> Tap different option before question closes</li>
+                        <li><strong>Batch voting:</strong> Swipe through carousel of questions</li>
+                    </ul>
+                </div>
+
+                <div class="error-scenarios">
+                    <h5>Error Scenarios</h5>
+                    <ul>
+                        <li><strong>Invalid session:</strong> "Session not found" message</li>
+                        <li><strong>Session ended:</strong> Redirect to results or home</li>
+                        <li><strong>Connection lost:</strong> Auto-reconnect, presence grace period</li>
+                        <li><strong>Vote after close:</strong> Rejected by RLS, UI shows closed state</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Journey 3: Batch Voting -->
+        <section class="section">
+            <h2>Journey 3: Batch Question Voting</h2>
+
+            <div class="journey-card">
+                <div class="journey-header">
+                    <div class="journey-icon" style="background: linear-gradient(135deg, #eab308, #ca8a04);">📋</div>
+                    <div class="journey-title">
+                        <h4>Participant: Carousel Batch Experience</h4>
+                        <span>Answer multiple questions in sequence</span>
+                    </div>
+                    <span class="journey-badge badge-important">Important Flow</span>
+                </div>
+
+                <div class="flow-container">
+                    <div class="flow">
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 1</div>
+                                <div class="step-title">Batch Activated</div>
+                                <div class="step-actor">Admin Push</div>
+                            </div>
+                            <div class="step-details">Receive batch event</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 2</div>
+                                <div class="step-title">View Carousel</div>
+                                <div class="step-actor">Swipe UI</div>
+                            </div>
+                            <div class="step-details">See first question</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 3</div>
+                                <div class="step-title">Answer Q1</div>
+                                <div class="step-actor">Tap Option</div>
+                            </div>
+                            <div class="step-details">Select + auto-advance</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 4</div>
+                                <div class="step-title">Swipe Through</div>
+                                <div class="step-actor">Gesture Nav</div>
+                            </div>
+                            <div class="step-details">Answer remaining Qs</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box decision-point">
+                                <div class="step-number">Step 5</div>
+                                <div class="step-title">Review Answers</div>
+                                <div class="step-actor">Summary</div>
+                            </div>
+                            <div class="step-details">See all selections</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box success-point">
+                                <div class="step-number">Step 6</div>
+                                <div class="step-title">Submit All</div>
+                                <div class="step-actor">Batch Complete</div>
+                            </div>
+                            <div class="step-details">Parallel upserts</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alt-paths">
+                    <h5>Alternative Paths</h5>
+                    <ul>
+                        <li><strong>Skip question:</strong> Swipe past without selecting</li>
+                        <li><strong>Go back:</strong> Swipe backward to change previous answer</li>
+                        <li><strong>Progress dots:</strong> Tap dots to jump to specific question</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Journey 4: Resume Draft Session -->
+        <section class="section">
+            <h2>Journey 4: Resume a Draft Session</h2>
+
+            <div class="journey-card">
+                <div class="journey-header">
+                    <div class="journey-icon" style="background: linear-gradient(135deg, #22c55e, #16a34a);">📝</div>
+                    <div class="journey-title">
+                        <h4>Admin: Continue Previous Work</h4>
+                        <span>Return to an unfinished session</span>
+                    </div>
+                    <span class="journey-badge badge-standard">Standard Flow</span>
+                </div>
+
+                <div class="flow-container">
+                    <div class="flow">
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 1</div>
+                                <div class="step-title">View Past Sessions</div>
+                                <div class="step-actor">Home Page</div>
+                            </div>
+                            <div class="step-details">Click "Past Sessions"</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 2</div>
+                                <div class="step-title">Find Draft</div>
+                                <div class="step-actor">Session List</div>
+                            </div>
+                            <div class="step-details">Filter by status</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 3</div>
+                                <div class="step-title">Click Resume</div>
+                                <div class="step-actor">Action Button</div>
+                            </div>
+                            <div class="step-details">Load session state</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box success-point">
+                                <div class="step-number">Step 4</div>
+                                <div class="step-title">Admin Dashboard</div>
+                                <div class="step-actor">Ready</div>
+                            </div>
+                            <div class="step-details">Continue editing</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Journey 5: Clone Session -->
+        <section class="section">
+            <h2>Journey 5: Clone a Past Session</h2>
+
+            <div class="journey-card">
+                <div class="journey-header">
+                    <div class="journey-icon" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">📄</div>
+                    <div class="journey-title">
+                        <h4>Admin: Reuse Questions</h4>
+                        <span>Create new session from existing questions</span>
+                    </div>
+                    <span class="journey-badge badge-standard">Standard Flow</span>
+                </div>
+
+                <div class="flow-container">
+                    <div class="flow">
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 1</div>
+                                <div class="step-title">Past Sessions</div>
+                                <div class="step-actor">Home Page</div>
+                            </div>
+                            <div class="step-details">Browse history</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 2</div>
+                                <div class="step-title">Select Session</div>
+                                <div class="step-actor">Session Card</div>
+                            </div>
+                            <div class="step-details">Find source session</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 3</div>
+                                <div class="step-title">Click Clone</div>
+                                <div class="step-actor">Action Menu</div>
+                            </div>
+                            <div class="step-details">Copy questions only</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box success-point">
+                                <div class="step-number">Step 4</div>
+                                <div class="step-title">New Session</div>
+                                <div class="step-actor">Draft Ready</div>
+                            </div>
+                            <div class="step-details">Edit and customize</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Journey 6: Export/Import -->
+        <section class="section">
+            <h2>Journey 6: Export and Import Sessions</h2>
+
+            <div class="journey-card">
+                <div class="journey-header">
+                    <div class="journey-icon" style="background: linear-gradient(135deg, #ec4899, #db2777);">💾</div>
+                    <div class="journey-title">
+                        <h4>Admin: Template Management</h4>
+                        <span>Save and share session templates</span>
+                    </div>
+                    <span class="journey-badge badge-standard">Standard Flow</span>
+                </div>
+
+                <h3>Export Flow</h3>
+                <div class="flow-container">
+                    <div class="flow">
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 1</div>
+                                <div class="step-title">Open Session</div>
+                                <div class="step-actor">Admin Dashboard</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 2</div>
+                                <div class="step-title">Click Export</div>
+                                <div class="step-actor">Session Menu</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box success-point">
+                                <div class="step-number">Step 3</div>
+                                <div class="step-title">Download JSON</div>
+                                <div class="step-actor">File Saved</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Import Flow</h3>
+                <div class="flow-container">
+                    <div class="flow">
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 1</div>
+                                <div class="step-title">Create Session</div>
+                                <div class="step-actor">Home Page</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 2</div>
+                                <div class="step-title">Click Import</div>
+                                <div class="step-actor">Admin Dashboard</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 3</div>
+                                <div class="step-title">Select File</div>
+                                <div class="step-actor">File Picker</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 4</div>
+                                <div class="step-title">Validate JSON</div>
+                                <div class="step-actor">Zod Schema</div>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box success-point">
+                                <div class="step-number">Step 5</div>
+                                <div class="step-title">Questions Added</div>
+                                <div class="step-actor">Ready</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Journey Summary -->
+        <section class="section">
+            <h2>Journey Summary</h2>
+
+            <table>
+                <tr>
+                    <th>Journey</th>
+                    <th>User</th>
+                    <th>Priority</th>
+                    <th>Steps</th>
+                    <th>Key Metric</th>
+                </tr>
+                <tr>
+                    <td>Create & Run Session</td>
+                    <td>Admin</td>
+                    <td><span class="journey-badge badge-critical">Critical</span></td>
+                    <td>8</td>
+                    <td>Setup in &lt;2 min</td>
+                </tr>
+                <tr>
+                    <td>Join & Vote</td>
+                    <td>Participant</td>
+                    <td><span class="journey-badge badge-critical">Critical</span></td>
+                    <td>6</td>
+                    <td>Join in &lt;5 sec</td>
+                </tr>
+                <tr>
+                    <td>Batch Voting</td>
+                    <td>Participant</td>
+                    <td><span class="journey-badge badge-important">Important</span></td>
+                    <td>6</td>
+                    <td>1 swipe per Q</td>
+                </tr>
+                <tr>
+                    <td>Resume Draft</td>
+                    <td>Admin</td>
+                    <td><span class="journey-badge badge-standard">Standard</span></td>
+                    <td>4</td>
+                    <td>2 clicks to resume</td>
+                </tr>
+                <tr>
+                    <td>Clone Session</td>
+                    <td>Admin</td>
+                    <td><span class="journey-badge badge-standard">Standard</span></td>
+                    <td>4</td>
+                    <td>Instant copy</td>
+                </tr>
+                <tr>
+                    <td>Export/Import</td>
+                    <td>Admin</td>
+                    <td><span class="journey-badge badge-standard">Standard</span></td>
+                    <td>3-5</td>
+                    <td>JSON validated</td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- Key Touchpoints -->
+        <section class="section">
+            <h2>Key UI Touchpoints</h2>
+
+            <table>
+                <tr>
+                    <th>Screen</th>
+                    <th>Role</th>
+                    <th>Primary Actions</th>
+                    <th>Critical For</th>
+                </tr>
+                <tr>
+                    <td>Home Page</td>
+                    <td>Admin</td>
+                    <td>Create session, view past sessions</td>
+                    <td>Entry point</td>
+                </tr>
+                <tr>
+                    <td>Admin Dashboard</td>
+                    <td>Admin</td>
+                    <td>Manage questions, control session flow, view results</td>
+                    <td>All admin journeys</td>
+                </tr>
+                <tr>
+                    <td>QR Code Modal</td>
+                    <td>Admin</td>
+                    <td>Display join code for projection</td>
+                    <td>Participant onboarding</td>
+                </tr>
+                <tr>
+                    <td>Participant Lobby</td>
+                    <td>Participant</td>
+                    <td>Wait for session, see status</td>
+                    <td>Pre-vote experience</td>
+                </tr>
+                <tr>
+                    <td>Vote Screen</td>
+                    <td>Participant</td>
+                    <td>Select answer, add reason</td>
+                    <td>Core voting action</td>
+                </tr>
+                <tr>
+                    <td>Batch Carousel</td>
+                    <td>Participant</td>
+                    <td>Swipe through questions</td>
+                    <td>Batch voting</td>
+                </tr>
+                <tr>
+                    <td>Results Bar Chart</td>
+                    <td>Both</td>
+                    <td>View vote distribution</td>
+                    <td>Feedback loop</td>
+                </tr>
+            </table>
+        </section>
+
+        <footer>
+            <p>QuickVote User Journeys v1.0</p>
+            <p><a href="index.html">← Back to Documentation</a> · <a href="threat-model.html">Threat Model</a></p>
+        </footer>
+    </div>
+</body>
+</html>
