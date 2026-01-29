@@ -10,11 +10,11 @@
 
 **Milestone:** v1.1 — Batch Questions & Polish
 **Phase:** 9 of 10 (Session Management) - In Progress
-**Plan:** 4 of 5 complete
-**Status:** Phase 9 in progress, 09-04 complete
-**Last activity:** 2026-01-29 — Completed 09-04-PLAN.md
+**Plan:** 5 of 5 complete (Wave 2 done)
+**Status:** Phase 9 complete pending verification
+**Last activity:** 2026-01-29 — Completed 09-03-PLAN.md
 
-Progress: [##################..] 88% (v1.0 complete, Phases 6-8 verified, 09-01 to 09-04 done)
+Progress: [##################..] 90% (v1.0 complete, Phases 6-8 verified, 09-01 to 09-04 done, 09-03 done)
 
 ## Milestone History
 
@@ -30,7 +30,7 @@ Progress: [##################..] 88% (v1.0 complete, Phases 6-8 verified, 09-01 
 | 6 | Batch Schema & UI | BATCH-01, BATCH-02 | Verified |
 | 7 | Batch Activation | BATCH-03 | Verified |
 | 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | Verified (7/7 must-haves) |
-| 9 | Session Management | SESS-01 to SESS-05 | In Progress (4/5 plans) |
+| 9 | Session Management | SESS-01 to SESS-05 | Complete (5/5 plans) |
 | 10 | Progress Dashboard & Results Polish | PROG-01 to PROG-04, RESL-01 to RESL-04 | Not started |
 
 ## Performance Metrics
@@ -41,7 +41,7 @@ Progress: [##################..] 88% (v1.0 complete, Phases 6-8 verified, 09-01 
 - Total execution time: ~6.5 hours
 
 **v1.1 Metrics:**
-- Plans completed: 13
+- Plans completed: 14
 - Total phases: 5
 - Requirements: 23
 
@@ -69,6 +69,16 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 - dnd-kit for drag-and-drop (utilities v3.2.2 is latest, not v4.x)
 - Drag handle only pattern - listeners on grip icon, not entire card
 - Accordion state local to BatchList (not global store)
+
+### From 09-03 Summary
+
+Session review and export wiring:
+- SessionReview page at /admin/review/:sessionId with batch-grouped results
+- Questions grouped by batch then unbatched at end
+- BarChart and collapsible reasons per question
+- Review button in AdminList navigates to review page
+- Export button in AdminList wired to exportSession
+- Export button in SessionReview for export while reviewing
 
 ### From 09-02 Summary
 
@@ -125,10 +135,10 @@ Keyboard navigation and completion feedback:
 
 ## Session Continuity
 
-**Last session:** 2026-01-29 — Completed 09-02-PLAN.md
-**Next action:** Execute 09-05-PLAN.md (final plan in phase 9)
+**Last session:** 2026-01-29 — Completed 09-03-PLAN.md
+**Next action:** Verify Phase 9 complete, proceed to Phase 10
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-29 — Completed 09-02 (session export library)*
+*Updated: 2026-01-29 — Completed 09-03 (session review and export wiring)*
