@@ -38,9 +38,7 @@ describe('PastSessions', () => {
     mockFrom.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          order: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue({ data: [] }),
-          }),
+          order: vi.fn().mockResolvedValue({ data: [] }),
         }),
       }),
     });
@@ -57,16 +55,15 @@ describe('PastSessions', () => {
     mockFrom.mockReturnValue({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
-          order: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue({
-              data: [
-                {
-                  id: '1', session_id: 'sid1', admin_token: 'at1', title: 'Past Session',
-                  status: 'ended', created_at: '2024-06-01T00:00:00Z',
-                  questions: [{ count: 3 }],
-                },
-              ],
-            }),
+          order: vi.fn().mockResolvedValue({
+            data: [
+              {
+                id: '1', session_id: 'sid1', admin_token: 'at1', title: 'Past Session',
+                status: 'ended', created_at: '2024-06-01T00:00:00Z', created_by: 'u1',
+                questions: [{ count: 3 }],
+                votes: [],
+              },
+            ],
           }),
         }),
       }),

@@ -137,6 +137,12 @@ const mockSetError = vi.fn();
 const mockUpdateQuestion = vi.fn();
 const mockReset = vi.fn();
 const mockAddQuestion = vi.fn();
+const mockSetBatches = vi.fn();
+const mockAddBatch = vi.fn();
+const mockUpdateBatch = vi.fn();
+const mockRemoveBatch = vi.fn();
+const mockSetActiveBatchId = vi.fn();
+const mockSetBatchQuestions = vi.fn();
 
 let mockStoreState: any = {};
 
@@ -144,6 +150,7 @@ function defaultStoreState(overrides: Record<string, any> = {}) {
   return {
     session: null,
     questions: [],
+    batches: [],
     loading: true,
     error: null,
     setSession: mockSetSession,
@@ -153,6 +160,14 @@ function defaultStoreState(overrides: Record<string, any> = {}) {
     updateQuestion: mockUpdateQuestion,
     reset: mockReset,
     addQuestion: mockAddQuestion,
+    setBatches: mockSetBatches,
+    addBatch: mockAddBatch,
+    updateBatch: mockUpdateBatch,
+    removeBatch: mockRemoveBatch,
+    activeBatchId: null,
+    setActiveBatchId: mockSetActiveBatchId,
+    batchQuestions: [],
+    setBatchQuestions: mockSetBatchQuestions,
     ...overrides,
   };
 }
@@ -257,12 +272,20 @@ vi.mock('../components/AdminControlBar', () => ({
   },
 }));
 
-vi.mock('../components/ImportExportPanel', () => ({
-  ImportExportPanel: () => <div data-testid="import-export-panel">ImportExportPanel</div>,
+vi.mock('../components/SessionImportExport', () => ({
+  SessionImportExport: () => <div data-testid="session-import-export">SessionImportExport</div>,
 }));
 
 vi.mock('../components/TemplatePanel', () => ({
   TemplatePanel: () => <div data-testid="template-panel">TemplatePanel</div>,
+}));
+
+vi.mock('../components/BatchList', () => ({
+  BatchList: () => <div data-testid="batch-list">BatchList</div>,
+}));
+
+vi.mock('../components/ProgressDashboard', () => ({
+  ProgressDashboard: () => <div data-testid="progress-dashboard">ProgressDashboard</div>,
 }));
 
 vi.mock('../components/BarChart', () => ({
@@ -408,8 +431,8 @@ describe('AdminSession', () => {
     render(<AdminSession />);
 
     expect(screen.getByText('Test Session')).toBeDefined();
-    // Active view with no active question shows quick-question prompt
-    expect(screen.getByText('Type a question to go live')).toBeDefined();
+    // Active view with no active question shows ready prompt
+    expect(screen.getByText('Ready for questions')).toBeDefined();
   });
 
   // -----------------------------------------------------------------------
@@ -450,7 +473,7 @@ describe('AdminSession', () => {
   // -----------------------------------------------------------------------
   // 9. Draft view shows Questions section and QuestionForm
   // -----------------------------------------------------------------------
-  it('draft view shows Questions section and QuestionForm', () => {
+  it('draft view shows Questions & Batches section and BatchList', () => {
     mockStoreState = defaultStoreState({
       loading: false,
       session: makeSession({ status: 'draft' }),
@@ -459,9 +482,8 @@ describe('AdminSession', () => {
 
     render(<AdminSession />);
 
-    expect(screen.getByText('Questions')).toBeDefined();
-    expect(screen.getByTestId('question-form')).toBeDefined();
-    expect(screen.getByTestId('question-list')).toBeDefined();
+    expect(screen.getByText('Questions & Batches')).toBeDefined();
+    expect(screen.getByTestId('batch-list')).toBeDefined();
   });
 
   // -----------------------------------------------------------------------
@@ -681,7 +703,7 @@ describe('AdminSession', () => {
   // -----------------------------------------------------------------------
   // 19. Draft view shows ImportExportPanel and TemplatePanel
   // -----------------------------------------------------------------------
-  it('draft view shows ImportExportPanel and TemplatePanel', () => {
+  it('draft view shows SessionImportExport and TemplatePanel', () => {
     mockStoreState = defaultStoreState({
       loading: false,
       session: makeSession({ status: 'draft' }),
@@ -690,17 +712,17 @@ describe('AdminSession', () => {
 
     render(<AdminSession />);
 
-    expect(screen.getByTestId('import-export-panel')).toBeDefined();
+    expect(screen.getByTestId('session-import-export')).toBeDefined();
     expect(screen.getByTestId('template-panel')).toBeDefined();
   });
 
   // -----------------------------------------------------------------------
   // 20. ConnectionBanner shows in non-ended states
   // -----------------------------------------------------------------------
-  it('shows ConnectionBanner in draft view', () => {
+  it('shows ConnectionBanner in live (lobby/active) views', () => {
     mockStoreState = defaultStoreState({
       loading: false,
-      session: makeSession({ status: 'draft' }),
+      session: makeSession({ status: 'lobby' }),
       questions: [],
     });
 
@@ -775,9 +797,9 @@ describe('AdminSession', () => {
   });
 
   // -----------------------------------------------------------------------
-  // 24. Active view with no active question shows quick question input
+  // 24. Active view with no active question shows ready state
   // -----------------------------------------------------------------------
-  it('shows quick question input when active but no question active', () => {
+  it('shows ready state when active but no question active', () => {
     mockStoreState = defaultStoreState({
       loading: false,
       session: makeSession({ status: 'active' }),
@@ -786,9 +808,8 @@ describe('AdminSession', () => {
 
     render(<AdminSession />);
 
-    expect(screen.getByText('Type a question to go live')).toBeDefined();
-    expect(screen.getByPlaceholderText('Enter your question...')).toBeDefined();
-    expect(screen.getByText('Go Live')).toBeDefined();
+    expect(screen.getByText('Ready for questions')).toBeDefined();
+    expect(screen.getByText('Use the control bar below to add questions')).toBeDefined();
   });
 
   // -----------------------------------------------------------------------
@@ -815,7 +836,7 @@ describe('AdminSession', () => {
   // -----------------------------------------------------------------------
   // 26. Draft view with questions shows question settings
   // -----------------------------------------------------------------------
-  it('shows question settings when questions exist in draft', () => {
+  it('shows BatchList when questions exist in draft', () => {
     const q1 = makeQuestion({ id: 'q-1', text: 'First question', anonymous: false });
     const q2 = makeQuestion({ id: 'q-2', text: 'Second question', anonymous: true, position: 1 });
 
@@ -827,11 +848,9 @@ describe('AdminSession', () => {
 
     render(<AdminSession />);
 
-    expect(screen.getByText('Question Settings')).toBeDefined();
-    expect(screen.getByText('First question')).toBeDefined();
-    expect(screen.getByText('Second question')).toBeDefined();
-    expect(screen.getByText('Named')).toBeDefined();
-    expect(screen.getByText('Anonymous')).toBeDefined();
+    // Questions and batches are now managed via BatchList
+    expect(screen.getByTestId('batch-list')).toBeDefined();
+    expect(screen.getByText('Questions & Batches')).toBeDefined();
   });
 
   // -----------------------------------------------------------------------
@@ -1071,7 +1090,9 @@ describe('AdminSession', () => {
 
     render(<AdminSession />);
 
-    expect(screen.getByTestId('bar-chart')).toBeDefined();
+    // There may be multiple bar charts (hero + previous results)
+    const barCharts = screen.getAllByTestId('bar-chart');
+    expect(barCharts.length).toBeGreaterThanOrEqual(1);
   });
 
   // -----------------------------------------------------------------------
@@ -1134,7 +1155,7 @@ describe('AdminSession', () => {
   // -----------------------------------------------------------------------
   // 40. Go Live button is disabled when quick question is empty
   // -----------------------------------------------------------------------
-  it('disables Go Live button when quick question textarea is empty', () => {
+  it('shows ready state when session is active with no active questions', () => {
     mockStoreState = defaultStoreState({
       loading: false,
       session: makeSession({ status: 'active' }),
@@ -1143,8 +1164,9 @@ describe('AdminSession', () => {
 
     render(<AdminSession />);
 
-    const goLiveBtn = screen.getByText('Go Live');
-    expect(goLiveBtn.hasAttribute('disabled')).toBe(true);
+    // Quick question functionality moved to AdminControlBar
+    // Verify the ready state is shown
+    expect(screen.getByText('Ready for questions')).toBeDefined();
   });
 
   // -----------------------------------------------------------------------
@@ -1346,7 +1368,9 @@ describe('AdminSession', () => {
 
     render(<AdminSession />);
 
-    expect(screen.getByTestId('bar-chart')).toBeDefined();
+    // There may be multiple bar charts (hero + previous results)
+    const barCharts = screen.getAllByTestId('bar-chart');
+    expect(barCharts.length).toBeGreaterThanOrEqual(1);
     // aggregateVotes is called with an empty array (since sessionVotes is empty local state)
     expect(mockAggregateVotes).toHaveBeenCalled();
   });
