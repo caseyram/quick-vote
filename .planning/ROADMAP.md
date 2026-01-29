@@ -25,7 +25,7 @@ See git history for v1.0 implementation details. Milestone delivered:
 
 - [x] **Phase 6: Batch Schema & UI** - Admin can create and manage batches on-the-fly
 - [x] **Phase 7: Batch Activation** - Admin activates batch for participant self-paced voting
-- [ ] **Phase 8: Participant Batch Experience** - Participants navigate and complete batch questions at their own pace
+- [x] **Phase 8: Participant Batch Experience** - Participants navigate and complete batch questions at their own pace
 - [ ] **Phase 9: Session Management** - Global admin URL, session list, review past sessions, export/import
 - [ ] **Phase 10: Progress Dashboard & Results Polish** - Real-time progress monitoring and improved results UX
 
@@ -91,11 +91,14 @@ Plans:
   3. Admin can reopen a past session to review its results
   4. Admin can export a session as JSON with questions grouped by batch and including votes/reasons
   5. Admin can import questions from a JSON file that preserves batch groupings
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 09-01: TBD
-- [ ] 09-02: TBD
+- [ ] 09-01-PLAN.md — /admin route and session list (search, delete, new session)
+- [ ] 09-02-PLAN.md — JSON export library with Zod schemas
+- [ ] 09-03-PLAN.md — Session review page with batch-grouped results and export wiring
+- [ ] 09-04-PLAN.md — JSON import library and ImportSessionPanel component
+- [ ] 09-05-PLAN.md — Wire import panel into AdminSession and verify end-to-end
 
 ### Phase 10: Progress Dashboard & Results Polish
 **Goal**: Admin can monitor batch completion in real-time and results view has improved UX
@@ -126,9 +129,9 @@ Plans:
 | 6. Batch Schema & UI | v1.1 | 3/3 | Complete | 2026-01-28 |
 | 7. Batch Activation | v1.1 | 2/2 | Complete | 2026-01-28 |
 | 8. Participant Batch Experience | v1.1 | 4/4 | Complete | 2026-01-28 |
-| 9. Session Management | v1.1 | 0/TBD | Not started | - |
+| 9. Session Management | v1.1 | 0/5 | Planned | - |
 | 10. Progress Dashboard & Results Polish | v1.1 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-28*
-*Last updated: 2026-01-28 - Phase 8 complete (4/4 plans)*
+*Last updated: 2026-01-28 - Phase 9 planned (5 plans)*
