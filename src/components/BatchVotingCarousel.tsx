@@ -173,7 +173,7 @@ export function BatchVotingCarousel({
   const answeredCount = pendingVotes.size;
 
   return (
-    <div className="h-dvh bg-gray-950 flex flex-col overflow-hidden">
+    <div className="h-full bg-gray-950 flex flex-col overflow-hidden">
       {/* Progress indicator - text counter at top */}
       <div ref={progressRef} className="px-4 py-3 text-center">
         <p className="text-gray-400 text-sm font-medium">
