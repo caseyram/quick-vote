@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { CountdownTimer } from './CountdownTimer';
 import { useSessionStore } from '../stores/session-store';
-import type { Question } from '../types/database';
+import type { Question, Batch } from '../types/database';
 import type { SessionStatus } from '../types/database';
 
 interface AdminControlBarProps {
@@ -29,6 +29,9 @@ interface AdminControlBarProps {
   onClearPendingBatch: () => void;
   onRemoveFromBatch: (questionId: string) => void;
   onCloseBatch: () => void;
+  // Existing batches from draft mode
+  batches?: Batch[];
+  onActivateBatch?: (batchId: string) => void;
 }
 
 const statusBadgeColors: Record<string, string> = {
@@ -69,10 +72,13 @@ export function AdminControlBar({
   onClearPendingBatch,
   onRemoveFromBatch,
   onCloseBatch,
+  batches = [],
+  onActivateBatch,
 }: AdminControlBarProps) {
   const [timerDuration, setTimerDuration] = useState<number | null>(null);
   const [barQuickText, setBarQuickText] = useState('');
   const [batchListExpanded, setBatchListExpanded] = useState(false);
+  const [existingBatchDropdown, setExistingBatchDropdown] = useState(false);
 
   // Subscribe to activeBatchId for mode exclusion
   const activeBatchId = useSessionStore((state) => state.activeBatchId);
@@ -93,6 +99,13 @@ export function AdminControlBar({
   const nextPending = pendingQuestions[0] ?? null;
 
   const hasPendingBatch = pendingBatchQuestions.length > 0;
+
+  // Filter existing batches that have questions and are still pending (can be activated)
+  const activatableBatches = batches.filter((b) => {
+    const batchQuestions = questions.filter((q) => q.batch_id === b.id);
+    return b.status === 'pending' && batchQuestions.length > 0 && b.id !== pendingBatchId;
+  });
+  const hasExistingBatches = activatableBatches.length > 0;
 
   function handleBarQuickSubmit() {
     if (!barQuickText.trim() || quickQuestionLoading) return;
@@ -261,6 +274,49 @@ export function AdminControlBar({
               ) : (
                 /* Quick question input with Add to Batch option */
                 <div className="flex items-center gap-2 flex-1 min-w-0">
+                  {/* Existing batches dropdown */}
+                  {hasExistingBatches && onActivateBatch && (
+                    <div className="relative">
+                      <button
+                        onClick={() => setExistingBatchDropdown(!existingBatchDropdown)}
+                        className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium hover:bg-green-200 transition-colors shrink-0"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        Batches ({activatableBatches.length})
+                        <svg
+                          className={`w-3 h-3 transition-transform ${existingBatchDropdown ? 'rotate-180' : ''}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        </svg>
+                      </button>
+                      {existingBatchDropdown && (
+                        <div className="absolute bottom-full mb-1 left-0 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[200px] max-h-48 overflow-y-auto">
+                          {activatableBatches.map((batch) => {
+                            const batchQuestionCount = questions.filter((q) => q.batch_id === batch.id).length;
+                            return (
+                              <button
+                                key={batch.id}
+                                onClick={() => {
+                                  onActivateBatch(batch.id);
+                                  setExistingBatchDropdown(false);
+                                }}
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-green-50 flex items-center justify-between gap-2"
+                              >
+                                <span className="truncate text-gray-700">{batch.name}</span>
+                                <span className="text-xs text-gray-400 shrink-0">{batchQuestionCount}Q</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Pending batch indicator */}
                   {hasPendingBatch && (
                     <button

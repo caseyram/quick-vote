@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useId } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -275,6 +275,9 @@ export function BatchList({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
+  // Unique ID for this DndContext to prevent conflicts with nested DndContext in BatchCard
+  const dndContextId = useId();
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -446,6 +449,7 @@ export function BatchList({
   return (
     <div className="space-y-3">
       <DndContext
+        id={dndContextId}
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}

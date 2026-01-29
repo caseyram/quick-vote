@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useSessionStore } from '../stores/session-store';
 import { validateImportFile, importSessionData, exportSessionData, type ImportData } from '../lib/session-import';
+import { downloadJSON, generateExportFilename } from '../lib/session-export';
 
 interface SessionImportExportProps {
   sessionId: string;
@@ -17,14 +18,15 @@ export function SessionImportExport({ sessionId, sessionName, onImportComplete }
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [exportCopied, setExportCopied] = useState(false);
+  const [exportDownloaded, setExportDownloaded] = useState(false);
 
   function handleExport() {
     const json = exportSessionData(questions, batches, sessionName);
-    navigator.clipboard.writeText(json).then(() => {
-      setExportCopied(true);
-      setTimeout(() => setExportCopied(false), 2000);
-    });
+    const data = JSON.parse(json);
+    const filename = generateExportFilename(sessionName ?? 'session');
+    downloadJSON(data, filename);
+    setExportDownloaded(true);
+    setTimeout(() => setExportDownloaded(false), 2000);
   }
 
   async function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
@@ -104,7 +106,7 @@ export function SessionImportExport({ sessionId, sessionName, onImportComplete }
           disabled={!hasContent}
           className="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 disabled:text-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed rounded-lg transition-colors"
         >
-          {exportCopied ? 'Copied!' : 'Export JSON'}
+          {exportDownloaded ? 'Downloaded!' : 'Export JSON'}
         </button>
         {fileName && !validatedData && !error && (
           <span className="text-sm text-gray-500 truncate max-w-[200px]">

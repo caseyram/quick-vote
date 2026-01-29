@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useId } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -64,6 +64,9 @@ export function BatchCard({
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(batch.name);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Unique ID for this DndContext to prevent conflicts with parent DndContext
+  const dndContextId = useId();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -288,6 +291,7 @@ export function BatchCard({
           ) : (
             <>
               <DndContext
+                id={dndContextId}
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}

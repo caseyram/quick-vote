@@ -1227,6 +1227,9 @@ export default function AdminSession() {
             handleCloseBatch(activeBatchId);
           }
         }}
+        // Existing batches from draft mode
+        batches={batches}
+        onActivateBatch={handleActivateBatch}
       />
     </AdminPasswordGate>
   );
