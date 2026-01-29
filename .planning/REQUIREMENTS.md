@@ -22,11 +22,18 @@ Requirements for batch questions and polish milestone. Each maps to roadmap phas
 
 ### Session Management
 
-- [ ] **SESS-01**: Global admin URL (/admin) shows list of all sessions
-- [ ] **SESS-02**: Session list ordered by timestamp, most recent first
-- [ ] **SESS-03**: Admin can reopen a past session to review results
-- [ ] **SESS-04**: Admin can export session as JSON (questions grouped by batch, with votes/reasons)
-- [ ] **SESS-05**: Admin can import questions from JSON file (preserves batch groupings)
+- [x] **SESS-01**: Global admin URL (/admin) shows list of all sessions
+- [x] **SESS-02**: Session list ordered by timestamp, most recent first
+- [x] **SESS-03**: Admin can reopen a past session to review results
+- [x] **SESS-04**: Admin can export session as JSON (questions grouped by batch, with votes/reasons)
+- [x] **SESS-05**: Admin can import questions from JSON file (preserves batch groupings)
+
+### Go Live (Batch + Quick Question Unification)
+
+- [x] **GOLIVE-01**: Admin can type multiple questions and "Add to Batch" before going live
+- [x] **GOLIVE-02**: Admin clicks "Go Live" to activate entire pending batch at once
+- [x] **GOLIVE-03**: Participants navigate questions with Next, see "Submit" on final question
+- [x] **GOLIVE-04**: All votes submitted together at the end (not individually per question)
 
 ### Progress Dashboard
 
@@ -88,11 +95,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BATCH-08 | Phase 8 | Complete |
 | BATCH-09 | Phase 8 | Complete |
 | BATCH-10 | Phase 8 | Complete |
-| SESS-01 | Phase 9 | Pending |
-| SESS-02 | Phase 9 | Pending |
-| SESS-03 | Phase 9 | Pending |
-| SESS-04 | Phase 9 | Pending |
-| SESS-05 | Phase 9 | Pending |
+| SESS-01 | Phase 9 | Complete |
+| SESS-02 | Phase 9 | Complete |
+| SESS-03 | Phase 9 | Complete |
+| SESS-04 | Phase 9 | Complete |
+| SESS-05 | Phase 9 | Complete |
+| GOLIVE-01 | Phase 09.1 | Complete |
+| GOLIVE-02 | Phase 09.1 | Complete |
+| GOLIVE-03 | Phase 09.1 | Complete |
+| GOLIVE-04 | Phase 09.1 | Complete |
 | PROG-01 | Phase 10 | Pending |
 | PROG-02 | Phase 10 | Pending |
 | PROG-03 | Phase 10 | Pending |
@@ -103,10 +114,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RESL-04 | Phase 10 | Pending |
 
 **Coverage:**
-- v1.1 requirements: 23 total
-- Mapped to phases: 23
+- v1.1 requirements: 27 total
+- Mapped to phases: 27
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-28*
-*Last updated: 2026-01-28 - BATCH-04 to BATCH-10 complete (Phase 8)*
+*Last updated: 2026-01-29 - SESS-01 to SESS-05 complete (Phase 9), GOLIVE-01 to GOLIVE-04 complete (Phase 09.1)*

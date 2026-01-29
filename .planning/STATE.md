@@ -9,12 +9,12 @@
 ## Current Position
 
 **Milestone:** v1.1 — Batch Questions & Polish
-**Phase:** 9 of 10 (Session Management) - Complete
-**Plan:** 5 of 5 complete
-**Status:** Phase 9 verified complete, ready for Phase 10
-**Last activity:** 2026-01-29 — Completed 09-05-PLAN.md
+**Phase:** 09.1 (Consolidate Batch and Go Live) - Complete
+**Plan:** 2 of 2 complete
+**Status:** Phase 09.1 verified, ready for Phase 10
+**Last activity:** 2026-01-29 — Completed Phase 09.1 execution
 
-Progress: [###################.] 95% (v1.0 complete, Phases 6-9 verified, Phase 10 remaining)
+Progress: [###################.] 96% (v1.0 complete, Phases 6-9.1 verified, Phase 10 remaining)
 
 ## Milestone History
 
@@ -31,6 +31,7 @@ Progress: [###################.] 95% (v1.0 complete, Phases 6-9 verified, Phase 
 | 7 | Batch Activation | BATCH-03 | Verified |
 | 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | Verified (7/7 must-haves) |
 | 9 | Session Management | SESS-01 to SESS-05 | Verified (5/5 plans) |
+| 09.1 | Consolidate Batch and Go Live | GOLIVE-01 to GOLIVE-04 | Verified (2/2 plans) |
 | 10 | Progress Dashboard & Results Polish | PROG-01 to PROG-04, RESL-01 to RESL-04 | Not started |
 
 ## Performance Metrics
@@ -69,6 +70,19 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 - dnd-kit for drag-and-drop (utilities v3.2.2 is latest, not v4.x)
 - Drag handle only pattern - listeners on grip icon, not entire card
 - Accordion state local to BatchList (not global store)
+
+### From 09.1 Summary
+
+Consolidated batch and Go Live experience:
+- Admin "+ Batch" button adds questions to pending batch
+- Admin "Go Live" activates entire pending batch at once
+- Vote components batchMode prop defers submission to carousel
+- BatchVotingCarousel pendingVotes Map tracks local selections
+- handleSubmitAll upserts all votes in single request
+- "Submit" button on final question (not "Next")
+- Removed BatchReviewScreen for direct completion flow
+- Unified SessionImportExport component (auto-detects format)
+- Drag-and-drop reordering for batches and questions
 
 ### From 09-05 Summary
 
@@ -119,9 +133,13 @@ Admin session list at /admin route:
 - Delete with ConfirmDialog confirmation modal
 - ConfirmDialog is reusable component with danger/primary variants
 
+### Roadmap Evolution
+
+- Phase 09.1 inserted after Phase 9: Consolidate batch and Go Live experience (URGENT) — addresses gap from Phase 6 where "Go Live" only supports single-question push
+
 ### Known Gaps (Future Work)
 
-- **Phase 6 gap identified:** "Go Live" should support batching multiple questions (not Phase 9 scope)
+- ~~**Phase 6 gap identified:** "Go Live" should support batching multiple questions~~ → Addressed by Phase 09.1
 
 ### Blockers
 
@@ -129,10 +147,10 @@ Admin session list at /admin route:
 
 ## Session Continuity
 
-**Last session:** 2026-01-29 — Phase 9 verified
-**Next action:** Fix Phase 6 gap (Go Live multi-question support), then Phase 10
+**Last session:** 2026-01-29 — Phase 09.1 complete
+**Next action:** Plan and execute Phase 10 (Progress Dashboard & Results Polish)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-29 — Phase 9 complete (Session Management verified)*
+*Updated: 2026-01-29 — Phase 09.1 complete (Consolidate Batch and Go Live verified)*

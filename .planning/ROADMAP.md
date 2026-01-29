@@ -27,7 +27,7 @@ See git history for v1.0 implementation details. Milestone delivered:
 - [x] **Phase 7: Batch Activation** - Admin activates batch for participant self-paced voting
 - [x] **Phase 8: Participant Batch Experience** - Participants navigate and complete batch questions at their own pace
 - [x] **Phase 9: Session Management** - Global admin URL, session list, review past sessions, export/import
-- [ ] **Phase 09.1: Consolidate Batch and Go Live Experience** - Unify batch activation and Go Live flows (INSERTED)
+- [x] **Phase 09.1: Consolidate Batch and Go Live Experience** - Unify batch activation and Go Live flows (INSERTED)
 - [ ] **Phase 10: Progress Dashboard & Results Polish** - Real-time progress monitoring and improved results UX
 
 ## Phase Details
@@ -113,8 +113,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 09.1-01-PLAN.md — Verify batch mode support in vote components
-- [ ] 09.1-02-PLAN.md — Verify Submit All flow and cleanup
+- [x] 09.1-01-PLAN.md — Verify batch mode support in vote components
+- [x] 09.1-02-PLAN.md — Verify Submit All flow and cleanup
 
 **Details:**
 Urgent insertion to address gap identified in Phase 6 verification: "Go Live" should support batching multiple questions (not single-question push only).
@@ -149,9 +149,9 @@ Plans:
 | 7. Batch Activation | v1.1 | 2/2 | Complete | 2026-01-28 |
 | 8. Participant Batch Experience | v1.1 | 4/4 | Complete | 2026-01-28 |
 | 9. Session Management | v1.1 | 5/5 | Complete | 2026-01-29 |
-| 09.1. Consolidate Batch and Go Live | v1.1 | 0/2 | Planning complete | - |
+| 09.1. Consolidate Batch and Go Live | v1.1 | 2/2 | Complete | 2026-01-29 |
 | 10. Progress Dashboard & Results Polish | v1.1 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-28*
-*Last updated: 2026-01-29 - Phase 09.1 planned (2 plans)*
+*Last updated: 2026-01-29 - Phase 09.1 complete (2/2 plans verified)*
