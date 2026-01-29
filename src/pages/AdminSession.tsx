@@ -281,20 +281,11 @@ export default function AdminSession() {
     return () => clearInterval(interval);
   }, [isActive, session?.session_id]);
 
-  // Page-level countdown for active questions and batches (used in control bar + hero display)
-  const handleCountdownComplete = useCallback(async () => {
-    // Check for active question first
-    const activeQ = questions.find((q) => q.status === 'active');
-    if (activeQ) {
-      await handleCloseVotingInternal(activeQ.id);
-      return;
-    }
-    // Check for active batch
-    const currentActiveBatchId = useSessionStore.getState().activeBatchId;
-    if (currentActiveBatchId) {
-      await handleCloseBatch(currentActiveBatchId);
-    }
-  }, [questions]);
+  // Page-level countdown - purely visual reminder, does NOT auto-close voting
+  const handleCountdownComplete = useCallback(() => {
+    // Timer is just a visual reminder for the admin - no auto-close behavior
+    // Admin manually closes voting when ready
+  }, []);
 
   const {
     remaining: countdownRemaining,
@@ -1307,15 +1298,16 @@ function ActiveQuestionHero({
           &ldquo;{question.text}&rdquo;
         </h2>
 
-        <div className="flex items-center justify-center gap-4 mt-4">
+        <div className="flex items-center justify-center gap-6 mt-4">
           <span className="text-2xl text-gray-600">
             {votes.length} vote{votes.length !== 1 ? 's' : ''}
           </span>
           <CountdownTimer
             remainingSeconds={Math.ceil(countdownRemaining / 1000)}
             isRunning={countdownRunning}
-            size="large"
+            size="hero"
             theme="light"
+            showExpired={countdownRemaining <= 0}
           />
         </div>
       </div>

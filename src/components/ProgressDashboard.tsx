@@ -50,40 +50,48 @@ export function ProgressDashboard({
     prevTotalRef.current = totalVotes;
   }, [totalVotes]);
 
+  // Track if timer has expired (was running but now at 0)
+  const timerExpired = countdownRemaining <= 0;
+
   return (
     <div
       className={`bg-white border-b border-gray-200 px-6 py-4 ${
         pulsing ? 'animate-[pulse-update_0.6s_ease-out]' : ''
       }`}
     >
-      <div className="max-w-6xl mx-auto space-y-3">
-        {/* Overall progress bar */}
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-blue-600 transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
+      <div className="max-w-6xl mx-auto">
+        {/* Top row: Timer (prominent) + Progress stats */}
+        <div className="flex items-center justify-between gap-6 mb-3">
+          {/* Timer - large and prominent */}
+          <div className="shrink-0">
+            {(countdownRunning || timerExpired) && (
+              <CountdownTimer
+                remainingSeconds={Math.ceil(countdownRemaining / 1000)}
+                isRunning={countdownRunning || timerExpired}
+                size="hero"
+                theme="light"
+                showExpired={timerExpired}
               />
-            </div>
+            )}
           </div>
-          <div className="text-sm font-medium text-gray-700 whitespace-nowrap">
-            {completedParticipants}/{participantCount} complete
+
+          {/* Progress stats */}
+          <div className="flex items-center gap-6 text-sm text-gray-600">
+            <span className="font-medium text-lg text-gray-800">
+              {completedParticipants}/{participantCount} complete
+            </span>
+            <span>In progress: {inProgress}</span>
           </div>
-          {countdownRunning && (
-            <CountdownTimer
-              remainingSeconds={Math.ceil(countdownRemaining / 1000)}
-              isRunning={countdownRunning}
-              size="default"
-              theme="light"
-            />
-          )}
         </div>
 
-        {/* Participant counts */}
-        <div className="flex gap-4 text-sm text-gray-600">
-          <span>Completed: {completedParticipants}</span>
-          <span>In progress: {inProgress}</span>
+        {/* Overall progress bar */}
+        <div className="mb-3">
+          <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-600 transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
         </div>
 
         {/* Per-question mini bars */}
