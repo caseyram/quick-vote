@@ -659,7 +659,7 @@ export default function ParticipantSession() {
 
     // Full-screen voting takeover
     return (
-      <div className="h-dvh bg-gray-950 flex flex-col">
+      <div className="min-h-dvh bg-gray-950 flex flex-col">
         {/* Connection pill - always visible in top-right */}
         <ConnectionPill status={connectionStatus} />
 
@@ -673,43 +673,37 @@ export default function ParticipantSession() {
           </div>
         )}
 
-        {/* Full-screen voting area with slide transitions */}
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Desktop: centered card. Mobile: edge-to-edge */}
-          <div className="flex-1 flex flex-col min-h-0 lg:items-center lg:justify-center lg:p-8">
-            <div className="flex-1 flex flex-col min-h-0 lg:flex-initial lg:w-full lg:max-w-2xl lg:rounded-2xl lg:bg-gray-900/50 lg:overflow-hidden">
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={activeQuestion.id}
-                  variants={questionSlideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={questionTransition}
-                  className="flex-1 min-h-0 flex flex-col"
-                >
-                  <div className="flex-1 min-h-0 overflow-y-auto">
-                    {activeQuestion.type === 'agree_disagree' ? (
-                      <VoteAgreeDisagree
-                        question={activeQuestion}
-                        sessionId={sessionId!}
-                        participantId={participantId}
-                        displayName={participantName || null}
-                        reasonsEnabled={session?.reasons_enabled ?? false}
-                      />
-                    ) : (
-                      <VoteMultipleChoice
-                        question={activeQuestion}
-                        sessionId={sessionId!}
-                        participantId={participantId}
-                        displayName={participantName || null}
-                        reasonsEnabled={session?.reasons_enabled ?? false}
-                      />
-                    )}
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            </div>
+        {/* Full-screen voting area */}
+        <div className="flex-1 lg:flex lg:items-center lg:justify-center lg:p-8">
+          <div className="w-full lg:max-w-2xl lg:rounded-2xl lg:bg-gray-900/50 lg:overflow-hidden">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={activeQuestion.id}
+                variants={questionSlideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={questionTransition}
+              >
+                {activeQuestion.type === 'agree_disagree' ? (
+                  <VoteAgreeDisagree
+                    question={activeQuestion}
+                    sessionId={sessionId!}
+                    participantId={participantId}
+                    displayName={participantName || null}
+                    reasonsEnabled={session?.reasons_enabled ?? false}
+                  />
+                ) : (
+                  <VoteMultipleChoice
+                    question={activeQuestion}
+                    sessionId={sessionId!}
+                    participantId={participantId}
+                    displayName={participantName || null}
+                    reasonsEnabled={session?.reasons_enabled ?? false}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </div>
