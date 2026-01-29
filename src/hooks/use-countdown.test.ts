@@ -11,22 +11,24 @@ describe('useCountdown', () => {
     vi.useRealTimers();
   });
 
-  it('starts with remaining=0 and isRunning=false', () => {
+  it('starts with remaining=0, isRunning=false, and expired=false', () => {
     const { result } = renderHook(() => useCountdown(vi.fn()));
     expect(result.current.remaining).toBe(0);
     expect(result.current.isRunning).toBe(false);
+    expect(result.current.expired).toBe(false);
   });
 
-  it('start sets remaining and isRunning', () => {
+  it('start sets remaining, isRunning, and resets expired', () => {
     const { result } = renderHook(() => useCountdown(vi.fn()));
     act(() => {
       result.current.start(5000);
     });
     expect(result.current.remaining).toBe(5000);
     expect(result.current.isRunning).toBe(true);
+    expect(result.current.expired).toBe(false);
   });
 
-  it('stop resets state', () => {
+  it('stop resets state including expired', () => {
     const { result } = renderHook(() => useCountdown(vi.fn()));
     act(() => {
       result.current.start(5000);
@@ -36,9 +38,10 @@ describe('useCountdown', () => {
     });
     expect(result.current.remaining).toBe(0);
     expect(result.current.isRunning).toBe(false);
+    expect(result.current.expired).toBe(false);
   });
 
-  it('calls onComplete when timer reaches zero', () => {
+  it('calls onComplete and sets expired=true when timer reaches zero', () => {
     const onComplete = vi.fn();
     const { result } = renderHook(() => useCountdown(onComplete));
 
@@ -54,6 +57,7 @@ describe('useCountdown', () => {
     expect(onComplete).toHaveBeenCalledOnce();
     expect(result.current.isRunning).toBe(false);
     expect(result.current.remaining).toBe(0);
+    expect(result.current.expired).toBe(true);
   });
 
   it('decrements remaining over time', () => {
@@ -101,5 +105,46 @@ describe('useCountdown', () => {
     // Should NOT have completed (restarted with 1000ms)
     expect(onComplete).not.toHaveBeenCalled();
     expect(result.current.isRunning).toBe(true);
+  });
+
+  it('restarting after expiration resets expired state', () => {
+    const onComplete = vi.fn();
+    const { result } = renderHook(() => useCountdown(onComplete));
+
+    // Start and let it expire
+    act(() => {
+      result.current.start(500);
+    });
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    expect(result.current.expired).toBe(true);
+
+    // Restart should reset expired
+    act(() => {
+      result.current.start(1000);
+    });
+    expect(result.current.expired).toBe(false);
+    expect(result.current.isRunning).toBe(true);
+  });
+
+  it('stop after expiration resets expired state', () => {
+    const onComplete = vi.fn();
+    const { result } = renderHook(() => useCountdown(onComplete));
+
+    // Start and let it expire
+    act(() => {
+      result.current.start(500);
+    });
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    expect(result.current.expired).toBe(true);
+
+    // Stop should reset expired
+    act(() => {
+      result.current.stop();
+    });
+    expect(result.current.expired).toBe(false);
   });
 });

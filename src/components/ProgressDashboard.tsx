@@ -50,9 +50,6 @@ export function ProgressDashboard({
     prevTotalRef.current = totalVotes;
   }, [totalVotes]);
 
-  // Track if timer has expired (was running but now at 0)
-  const timerExpired = countdownRemaining <= 0;
-
   return (
     <div
       className={`bg-white border-b border-gray-200 px-6 py-4 ${
@@ -64,13 +61,12 @@ export function ProgressDashboard({
         <div className="flex items-center justify-between gap-6 mb-3">
           {/* Timer - large and prominent */}
           <div className="shrink-0">
-            {(countdownRunning || timerExpired) && (
+            {countdownRunning && (
               <CountdownTimer
                 remainingSeconds={Math.ceil(countdownRemaining / 1000)}
-                isRunning={countdownRunning || timerExpired}
+                isRunning={countdownRunning}
                 size="hero"
                 theme="light"
-                showExpired={timerExpired}
               />
             )}
           </div>

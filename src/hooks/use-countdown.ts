@@ -8,15 +8,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  *
  * @param onComplete - Called when the countdown reaches zero. Stored in a ref
  *   to avoid stale closures; callers do NOT need to memoize this callback.
- * @returns `{ remaining, isRunning, start, stop }`
+ * @returns `{ remaining, isRunning, expired, start, stop }`
  *   - `remaining`: milliseconds left (0 when stopped or completed)
  *   - `isRunning`: whether the timer is actively counting down
+ *   - `expired`: true if the timer naturally reached 0 (not manually stopped)
  *   - `start(durationMs)`: begins countdown from the given duration
  *   - `stop()`: cancels the countdown and resets remaining to 0
  */
 export function useCountdown(onComplete: () => void) {
   const [remaining, setRemaining] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [expired, setExpired] = useState(false);
 
   const endTimeRef = useRef<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -42,6 +44,7 @@ export function useCountdown(onComplete: () => void) {
       endTimeRef.current = end;
       setRemaining(durationMs);
       setIsRunning(true);
+      setExpired(false); // Reset expired state when starting a new countdown
 
       intervalRef.current = setInterval(() => {
         const left = Math.max(0, (endTimeRef.current ?? Date.now()) - Date.now());
@@ -51,6 +54,7 @@ export function useCountdown(onComplete: () => void) {
           clearTimer();
           endTimeRef.current = null;
           setIsRunning(false);
+          setExpired(true); // Mark as naturally expired
           onCompleteRef.current();
         }
       }, 100); // 100ms ticks for smooth display
@@ -63,6 +67,7 @@ export function useCountdown(onComplete: () => void) {
     endTimeRef.current = null;
     setIsRunning(false);
     setRemaining(0);
+    setExpired(false); // Reset expired state when manually stopped
   }, [clearTimer]);
 
   // Cleanup on unmount
@@ -72,5 +77,5 @@ export function useCountdown(onComplete: () => void) {
     };
   }, [clearTimer]);
 
-  return { remaining, isRunning, start, stop };
+  return { remaining, isRunning, expired, start, stop };
 }

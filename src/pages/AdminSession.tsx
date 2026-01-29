@@ -290,6 +290,7 @@ export default function AdminSession() {
   const {
     remaining: countdownRemaining,
     isRunning: countdownRunning,
+    expired: countdownExpired,
     start: startCountdown,
     stop: stopCountdown,
   } = useCountdown(handleCountdownComplete);
@@ -1020,8 +1021,26 @@ export default function AdminSession() {
             />
           )}
 
-          {/* Hero fills viewport minus header (56px), control bar (56px), and optional dashboard */}
-          <div className="max-w-6xl mx-auto px-6" style={{ height: showProgressDashboard ? 'calc(100dvh - 12rem)' : 'calc(100dvh - 7rem)' }}>
+          {/* Timer bar for single question voting (not batch) */}
+          {!showProgressDashboard && activeQuestion && countdownRunning && (
+            <div className="border-b border-gray-200 px-6 py-3 flex justify-center">
+              <CountdownTimer
+                remainingSeconds={Math.ceil(countdownRemaining / 1000)}
+                isRunning={countdownRunning}
+                size="hero"
+                theme="light"
+              />
+            </div>
+          )}
+
+          {/* Hero fills viewport minus header (56px), control bar (56px), and optional dashboard/timer bar */}
+          <div className="max-w-6xl mx-auto px-6" style={{
+            height: showProgressDashboard
+              ? 'calc(100dvh - 12rem)'
+              : (activeQuestion && countdownRunning)
+                ? 'calc(100dvh - 10rem)'
+                : 'calc(100dvh - 7rem)'
+          }}>
             {/* Hero active question */}
             {activeQuestion ? (
               <ActiveQuestionHero
@@ -1029,8 +1048,6 @@ export default function AdminSession() {
                 questionIndex={questions.findIndex((q) => q.id === activeQuestion.id)}
                 totalQuestions={questions.length}
                 votes={sessionVotes[activeQuestion.id] ?? []}
-                countdownRemaining={countdownRemaining}
-                countdownRunning={countdownRunning}
               />
             ) : closedQuestions.length > 0 ? (
               /* Show closed question results with navigation through ALL closed questions */
@@ -1089,8 +1106,6 @@ export default function AdminSession() {
                         questionIndex={qIndex}
                         totalQuestions={questions.length}
                         votes={votes}
-                        countdownRemaining={0}
-                        countdownRunning={false}
                       />
                     </div>
                   </div>
@@ -1238,15 +1253,11 @@ function ActiveQuestionHero({
   questionIndex,
   totalQuestions,
   votes,
-  countdownRemaining,
-  countdownRunning,
 }: {
   question: Question;
   questionIndex: number;
   totalQuestions: number;
   votes: Vote[];
-  countdownRemaining: number;
-  countdownRunning: boolean;
 }) {
   const [reasonsCollapsed, setReasonsCollapsed] = useState(false);
   const aggregated = useMemo(() => aggregateVotes(votes), [votes]);
@@ -1302,13 +1313,6 @@ function ActiveQuestionHero({
           <span className="text-2xl text-gray-600">
             {votes.length} vote{votes.length !== 1 ? 's' : ''}
           </span>
-          <CountdownTimer
-            remainingSeconds={Math.ceil(countdownRemaining / 1000)}
-            isRunning={countdownRunning}
-            size="hero"
-            theme="light"
-            showExpired={countdownRemaining <= 0}
-          />
         </div>
       </div>
 
