@@ -1033,7 +1033,7 @@ export default function AdminSession() {
           )}
 
           {/* Hero fills viewport minus header (56px), control bar (56px), and optional dashboard/timer bar */}
-          <div className="max-w-6xl mx-auto px-6" style={{
+          <div className="max-w-6xl mx-auto px-6 overflow-y-auto" style={{
             height: showProgressDashboard
               ? 'calc(100dvh - 12rem)'
               : (activeQuestion && countdownRunning)
@@ -1118,6 +1118,7 @@ export default function AdminSession() {
                     {/* Question results */}
                     <div className="flex-1 min-h-0">
                       <ActiveQuestionHero
+                        key={currentQuestion.id}
                         question={currentQuestion}
                         questionIndex={qIndex}
                         totalQuestions={questions.length}
