@@ -28,6 +28,13 @@ Real-time polling app for meetings, classrooms, and presentations. An admin crea
 - **Build:** Vite
 - **Hosting:** Vercel
 
+## Documentation
+
+- [User Journeys](https://caseyram.github.io/quick-vote/user-journeys.html) — Critical user flows
+- [Architecture](https://caseyram.github.io/quick-vote/architecture.html) — Technical design
+- [Threat Model](https://caseyram.github.io/quick-vote/threat-model.html) — Security analysis
+- [Test Coverage](https://caseyram.github.io/quick-vote/coverage.html) — Coverage report
+
 ## Local Development
 
 ### Prerequisites
@@ -164,8 +171,6 @@ src/
   types/        TypeScript type definitions
 sql/            Database migration scripts
 ```
-
-For detailed technical documentation, see [ARCHITECTURE.md](docs/ARCHITECTURE.md) or browse the [full documentation](https://caseyram.github.io/quick-vote/) including the security threat model.
 
 ## License
 
