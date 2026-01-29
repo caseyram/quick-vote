@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickVote - Threat Model</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-yellow: #eab308;
+            --accent-red: #ef4444;
+            --accent-purple: #a855f7;
+            --accent-cyan: #06b6d4;
+            --border: #475569;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .metadata {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h2::before {
+            content: '';
+            width: 4px;
+            height: 1.5rem;
+            background: var(--accent-blue);
+            border-radius: 2px;
+        }
+
+        h3 {
+            font-size: 1.2rem;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--text-primary);
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+        }
+
+        .diagram-container {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            overflow-x: auto;
+        }
+
+        svg {
+            display: block;
+            margin: 0 auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
+
+        tr:hover td {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .risk-critical {
+            color: var(--accent-red);
+            font-weight: 600;
+        }
+
+        .risk-high {
+            color: #f97316;
+            font-weight: 600;
+        }
+
+        .risk-medium {
+            color: var(--accent-yellow);
+            font-weight: 600;
+        }
+
+        .risk-low {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-red { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .badge-orange { background: rgba(249, 115, 22, 0.2); color: #f97316; }
+        .badge-yellow { background: rgba(234, 179, 8, 0.2); color: var(--accent-yellow); }
+        .badge-green { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
+        .badge-blue { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+        .badge-purple { background: rgba(168, 85, 247, 0.2); color: var(--accent-purple); }
+
+        ul {
+            margin: 0.5rem 0 1rem 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: var(--bg-tertiary);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+            color: var(--accent-cyan);
+        }
+
+        .data-flow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .flow-item {
+            background: var(--bg-tertiary);
+            padding: 1rem;
+            border-radius: 8px;
+            flex: 1;
+            min-width: 200px;
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .flow-item h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .trust-boundary {
+            border: 2px dashed var(--accent-red);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .trust-boundary-label {
+            color: var(--accent-red);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .threat-card {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-left: 4px solid var(--accent-red);
+        }
+
+        .threat-card.medium {
+            border-left-color: var(--accent-yellow);
+        }
+
+        .threat-card.low {
+            border-left-color: var(--accent-green);
+        }
+
+        .threat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .threat-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .mitigation {
+            background: rgba(34, 197, 94, 0.1);
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-top: 0.75rem;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .mitigation-label {
+            color: var(--accent-green);
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔒 QuickVote Threat Model</h1>
+            <p class="subtitle">Security Analysis & Architecture Documentation</p>
+            <div class="metadata">
+                <span>📅 Generated: January 2026</span>
+                <span>📦 Version: 1.0</span>
+                <span>🏷️ Classification: Internal</span>
+            </div>
+        </header>
+
+        <!-- Executive Summary -->
+        <section class="section">
+            <h2>Executive Summary</h2>
+            <p>QuickVote is a real-time web-based polling application designed for live voting in meetings, classrooms, and presentations. This threat model identifies security risks across the application's architecture, including the React SPA frontend, Supabase backend-as-a-service, and real-time WebSocket communications.</p>
+
+            <div class="data-flow">
+                <div class="flow-item">
+                    <h4>Application Type</h4>
+                    <p>Single Page Application (SPA) with real-time features</p>
+                </div>
+                <div class="flow-item">
+                    <h4>Backend</h4>
+                    <p>Supabase (PostgreSQL + Realtime)</p>
+                </div>
+                <div class="flow-item">
+                    <h4>Authentication</h4>
+                    <p>Anonymous JWT-based</p>
+                </div>
+                <div class="flow-item">
+                    <h4>Hosting</h4>
+                    <p>Vercel (Static CDN)</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Architecture Diagram -->
+        <section class="section">
+            <h2>Architecture Diagram</h2>
+            <p>The following diagram illustrates the main components, data flows, and trust boundaries in the QuickVote system.</p>
+
+            <div class="diagram-container">
+                <svg width="1100" height="750" viewBox="0 0 1100 750">
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6"/>
+                        </marker>
+                        <marker id="arrowhead-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444"/>
+                        </marker>
+                        <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#22c55e"/>
+                        </marker>
+                        <marker id="arrowhead-yellow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#eab308"/>
+                        </marker>
+                        <marker id="arrowhead-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#a855f7"/>
+                        </marker>
+                        <marker id="arrowhead-cyan" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#06b6d4"/>
+                        </marker>
+                        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.2" />
+                            <stop offset="100%" style="stop-color:#a855f7;stop-opacity:0.2" />
+                        </linearGradient>
+                    </defs>
+
+                    <!-- Background grid -->
+                    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#334155" stroke-width="0.5" opacity="0.3"/>
+                    </pattern>
+                    <rect width="100%" height="100%" fill="url(#grid)"/>
+
+                    <!-- Trust Boundary: Internet/Untrusted Zone -->
+                    <rect x="30" y="30" width="340" height="300" rx="10" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="8,4"/>
+                    <text x="50" y="55" fill="#ef4444" font-size="12" font-weight="600">UNTRUSTED ZONE (Internet)</text>
+
+                    <!-- Trust Boundary: Supabase/Trusted Zone -->
+                    <rect x="730" y="30" width="340" height="690" rx="10" fill="none" stroke="#22c55e" stroke-width="2" stroke-dasharray="8,4"/>
+                    <text x="750" y="55" fill="#22c55e" font-size="12" font-weight="600">TRUSTED ZONE (Supabase BaaS)</text>
+
+                    <!-- Admin User -->
+                    <g transform="translate(80, 100)">
+                        <circle cx="40" cy="25" r="20" fill="#a855f7"/>
+                        <path d="M20 70 Q40 50 60 70 L60 80 L20 80 Z" fill="#a855f7"/>
+                        <text x="40" y="105" text-anchor="middle" fill="#f1f5f9" font-size="12" font-weight="600">Admin</text>
+                        <text x="40" y="120" text-anchor="middle" fill="#94a3b8" font-size="10">(Session Creator)</text>
+                    </g>
+
+                    <!-- Participant User -->
+                    <g transform="translate(230, 100)">
+                        <circle cx="40" cy="25" r="20" fill="#06b6d4"/>
+                        <path d="M20 70 Q40 50 60 70 L60 80 L20 80 Z" fill="#06b6d4"/>
+                        <text x="40" y="105" text-anchor="middle" fill="#f1f5f9" font-size="12" font-weight="600">Participant</text>
+                        <text x="40" y="120" text-anchor="middle" fill="#94a3b8" font-size="10">(Anonymous Voter)</text>
+                    </g>
+
+                    <!-- Browser/React SPA -->
+                    <rect x="50" y="250" width="300" height="180" rx="8" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+                    <text x="200" y="275" text-anchor="middle" fill="#3b82f6" font-size="14" font-weight="600">Browser (React SPA)</text>
+
+                    <!-- SPA Components -->
+                    <rect x="70" y="295" width="120" height="35" rx="4" fill="#334155"/>
+                    <text x="130" y="317" text-anchor="middle" fill="#f1f5f9" font-size="11">Admin Dashboard</text>
+
+                    <rect x="210" y="295" width="120" height="35" rx="4" fill="#334155"/>
+                    <text x="270" y="317" text-anchor="middle" fill="#f1f5f9" font-size="11">Participant View</text>
+
+                    <rect x="70" y="345" width="120" height="35" rx="4" fill="#334155"/>
+                    <text x="130" y="367" text-anchor="middle" fill="#f1f5f9" font-size="11">Zustand Store</text>
+
+                    <rect x="210" y="345" width="120" height="35" rx="4" fill="#334155"/>
+                    <text x="270" y="367" text-anchor="middle" fill="#f1f5f9" font-size="11">Realtime Hooks</text>
+
+                    <rect x="140" y="395" width="120" height="25" rx="4" fill="rgba(239, 68, 68, 0.2)" stroke="#ef4444"/>
+                    <text x="200" y="412" text-anchor="middle" fill="#ef4444" font-size="10">Optional Password Gate</text>
+
+                    <!-- Vercel CDN -->
+                    <rect x="430" y="80" width="200" height="80" rx="8" fill="#1e293b" stroke="#475569" stroke-width="2"/>
+                    <text x="530" y="110" text-anchor="middle" fill="#f1f5f9" font-size="14" font-weight="600">Vercel CDN</text>
+                    <text x="530" y="130" text-anchor="middle" fill="#94a3b8" font-size="11">Static SPA Hosting</text>
+                    <text x="530" y="145" text-anchor="middle" fill="#94a3b8" font-size="10">HTTPS Enforced</text>
+
+                    <!-- Supabase Auth -->
+                    <rect x="760" y="80" width="280" height="100" rx="8" fill="#1e293b" stroke="#22c55e" stroke-width="2"/>
+                    <text x="900" y="105" text-anchor="middle" fill="#22c55e" font-size="14" font-weight="600">Supabase Auth</text>
+                    <text x="900" y="130" text-anchor="middle" fill="#f1f5f9" font-size="11">Anonymous Authentication</text>
+                    <text x="900" y="150" text-anchor="middle" fill="#94a3b8" font-size="10">JWT Token Generation</text>
+                    <text x="900" y="168" text-anchor="middle" fill="#94a3b8" font-size="10">auth.uid() → User Identity</text>
+
+                    <!-- Supabase Realtime -->
+                    <rect x="760" y="200" width="280" height="120" rx="8" fill="#1e293b" stroke="#eab308" stroke-width="2"/>
+                    <text x="900" y="225" text-anchor="middle" fill="#eab308" font-size="14" font-weight="600">Supabase Realtime</text>
+
+                    <rect x="780" y="245" width="110" height="25" rx="4" fill="#334155"/>
+                    <text x="835" y="262" text-anchor="middle" fill="#f1f5f9" font-size="10">Broadcast Events</text>
+
+                    <rect x="910" y="245" width="110" height="25" rx="4" fill="#334155"/>
+                    <text x="965" y="262" text-anchor="middle" fill="#f1f5f9" font-size="10">Presence Tracking</text>
+
+                    <rect x="780" y="280" width="240" height="25" rx="4" fill="#334155"/>
+                    <text x="900" y="297" text-anchor="middle" fill="#f1f5f9" font-size="10">Postgres Changes (CDC)</text>
+
+                    <!-- PostgreSQL -->
+                    <rect x="760" y="340" width="280" height="200" rx="8" fill="#1e293b" stroke="#3b82f6" stroke-width="2"/>
+                    <text x="900" y="365" text-anchor="middle" fill="#3b82f6" font-size="14" font-weight="600">PostgreSQL Database</text>
+
+                    <!-- Tables -->
+                    <rect x="780" y="385" width="115" height="45" rx="4" fill="#334155"/>
+                    <text x="837" y="405" text-anchor="middle" fill="#f1f5f9" font-size="10" font-weight="600">sessions</text>
+                    <text x="837" y="420" text-anchor="middle" fill="#94a3b8" font-size="9">id, admin_token, status</text>
+
+                    <rect x="905" y="385" width="115" height="45" rx="4" fill="#334155"/>
+                    <text x="962" y="405" text-anchor="middle" fill="#f1f5f9" font-size="10" font-weight="600">questions</text>
+                    <text x="962" y="420" text-anchor="middle" fill="#94a3b8" font-size="9">text, type, options, status</text>
+
+                    <rect x="780" y="440" width="115" height="45" rx="4" fill="#334155"/>
+                    <text x="837" y="460" text-anchor="middle" fill="#f1f5f9" font-size="10" font-weight="600">votes</text>
+                    <text x="837" y="475" text-anchor="middle" fill="#94a3b8" font-size="9">value, reason, participant</text>
+
+                    <rect x="905" y="440" width="115" height="45" rx="4" fill="#334155"/>
+                    <text x="962" y="460" text-anchor="middle" fill="#f1f5f9" font-size="10" font-weight="600">batches</text>
+                    <text x="962" y="475" text-anchor="middle" fill="#94a3b8" font-size="9">name, position, status</text>
+
+                    <rect x="780" y="495" width="240" height="30" rx="4" fill="rgba(34, 197, 94, 0.2)" stroke="#22c55e"/>
+                    <text x="900" y="515" text-anchor="middle" fill="#22c55e" font-size="10" font-weight="600">Row Level Security (RLS) Policies</text>
+
+                    <!-- RLS Details -->
+                    <rect x="760" y="560" width="280" height="140" rx="8" fill="#1e293b" stroke="#22c55e" stroke-width="1"/>
+                    <text x="900" y="585" text-anchor="middle" fill="#22c55e" font-size="12" font-weight="600">RLS Policy Enforcement</text>
+                    <text x="780" y="610" fill="#94a3b8" font-size="10">• Sessions: creator can UPDATE/DELETE</text>
+                    <text x="780" y="630" fill="#94a3b8" font-size="10">• Questions: session creator only</text>
+                    <text x="780" y="650" fill="#94a3b8" font-size="10">• Votes: participant_id = auth.uid()</text>
+                    <text x="780" y="670" fill="#94a3b8" font-size="10">• Batches: session creator only</text>
+                    <text x="780" y="690" fill="#94a3b8" font-size="10">• All tables: authenticated SELECT</text>
+
+                    <!-- Data Flow Arrows - Orthogonal routing -->
+
+                    <!-- User to Browser (vertical drop) -->
+                    <line x1="120" y1="220" x2="120" y2="245" stroke="#a855f7" stroke-width="2" marker-end="url(#arrowhead-purple)"/>
+                    <line x1="270" y1="220" x2="270" y2="245" stroke="#06b6d4" stroke-width="2" marker-end="url(#arrowhead-cyan)"/>
+
+                    <!-- Browser to Vercel (orthogonal: right then up) -->
+                    <path d="M 350 280 L 390 280 L 390 120 L 430 120" stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                    <text x="392" y="195" fill="#94a3b8" font-size="9" writing-mode="vertical-rl">HTTPS Request</text>
+
+                    <!-- Vercel to Browser (orthogonal: down then left, offset) -->
+                    <path d="M 430 140 L 410 140 L 410 300 L 350 300" stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                    <text x="412" y="220" fill="#94a3b8" font-size="9" writing-mode="vertical-rl">Static Assets</text>
+
+                    <!-- Browser to Supabase Auth (route above API Key box) -->
+                    <path d="M 350 265 L 660 265 L 660 100 L 760 100" stroke="#22c55e" stroke-width="2" fill="none" marker-end="url(#arrowhead-green)"/>
+                    <text x="480" y="258" fill="#22c55e" font-size="9">1. signInAnonymously()</text>
+
+                    <!-- Supabase Auth to Browser (route below, separate channel) -->
+                    <path d="M 760 165 L 680 165 L 680 290 L 350 290" stroke="#22c55e" stroke-width="2" fill="none" marker-end="url(#arrowhead-green)"/>
+                    <text x="480" y="283" fill="#22c55e" font-size="9">2. JWT Token</text>
+
+                    <!-- Browser to Realtime WebSocket (route through middle corridor) -->
+                    <path d="M 350 340 L 450 340 L 450 230 L 760 230" stroke="#eab308" stroke-width="2" fill="none" marker-end="url(#arrowhead-yellow)"/>
+                    <text x="560" y="223" fill="#eab308" font-size="9">WebSocket Subscribe</text>
+
+                    <!-- Realtime to Browser (lower return path) -->
+                    <path d="M 760 295 L 470 295 L 470 365 L 350 365" stroke="#eab308" stroke-width="2" fill="none" marker-end="url(#arrowhead-yellow)"/>
+                    <text x="560" y="308" fill="#eab308" font-size="9">Events / Presence</text>
+
+                    <!-- Browser to PostgreSQL (bottom route, below other traffic) -->
+                    <path d="M 350 410 L 490 410 L 490 440 L 760 440" stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                    <text x="560" y="433" fill="#3b82f6" font-size="9">DB Queries (with JWT)</text>
+
+                    <!-- PostgreSQL response to Browser (offset return) -->
+                    <path d="M 760 470 L 510 470 L 510 395 L 350 395" stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+                    <text x="560" y="463" fill="#3b82f6" font-size="9">Query Results</text>
+
+                    <!-- PostgreSQL to Realtime (CDC - internal vertical) -->
+                    <path d="M 870 340 L 870 320" stroke="#a855f7" stroke-width="2" fill="none" marker-end="url(#arrowhead-purple)"/>
+                    <text x="880" y="335" fill="#a855f7" font-size="9">CDC</text>
+
+                    <!-- Threat indicators (repositioned lower left) -->
+                    <g transform="translate(50, 470)">
+                        <rect width="300" height="160" rx="8" fill="rgba(239, 68, 68, 0.1)" stroke="#ef4444" stroke-width="1"/>
+                        <text x="150" y="25" text-anchor="middle" fill="#ef4444" font-size="12" font-weight="600">⚠️ Attack Surface</text>
+                        <text x="20" y="50" fill="#f1f5f9" font-size="10">T1: Admin token in URL (guessable)</text>
+                        <text x="20" y="70" fill="#f1f5f9" font-size="10">T2: Client-side password gate (bypassable)</text>
+                        <text x="20" y="90" fill="#f1f5f9" font-size="10">T3: Session ID enumeration</text>
+                        <text x="20" y="110" fill="#f1f5f9" font-size="10">T4: XSS via user-generated content</text>
+                        <text x="20" y="130" fill="#f1f5f9" font-size="10">T5: Vote manipulation (client controls)</text>
+                        <text x="20" y="150" fill="#f1f5f9" font-size="10">T6: DoS via large import files</text>
+                    </g>
+
+                    <!-- API Key note (repositioned to avoid arrow paths) -->
+                    <g transform="translate(430, 170)">
+                        <rect width="200" height="50" rx="6" fill="rgba(234, 179, 8, 0.1)" stroke="#eab308" stroke-width="1"/>
+                        <text x="100" y="18" text-anchor="middle" fill="#eab308" font-size="10" font-weight="600">⚠️ Public API Key</text>
+                        <text x="100" y="33" text-anchor="middle" fill="#94a3b8" font-size="9">VITE_SUPABASE_ANON_KEY</text>
+                        <text x="100" y="45" text-anchor="middle" fill="#94a3b8" font-size="9">exposed in client bundle</text>
+                    </g>
+
+                    <!-- Connection labels in middle corridor -->
+                    <g transform="translate(430, 320)">
+                        <rect width="200" height="70" rx="6" fill="rgba(71, 85, 105, 0.3)" stroke="#475569" stroke-width="1"/>
+                        <text x="100" y="18" text-anchor="middle" fill="#f1f5f9" font-size="10" font-weight="600">Data Channels</text>
+                        <text x="100" y="35" text-anchor="middle" fill="#22c55e" font-size="9">● Auth (HTTPS)</text>
+                        <text x="100" y="50" text-anchor="middle" fill="#eab308" font-size="9">● Realtime (WSS)</text>
+                        <text x="100" y="65" text-anchor="middle" fill="#3b82f6" font-size="9">● Database (HTTPS)</text>
+                    </g>
+
+                    <!-- Legend -->
+                    <g transform="translate(430, 550)">
+                        <rect width="280" height="170" rx="8" fill="#1e293b" stroke="#475569"/>
+                        <text x="140" y="25" text-anchor="middle" fill="#f1f5f9" font-size="12" font-weight="600">Legend</text>
+
+                        <line x1="20" y1="50" x2="60" y2="50" stroke="#3b82f6" stroke-width="2"/>
+                        <text x="70" y="54" fill="#94a3b8" font-size="10">HTTPS / Query</text>
+
+                        <line x1="20" y1="75" x2="60" y2="75" stroke="#22c55e" stroke-width="2"/>
+                        <text x="70" y="79" fill="#94a3b8" font-size="10">Authentication</text>
+
+                        <line x1="20" y1="100" x2="60" y2="100" stroke="#eab308" stroke-width="2"/>
+                        <text x="70" y="104" fill="#94a3b8" font-size="10">WebSocket (Realtime)</text>
+
+                        <rect x="20" y="115" width="40" height="15" rx="2" fill="none" stroke="#ef4444" stroke-dasharray="4,2"/>
+                        <text x="70" y="127" fill="#94a3b8" font-size="10">Trust Boundary (Untrusted)</text>
+
+                        <rect x="20" y="140" width="40" height="15" rx="2" fill="none" stroke="#22c55e" stroke-dasharray="4,2"/>
+                        <text x="70" y="152" fill="#94a3b8" font-size="10">Trust Boundary (Trusted)</text>
+                    </g>
+                </svg>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #a855f7;"></div>
+                    <span>Admin (Session Creator)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #06b6d4;"></div>
+                    <span>Participant (Voter)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3b82f6;"></div>
+                    <span>Database/Storage</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #eab308;"></div>
+                    <span>Real-time Services</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #22c55e;"></div>
+                    <span>Authentication</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ef4444;"></div>
+                    <span>Threat/Risk</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- System Components -->
+        <section class="section">
+            <h2>System Components</h2>
+
+            <h3>Frontend (React SPA)</h3>
+            <table>
+                <tr>
+                    <th>Component</th>
+                    <th>Technology</th>
+                    <th>Security Role</th>
+                </tr>
+                <tr>
+                    <td>Admin Dashboard</td>
+                    <td>React 19, TypeScript</td>
+                    <td>Session management, question control, vote monitoring</td>
+                </tr>
+                <tr>
+                    <td>Participant View</td>
+                    <td>React 19, TypeScript</td>
+                    <td>Vote submission, real-time updates</td>
+                </tr>
+                <tr>
+                    <td>State Management</td>
+                    <td>Zustand</td>
+                    <td>Client-side state, no sensitive data persistence</td>
+                </tr>
+                <tr>
+                    <td>Real-time Hooks</td>
+                    <td>Supabase JS Client</td>
+                    <td>WebSocket subscriptions, presence tracking</td>
+                </tr>
+                <tr>
+                    <td>Password Gate</td>
+                    <td>sessionStorage</td>
+                    <td><span class="risk-medium">Client-side only (bypassable)</span></td>
+                </tr>
+            </table>
+
+            <h3>Backend (Supabase BaaS)</h3>
+            <table>
+                <tr>
+                    <th>Service</th>
+                    <th>Purpose</th>
+                    <th>Security Controls</th>
+                </tr>
+                <tr>
+                    <td>PostgreSQL</td>
+                    <td>Data persistence</td>
+                    <td>RLS policies, parameterized queries</td>
+                </tr>
+                <tr>
+                    <td>Realtime</td>
+                    <td>WebSocket events, presence</td>
+                    <td>JWT authentication required</td>
+                </tr>
+                <tr>
+                    <td>Auth</td>
+                    <td>Anonymous authentication</td>
+                    <td>JWT token generation</td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- Data Flow Analysis -->
+        <section class="section">
+            <h2>Data Flow Analysis</h2>
+
+            <div class="data-flow">
+                <div class="flow-item">
+                    <h4>1. Session Creation</h4>
+                    <p>Admin → Create Session → DB Insert → Returns admin_token → Redirect to /admin/{token}</p>
+                </div>
+                <div class="flow-item">
+                    <h4>2. Participant Join</h4>
+                    <p>Scan QR/URL → /session/{id} → Anonymous Auth → Realtime Subscribe → Presence Track</p>
+                </div>
+                <div class="flow-item">
+                    <h4>3. Vote Submission</h4>
+                    <p>Participant Vote → Upsert to DB → Postgres Changes → Admin receives update</p>
+                </div>
+                <div class="flow-item">
+                    <h4>4. Admin Broadcast</h4>
+                    <p>Admin Action → DB Update → Broadcast Event → All Participants receive</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Trust Boundaries -->
+        <section class="section">
+            <h2>Trust Boundaries</h2>
+
+            <div class="trust-boundary">
+                <div class="trust-boundary-label">🔴 Untrusted Zone: Client Browser</div>
+                <ul>
+                    <li>All client-side code can be inspected and modified</li>
+                    <li>API keys (anon key) are publicly visible in the bundle</li>
+                    <li>Client-side validation can be bypassed</li>
+                    <li>Password gate is stored in sessionStorage (bypassable)</li>
+                    <li>Admin token is exposed in URL (can be shared/leaked)</li>
+                </ul>
+            </div>
+
+            <div class="trust-boundary" style="border-color: var(--accent-green);">
+                <div class="trust-boundary-label" style="color: var(--accent-green);">🟢 Trusted Zone: Supabase Backend</div>
+                <ul>
+                    <li>Row Level Security (RLS) enforces authorization</li>
+                    <li>All database operations require valid JWT</li>
+                    <li>Parameterized queries prevent SQL injection</li>
+                    <li>TLS encryption for all communications</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- STRIDE Threat Analysis -->
+        <section class="section">
+            <h2>STRIDE Threat Analysis</h2>
+
+            <h3>Spoofing</h3>
+            <div class="threat-card">
+                <div class="threat-header">
+                    <span class="threat-title">S1: Admin Impersonation via Token Guessing</span>
+                    <span class="badge badge-orange">HIGH</span>
+                </div>
+                <p>Admin tokens are UUIDs in URLs. If an attacker obtains or guesses the token, they gain full admin access to the session.</p>
+                <div class="mitigation">
+                    <div class="mitigation-label">Existing Mitigation</div>
+                    <p>UUIDs are cryptographically random (122 bits of entropy). Optional password gate adds a layer.</p>
+                </div>
+                <div class="mitigation">
+                    <div class="mitigation-label">Recommended</div>
+                    <p>Implement server-side admin authentication. Add rate limiting on session lookups.</p>
+                </div>
+            </div>
+
+            <div class="threat-card medium">
+                <div class="threat-header">
+                    <span class="threat-title">S2: Participant Identity Manipulation</span>
+                    <span class="badge badge-yellow">MEDIUM</span>
+                </div>
+                <p>Anonymous auth allows anyone to create identities. A malicious user could create multiple identities to vote multiple times.</p>
+                <div class="mitigation">
+                    <div class="mitigation-label">Existing Mitigation</div>
+                    <p>Unique constraint on (question_id, participant_id) prevents duplicate votes per identity.</p>
+                </div>
+                <div class="mitigation">
+                    <div class="mitigation-label">Recommended</div>
+                    <p>Implement device fingerprinting or IP-based rate limiting for vote submission.</p>
+                </div>
+            </div>
+
+            <h3>Tampering</h3>
+            <div class="threat-card medium">
+                <div class="threat-header">
+                    <span class="threat-title">T1: Vote Manipulation via Direct API Calls</span>
+                    <span class="badge badge-yellow">MEDIUM</span>
+                </div>
+                <p>Participants can modify their votes directly via API calls, bypassing the UI.</p>
+                <div class="mitigation">
+                    <div class="mitigation-label">Existing Mitigation</div>
+                    <p>RLS ensures participants can only modify their own votes. <code>locked_in</code> field could be used to prevent changes.</p>
+                </div>
+            </div>
+
+            <div class="threat-card medium">
+                <div class="threat-header">
+                    <span class="threat-title">T2: Import File Tampering</span>
+                    <span class="badge badge-yellow">MEDIUM</span>
+                </div>
+                <p>Malicious JSON import files could contain XSS payloads or oversized data.</p>
+                <div class="mitigation">
+                    <div class="mitigation-label">Existing Mitigation</div>
+                    <p>Zod schema validation, 5MB file size limit, data sanitization on render.</p>
+                </div>
+            </div>
+
+            <h3>Repudiation</h3>
+            <div class="threat-card low">
+                <div class="threat-header">
+                    <span class="threat-title">R1: Vote Attribution</span>
+                    <span class="badge badge-green">LOW</span>
+                </div>
+                <p>Anonymous voting by design means votes cannot be attributed to real identities.</p>
+                <div class="mitigation">
+                    <div class="mitigation-label">Design Decision</div>
+                    <p>This is an intentional feature. Votes are tied to anonymous <code>auth.uid()</code> for uniqueness enforcement only.</p>
+                </div>
+            </div>
+
+            <h3>Information Disclosure</h3>
+            <div class="threat-card">
+                <div class="threat-header">
+                    <span class="threat-title">I1: Session Data Exposure</span>
+                    <span class="badge badge-orange">HIGH</span>
+                </div>
+                <p>All authenticated users can SELECT from all tables. Session IDs are guessable nanoid strings. Vote reasons are exported in plain text.</p>
+                <div class="mitigation">
+                    <div class="mitigation-label">Existing Mitigation</div>
+                    <p>Session IDs use nanoid (21 characters). Export is admin-only action.</p>
+                </div>
+                <div class="mitigation">
+                    <div class="mitigation-label">Recommended</div>
+                    <p>Restrict SELECT queries to session participants only. Add session-level access control.</p>
+                </div>
+            </div>
+
+            <div class="threat-card medium">
+                <div class="threat-header">
+                    <span class="threat-title">I2: API Key Exposure</span>
+                    <span class="badge badge-yellow">MEDIUM</span>
+                </div>
+                <p>Supabase anon key is publicly visible in the client bundle.</p>
+                <div class="mitigation">
+                    <div class="mitigation-label">Design Decision</div>
+                    <p>This is expected for Supabase public clients. Security relies on RLS, not key secrecy.</p>
+                </div>
+            </div>
+
+            <h3>Denial of Service</h3>
+            <div class="threat-card medium">
+                <div class="threat-header">
+                    <span class="threat-title">D1: Large Import File Attack</span>
+                    <span class="badge badge-yellow">MEDIUM</span>
+                </div>
+                <p>Uploading large JSON files (up to 5MB) could slow down the client or cause memory issues.</p>
+                <div class="mitigation">
+                    <div class="mitigation-label">Existing Mitigation</div>
+                    <p>5MB file size limit. Client-side parsing with error handling.</p>
+                </div>
+            </div>
+
+            <div class="threat-card medium">
+                <div class="threat-header">
+                    <span class="threat-title">D2: WebSocket Connection Flooding</span>
+                    <span class="badge badge-yellow">MEDIUM</span>
+                </div>
+                <p>Creating many WebSocket connections could exhaust Supabase realtime capacity.</p>
+                <div class="mitigation">
+                    <div class="mitigation-label">Existing Mitigation</div>
+                    <p>Supabase has built-in connection limits. Presence tracking helps monitor participants.</p>
+                </div>
+            </div>
+
+            <h3>Elevation of Privilege</h3>
+            <div class="threat-card">
+                <div class="threat-header">
+                    <span class="threat-title">E1: Participant to Admin Escalation</span>
+                    <span class="badge badge-orange">HIGH</span>
+                </div>
+                <p>If a participant obtains the admin_token URL, they gain full admin privileges for that session.</p>
+                <div class="mitigation">
+                    <div class="mitigation-label">Existing Mitigation</div>
+                    <p>Admin token is a separate UUID. RLS checks <code>created_by</code> for mutation operations.</p>
+                </div>
+                <div class="mitigation">
+                    <div class="mitigation-label">Recommended</div>
+                    <p>Implement proper admin authentication. Use HTTP-only cookies instead of URL tokens.</p>
+                </div>
+            </div>
+
+            <div class="threat-card medium">
+                <div class="threat-header">
+                    <span class="threat-title">E2: Client-Side Password Bypass</span>
+                    <span class="badge badge-yellow">MEDIUM</span>
+                </div>
+                <p>The optional password gate is client-side only. It can be bypassed by clearing sessionStorage or using dev tools.</p>
+                <div class="mitigation">
+                    <div class="mitigation-label">Design Decision</div>
+                    <p>This is a convenience feature, not a security control. True authorization is enforced by RLS.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Risk Summary -->
+        <section class="section">
+            <h2>Risk Summary Matrix</h2>
+            <table>
+                <tr>
+                    <th>Threat ID</th>
+                    <th>Threat</th>
+                    <th>Likelihood</th>
+                    <th>Impact</th>
+                    <th>Risk Level</th>
+                    <th>Status</th>
+                </tr>
+                <tr>
+                    <td>S1</td>
+                    <td>Admin Token Guessing</td>
+                    <td>Low</td>
+                    <td>High</td>
+                    <td class="risk-high">HIGH</td>
+                    <td><span class="badge badge-yellow">Mitigated</span></td>
+                </tr>
+                <tr>
+                    <td>S2</td>
+                    <td>Multiple Vote Identities</td>
+                    <td>Medium</td>
+                    <td>Medium</td>
+                    <td class="risk-medium">MEDIUM</td>
+                    <td><span class="badge badge-yellow">Mitigated</span></td>
+                </tr>
+                <tr>
+                    <td>T1</td>
+                    <td>Direct API Vote Manipulation</td>
+                    <td>Medium</td>
+                    <td>Low</td>
+                    <td class="risk-medium">MEDIUM</td>
+                    <td><span class="badge badge-green">Accepted</span></td>
+                </tr>
+                <tr>
+                    <td>T2</td>
+                    <td>Malicious Import Files</td>
+                    <td>Low</td>
+                    <td>Medium</td>
+                    <td class="risk-medium">MEDIUM</td>
+                    <td><span class="badge badge-green">Mitigated</span></td>
+                </tr>
+                <tr>
+                    <td>I1</td>
+                    <td>Session Data Exposure</td>
+                    <td>Medium</td>
+                    <td>Medium</td>
+                    <td class="risk-high">HIGH</td>
+                    <td><span class="badge badge-yellow">Partial</span></td>
+                </tr>
+                <tr>
+                    <td>I2</td>
+                    <td>API Key Exposure</td>
+                    <td>High</td>
+                    <td>Low</td>
+                    <td class="risk-medium">MEDIUM</td>
+                    <td><span class="badge badge-blue">By Design</span></td>
+                </tr>
+                <tr>
+                    <td>D1</td>
+                    <td>Large Import DoS</td>
+                    <td>Low</td>
+                    <td>Low</td>
+                    <td class="risk-low">LOW</td>
+                    <td><span class="badge badge-green">Mitigated</span></td>
+                </tr>
+                <tr>
+                    <td>D2</td>
+                    <td>WebSocket Flooding</td>
+                    <td>Low</td>
+                    <td>Medium</td>
+                    <td class="risk-medium">MEDIUM</td>
+                    <td><span class="badge badge-green">Mitigated</span></td>
+                </tr>
+                <tr>
+                    <td>E1</td>
+                    <td>Participant to Admin</td>
+                    <td>Low</td>
+                    <td>High</td>
+                    <td class="risk-high">HIGH</td>
+                    <td><span class="badge badge-yellow">Partial</span></td>
+                </tr>
+                <tr>
+                    <td>E2</td>
+                    <td>Password Gate Bypass</td>
+                    <td>High</td>
+                    <td>Low</td>
+                    <td class="risk-medium">MEDIUM</td>
+                    <td><span class="badge badge-blue">By Design</span></td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- Security Controls -->
+        <section class="section">
+            <h2>Existing Security Controls</h2>
+
+            <table>
+                <tr>
+                    <th>Control</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Effectiveness</th>
+                </tr>
+                <tr>
+                    <td>Row Level Security (RLS)</td>
+                    <td>Authorization</td>
+                    <td>Database-level access control based on auth.uid()</td>
+                    <td><span class="badge badge-green">Strong</span></td>
+                </tr>
+                <tr>
+                    <td>Anonymous JWT Auth</td>
+                    <td>Authentication</td>
+                    <td>Unique identity per browser session</td>
+                    <td><span class="badge badge-yellow">Moderate</span></td>
+                </tr>
+                <tr>
+                    <td>HTTPS/TLS</td>
+                    <td>Transport</td>
+                    <td>Encryption in transit via Vercel & Supabase</td>
+                    <td><span class="badge badge-green">Strong</span></td>
+                </tr>
+                <tr>
+                    <td>Zod Validation</td>
+                    <td>Input Validation</td>
+                    <td>Schema validation for imported data</td>
+                    <td><span class="badge badge-green">Strong</span></td>
+                </tr>
+                <tr>
+                    <td>UUID Admin Tokens</td>
+                    <td>Access Control</td>
+                    <td>Cryptographically random session identifiers</td>
+                    <td><span class="badge badge-yellow">Moderate</span></td>
+                </tr>
+                <tr>
+                    <td>Client Password Gate</td>
+                    <td>Access Control</td>
+                    <td>Optional password for admin routes</td>
+                    <td><span class="badge badge-red">Weak</span></td>
+                </tr>
+                <tr>
+                    <td>Unique Vote Constraint</td>
+                    <td>Data Integrity</td>
+                    <td>One vote per participant per question</td>
+                    <td><span class="badge badge-green">Strong</span></td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- Recommendations -->
+        <section class="section">
+            <h2>Security Recommendations</h2>
+
+            <h3>High Priority</h3>
+            <ul>
+                <li><strong>Implement server-side admin authentication:</strong> Replace URL-based admin tokens with proper session-based authentication using HTTP-only cookies.</li>
+                <li><strong>Add session-level access control:</strong> Restrict database SELECT operations to only return data for sessions the user is participating in.</li>
+                <li><strong>Rate limiting:</strong> Implement rate limiting on vote submissions and session lookups to prevent abuse.</li>
+            </ul>
+
+            <h3>Medium Priority</h3>
+            <ul>
+                <li><strong>Device fingerprinting:</strong> Add optional device identification to detect multi-vote attempts from the same device.</li>
+                <li><strong>Content Security Policy:</strong> Implement strict CSP headers to mitigate XSS risks.</li>
+                <li><strong>Audit logging:</strong> Add server-side logging of admin actions for accountability.</li>
+            </ul>
+
+            <h3>Low Priority</h3>
+            <ul>
+                <li><strong>Session expiration:</strong> Implement automatic session cleanup after a configurable period.</li>
+                <li><strong>Export encryption:</strong> Offer encrypted export option for sensitive voting data.</li>
+                <li><strong>QR code rotation:</strong> Allow admins to regenerate session join codes if leaked.</li>
+            </ul>
+        </section>
+
+        <!-- Data Classification -->
+        <section class="section">
+            <h2>Data Classification</h2>
+            <table>
+                <tr>
+                    <th>Data Element</th>
+                    <th>Classification</th>
+                    <th>Storage</th>
+                    <th>Notes</th>
+                </tr>
+                <tr>
+                    <td>Session ID</td>
+                    <td><span class="badge badge-yellow">Internal</span></td>
+                    <td>PostgreSQL</td>
+                    <td>Shared via QR code/URL</td>
+                </tr>
+                <tr>
+                    <td>Admin Token</td>
+                    <td><span class="badge badge-orange">Confidential</span></td>
+                    <td>PostgreSQL, URL</td>
+                    <td>Grants full session control</td>
+                </tr>
+                <tr>
+                    <td>Vote Values</td>
+                    <td><span class="badge badge-yellow">Internal</span></td>
+                    <td>PostgreSQL</td>
+                    <td>Anonymous, aggregated for display</td>
+                </tr>
+                <tr>
+                    <td>Vote Reasons</td>
+                    <td><span class="badge badge-orange">Confidential</span></td>
+                    <td>PostgreSQL</td>
+                    <td>May contain personal opinions</td>
+                </tr>
+                <tr>
+                    <td>Participant ID</td>
+                    <td><span class="badge badge-green">Public</span></td>
+                    <td>PostgreSQL</td>
+                    <td>Anonymous UUID, no PII</td>
+                </tr>
+                <tr>
+                    <td>Question Text</td>
+                    <td><span class="badge badge-yellow">Internal</span></td>
+                    <td>PostgreSQL</td>
+                    <td>Admin-created content</td>
+                </tr>
+            </table>
+        </section>
+
+        <footer>
+            <p>QuickVote Threat Model v1.0 | Generated January 2026</p>
+            <p>This document should be reviewed and updated whenever significant architectural changes are made.</p>
+        </footer>
+    </div>
+</body>
+</html>

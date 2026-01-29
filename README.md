@@ -165,7 +165,7 @@ src/
 sql/            Database migration scripts
 ```
 
-For detailed technical documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
+For detailed technical documentation, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## License
 
