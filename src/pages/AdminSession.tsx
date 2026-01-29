@@ -1040,8 +1040,25 @@ export default function AdminSession() {
                 ? 'calc(100dvh - 10rem)'
                 : 'calc(100dvh - 7rem)'
           }}>
-            {/* Hero active question */}
-            {activeQuestion ? (
+            {/* Active batch summary */}
+            {showProgressDashboard ? (
+              (() => {
+                const activeBatch = batches.find((b) => b.id === activeBatchId);
+                const batchQuestionCount = questions.filter((q) => q.batch_id === activeBatchId).length;
+                return (
+                  <div className="h-full flex flex-col items-center justify-center text-center">
+                    <p className="text-2xl text-gray-500">Batch Voting</p>
+                    <h2 className="text-5xl font-bold text-gray-900 mt-3 leading-tight">
+                      {activeBatch?.name ?? 'Untitled Batch'}
+                    </h2>
+                    <p className="text-2xl text-gray-600 mt-4">
+                      {batchQuestionCount} Question{batchQuestionCount !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                );
+              })()
+            ) : activeQuestion ? (
+              /* Hero active question */
               <ActiveQuestionHero
                 question={activeQuestion}
                 questionIndex={questions.findIndex((q) => q.id === activeQuestion.id)}
@@ -1127,8 +1144,8 @@ export default function AdminSession() {
             )}
           </div>
 
-          {/* Previous results grid — scrolls below the fold */}
-          {closedQuestions.length > 0 && (
+          {/* Previous results grid — only shown when no active voting */}
+          {!activeQuestion && !showProgressDashboard && closedQuestions.length > 0 && (
             <div className="max-w-5xl mx-auto px-6 py-8 pb-20">
               <h2 className="text-lg font-semibold text-gray-700 mb-4">
                 Previous Results
