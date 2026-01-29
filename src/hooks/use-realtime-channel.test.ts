@@ -16,7 +16,7 @@ const mockChannelObj = {
 };
 
 const mockRemoveChannel = vi.fn();
-const mockCreateChannel = vi.fn(() => mockChannelObj);
+const mockCreateChannel = vi.fn((_name: string, _opts?: any) => mockChannelObj);
 
 vi.mock('../lib/supabase', () => ({
   supabase: {

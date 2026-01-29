@@ -323,16 +323,6 @@ export default function AdminSession() {
   // Show progress dashboard only during active batch voting
   const showProgressDashboard = activeBatchId !== null;
 
-  // Compute whether a specific batch can be activated
-  function _canActivateBatch(batch: Batch): boolean {
-    if (batch.status !== 'pending') return false;
-    if (isLiveQuestionActive) return false;
-    if (isBatchActive && activeBatchId !== batch.id) return false;
-    const batchQuestions = questions.filter((q) => q.batch_id === batch.id);
-    if (batchQuestions.length === 0) return false;
-    return true;
-  }
-
   // --- Handler extraction ---
 
   async function handleActivateQuestion(questionId: string, timerDuration: number | null) {
@@ -543,18 +533,6 @@ export default function AdminSession() {
     setTransitioning(false);
   }
 
-  async function _handleToggleAnonymous(question: Question) {
-    const newAnonymous = !question.anonymous;
-    const { error: err } = await supabase
-      .from('questions')
-      .update({ anonymous: newAnonymous })
-      .eq('id', question.id);
-
-    if (!err) {
-      updateQuestion(question.id, { anonymous: newAnonymous });
-    }
-  }
-
   async function handleToggleSessionReasons() {
     if (!session) return;
     const newValue = !(session.reasons_enabled ?? false);
@@ -757,137 +735,6 @@ export default function AdminSession() {
       });
     }
   }
-
-  // --- Pending batch handlers (for building batch during active session) ---
-
-  async function _handleAddToBatch(text: string) {
-    if (!session || !text.trim()) return;
-
-    let batchId = pendingBatchId;
-
-    // Create a new batch if we don't have one
-    if (!batchId) {
-      const nextPosition = batches.length > 0
-        ? Math.max(...batches.map(b => b.position)) + 1
-        : 0;
-
-      const { data: batchData, error: batchError } = await supabase
-        .from('batches')
-        .insert({
-          session_id: session.session_id,
-          name: 'Quick Batch',
-          position: nextPosition,
-        })
-        .select()
-        .single();
-
-      if (batchError || !batchData) {
-        console.error('Failed to create batch:', batchError);
-        return;
-      }
-
-      batchId = batchData.id;
-      setPendingBatchId(batchId);
-      useSessionStore.getState().addBatch(batchData);
-    }
-
-    // Create the question in this batch
-    const nextPosition = questions.length > 0
-      ? Math.max(...questions.map(q => q.position)) + 1
-      : 0;
-
-    const { data: questionData, error: questionError } = await supabase
-      .from('questions')
-      .insert({
-        session_id: session.session_id,
-        text: text.trim(),
-        type: 'agree_disagree' as const,
-        options: null,
-        position: nextPosition,
-        status: 'pending' as const,
-        batch_id: batchId,
-      })
-      .select()
-      .single();
-
-    if (!questionError && questionData) {
-      useSessionStore.getState().addQuestion(questionData);
-    }
-  }
-
-  async function _handleActivatePendingBatch() {
-    if (!pendingBatchId) return;
-    await handleActivateBatch(pendingBatchId);
-    setPendingBatchId(null);
-  }
-
-  async function _handleClearPendingBatch() {
-    if (!pendingBatchId || !session) return;
-
-    // Delete all questions in the pending batch
-    await supabase
-      .from('questions')
-      .delete()
-      .eq('batch_id', pendingBatchId);
-
-    // Delete the batch itself
-    await supabase
-      .from('batches')
-      .delete()
-      .eq('id', pendingBatchId);
-
-    // Update local state
-    useSessionStore.getState().removeBatch(pendingBatchId);
-
-    // Refresh questions to remove deleted ones
-    const { data: questionsData } = await supabase
-      .from('questions')
-      .select('*')
-      .eq('session_id', session.session_id)
-      .order('position', { ascending: true });
-
-    if (questionsData) {
-      useSessionStore.getState().setQuestions(questionsData);
-    }
-
-    setPendingBatchId(null);
-  }
-
-  async function _handleRemoveFromBatch(questionId: string) {
-    if (!session) return;
-
-    // Delete the question
-    await supabase
-      .from('questions')
-      .delete()
-      .eq('id', questionId);
-
-    useSessionStore.getState().removeQuestion(questionId);
-
-    // Check if the pending batch is now empty
-    if (pendingBatchId) {
-      const remainingQuestions = questions.filter(
-        q => q.batch_id === pendingBatchId && q.id !== questionId
-      );
-
-      if (remainingQuestions.length === 0) {
-        // Delete the empty batch
-        await supabase
-          .from('batches')
-          .delete()
-          .eq('id', pendingBatchId);
-
-        useSessionStore.getState().removeBatch(pendingBatchId);
-        setPendingBatchId(null);
-      }
-    }
-  }
-
-  // Derive pending batch questions
-  const _pendingBatchQuestions = useMemo(() => {
-    if (!pendingBatchId) return [];
-    return questions.filter(q => q.batch_id === pendingBatchId);
-  }, [pendingBatchId, questions]);
 
   async function handleDelete(question: Question) {
     if (!window.confirm('Delete this question?')) return;
