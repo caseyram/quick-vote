@@ -165,7 +165,7 @@ src/
 sql/            Database migration scripts
 ```
 
-For detailed technical documentation, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+For detailed technical documentation, see [ARCHITECTURE.md](docs/ARCHITECTURE.md) or browse the [full documentation](https://caseyram.github.io/quick-vote/) including the security threat model.
 
 ## License
 
