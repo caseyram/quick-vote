@@ -38,19 +38,23 @@ export function TemplatePanel({ sessionId }: TemplatePanelProps) {
     setLoading(true);
     setError(null);
     try {
-      const maxQuestionPos = questions.length > 0
-        ? Math.max(...questions.map((q) => q.position)) + 1
-        : 0;
+      // Calculate global max position across both batches and unbatched questions
+      // since they share the same position space in the interleaved UI
+      const unbatchedQuestions = questions.filter(q => q.batch_id === null);
+      const maxUnbatchedPos = unbatchedQuestions.length > 0
+        ? Math.max(...unbatchedQuestions.map((q) => q.position))
+        : -1;
       const maxBatchPos = batches.length > 0
-        ? Math.max(...batches.map((b) => b.position)) + 1
-        : 0;
+        ? Math.max(...batches.map((b) => b.position))
+        : -1;
+      const nextPosition = Math.max(maxUnbatchedPos, maxBatchPos) + 1;
 
       const { questions: insertedQuestions, batches: insertedBatches } = await bulkInsertQuestions(
         sessionId,
         template.questions,
         template.batches,
-        maxQuestionPos,
-        maxBatchPos
+        nextPosition,
+        nextPosition
       );
 
       // Add batches to store first (so questions can reference them)

@@ -546,9 +546,16 @@ export default function AdminSession() {
 
   async function handleCreateBatch() {
     if (!session) return;
-    const nextPosition = batches.length > 0
-      ? Math.max(...batches.map(b => b.position)) + 1
-      : 0;
+    // Consider both batch positions AND unbatched question positions
+    // since they're interleaved in the UI sorted by position
+    const maxBatchPos = batches.length > 0
+      ? Math.max(...batches.map(b => b.position))
+      : -1;
+    const unbatchedQuestions = questions.filter(q => q.batch_id === null);
+    const maxQuestionPos = unbatchedQuestions.length > 0
+      ? Math.max(...unbatchedQuestions.map(q => q.position))
+      : -1;
+    const nextPosition = Math.max(maxBatchPos, maxQuestionPos) + 1;
 
     const { data, error: err } = await supabase
       .from('batches')
