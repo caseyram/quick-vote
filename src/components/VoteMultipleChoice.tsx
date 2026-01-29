@@ -149,7 +149,7 @@ export default function VoteMultipleChoice({
       </div>
 
       {/* Option cards */}
-      <div className={`flex-1 flex flex-col gap-3 px-4 min-h-0 ${isCompact ? 'overflow-y-auto' : ''}`}>
+      <div className="flex flex-col gap-3 px-4">
         {options.map((option, index) => {
           const isSelected = pendingSelection === option;
           const optionColor = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
@@ -164,7 +164,7 @@ export default function VoteMultipleChoice({
               whileTap={{ scale: 0.97 }}
               transition={{ backgroundColor: { duration: 0.15 }, scale: { duration: 0.1 } }}
               className={`relative rounded-xl text-white font-semibold text-left ${
-                isCompact ? 'px-4 py-3 text-base' : 'px-5 py-5 text-lg flex-1'
+                isCompact ? 'px-4 py-3 text-base' : 'px-5 py-5 text-lg'
               }`}
               style={{
                 touchAction: 'manipulation',
