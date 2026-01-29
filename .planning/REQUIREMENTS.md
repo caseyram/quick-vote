@@ -37,17 +37,17 @@ Requirements for batch questions and polish milestone. Each maps to roadmap phas
 
 ### Progress Dashboard
 
-- [ ] **PROG-01**: Admin sees count of participants who completed the batch
-- [ ] **PROG-02**: Admin sees count of participants in progress
-- [ ] **PROG-03**: Admin sees per-question response counts
-- [ ] **PROG-04**: Progress dashboard updates in real-time as participants answer
+- [x] **PROG-01**: Admin sees count of participants who completed the batch
+- [x] **PROG-02**: Admin sees count of participants in progress
+- [x] **PROG-03**: Admin sees per-question response counts
+- [x] **PROG-04**: Progress dashboard updates in real-time as participants answer
 
 ### Results Improvements
 
-- [ ] **RESL-01**: Admin can mark individual reasons as read
-- [ ] **RESL-02**: Results columns show in consistent order (agree always same position)
-- [ ] **RESL-03**: Results view uses horizontal space better to reduce vertical scrolling
-- [ ] **RESL-04**: Admin can navigate between questions with left/right arrow buttons in results view
+- [x] **RESL-01**: Admin can mark individual reasons as read
+- [x] **RESL-02**: Results columns show in consistent order (agree always same position)
+- [x] **RESL-03**: Results view uses horizontal space better to reduce vertical scrolling
+- [x] **RESL-04**: Admin can navigate between questions with left/right arrow buttons in results view
 
 ## Future Requirements
 
@@ -104,14 +104,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GOLIVE-02 | Phase 09.1 | Complete |
 | GOLIVE-03 | Phase 09.1 | Complete |
 | GOLIVE-04 | Phase 09.1 | Complete |
-| PROG-01 | Phase 10 | Pending |
-| PROG-02 | Phase 10 | Pending |
-| PROG-03 | Phase 10 | Pending |
-| PROG-04 | Phase 10 | Pending |
-| RESL-01 | Phase 10 | Pending |
-| RESL-02 | Phase 10 | Pending |
-| RESL-03 | Phase 10 | Pending |
-| RESL-04 | Phase 10 | Pending |
+| PROG-01 | Phase 10 | Complete |
+| PROG-02 | Phase 10 | Complete |
+| PROG-03 | Phase 10 | Complete |
+| PROG-04 | Phase 10 | Complete |
+| RESL-01 | Phase 10 | Complete |
+| RESL-02 | Phase 10 | Complete |
+| RESL-03 | Phase 10 | Complete |
+| RESL-04 | Phase 10 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 27 total
@@ -120,4 +120,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-28*
-*Last updated: 2026-01-29 - SESS-01 to SESS-05 complete (Phase 9), GOLIVE-01 to GOLIVE-04 complete (Phase 09.1)*
+*Last updated: 2026-01-29 - PROG-01 to PROG-04, RESL-01 to RESL-04 complete (Phase 10)*
