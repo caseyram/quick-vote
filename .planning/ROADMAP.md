@@ -27,6 +27,7 @@ See git history for v1.0 implementation details. Milestone delivered:
 - [x] **Phase 7: Batch Activation** - Admin activates batch for participant self-paced voting
 - [x] **Phase 8: Participant Batch Experience** - Participants navigate and complete batch questions at their own pace
 - [x] **Phase 9: Session Management** - Global admin URL, session list, review past sessions, export/import
+- [ ] **Phase 09.1: Consolidate Batch and Go Live Experience** - Unify batch activation and Go Live flows (INSERTED)
 - [ ] **Phase 10: Progress Dashboard & Results Polish** - Real-time progress monitoring and improved results UX
 
 ## Phase Details
@@ -100,6 +101,24 @@ Plans:
 - [x] 09-04-PLAN.md — JSON import library and ImportSessionPanel component
 - [x] 09-05-PLAN.md — Wire import panel into AdminSession and verify end-to-end
 
+### Phase 09.1: Consolidate Batch and Go Live Experience (INSERTED)
+**Goal**: Unify the batch activation and "Go Live" flows so admin can push multiple questions at once
+**Depends on**: Phase 9
+**Requirements**: GOLIVE-01, GOLIVE-02, GOLIVE-03, GOLIVE-04
+**Success Criteria** (what must be TRUE):
+  1. Admin can type multiple questions and "Add to Batch" before going live
+  2. Admin clicks "Go Live" to activate entire pending batch at once
+  3. Participants navigate questions with Next, see "Submit" on final question
+  4. All votes submitted together at the end (not individually per question)
+**Plans**: 2 plans
+
+Plans:
+- [ ] 09.1-01-PLAN.md — Verify batch mode support in vote components
+- [ ] 09.1-02-PLAN.md — Verify Submit All flow and cleanup
+
+**Details:**
+Urgent insertion to address gap identified in Phase 6 verification: "Go Live" should support batching multiple questions (not single-question push only).
+
 ### Phase 10: Progress Dashboard & Results Polish
 **Goal**: Admin can monitor batch completion in real-time and results view has improved UX
 **Depends on**: Phase 9
@@ -121,7 +140,7 @@ Plans:
 
 ## Progress
 
-**Execution Order:** Phases execute in numeric order: 6 -> 7 -> 8 -> 9 -> 10
+**Execution Order:** Phases execute in numeric order: 6 -> 7 -> 8 -> 9 -> 09.1 -> 10
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -130,8 +149,9 @@ Plans:
 | 7. Batch Activation | v1.1 | 2/2 | Complete | 2026-01-28 |
 | 8. Participant Batch Experience | v1.1 | 4/4 | Complete | 2026-01-28 |
 | 9. Session Management | v1.1 | 5/5 | Complete | 2026-01-29 |
+| 09.1. Consolidate Batch and Go Live | v1.1 | 0/2 | Planning complete | - |
 | 10. Progress Dashboard & Results Polish | v1.1 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-01-28*
-*Last updated: 2026-01-29 - Phase 9 complete (5/5 plans)*
+*Last updated: 2026-01-29 - Phase 09.1 planned (2 plans)*
