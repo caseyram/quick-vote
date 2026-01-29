@@ -17,6 +17,7 @@ import { CountdownTimer } from '../components/CountdownTimer';
 import { AdminControlBar } from '../components/AdminControlBar';
 import { AdminPasswordGate } from '../components/AdminPasswordGate';
 import { ImportExportPanel } from '../components/ImportExportPanel';
+import { ImportSessionPanel } from '../components/ImportSessionPanel';
 import { TemplatePanel } from '../components/TemplatePanel';
 import type { Question, Vote, Batch } from '../types/database';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -841,7 +842,35 @@ export default function AdminSession() {
                 onActivateBatch={handleActivateBatch}
                 onCloseBatch={handleCloseBatch}
               />
-              <ImportExportPanel sessionId={session.session_id} />
+              <div className="space-y-4 pt-4 border-t border-gray-200">
+                <div>
+                  <p className="text-sm text-gray-500 mb-2">Quick import (questions only)</p>
+                  <ImportExportPanel sessionId={session.session_id} />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-2">Full import (with batches)</p>
+                  <ImportSessionPanel
+                    sessionId={session.session_id}
+                    onImportComplete={async () => {
+                      // Refetch questions and batches after import
+                      const { data: questionsData } = await supabase
+                        .from('questions')
+                        .select('*')
+                        .eq('session_id', session.session_id)
+                        .order('position');
+
+                      const { data: batchesData } = await supabase
+                        .from('batches')
+                        .select('*')
+                        .eq('session_id', session.session_id)
+                        .order('position');
+
+                      if (questionsData) useSessionStore.getState().setQuestions(questionsData);
+                      if (batchesData) useSessionStore.getState().setBatches(batchesData);
+                    }}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Templates */}
