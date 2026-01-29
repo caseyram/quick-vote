@@ -341,22 +341,41 @@ export function BatchList({
   }
 
   function handleDragStart(event: DragStartEvent) {
-    setActiveId(event.active.id as string);
+    const id = event.active.id as string;
+    console.log('[BatchList] drag start:', id);
+    // Ignore events from nested batch item drags
+    if (id.startsWith('batch-item-')) {
+      console.log('[BatchList] ignoring nested batch item drag');
+      return;
+    }
+    setActiveId(id);
   }
 
   function handleDragOver(event: DragOverEvent) {
-    const { over } = event;
+    const { over, active } = event;
+    // Ignore events from nested batch item drags
+    if ((active.id as string).startsWith('batch-item-')) return;
+    console.log('[BatchList] drag over:', over?.id);
     setOverId(over?.id as string | null);
   }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
+    const activeIdStr = active.id as string;
+
+    console.log('[BatchList] drag end:', activeIdStr);
+
+    // Ignore events from nested batch item drags
+    if (activeIdStr.startsWith('batch-item-')) {
+      console.log('[BatchList] ignoring nested batch item drag end');
+      return;
+    }
+
     setActiveId(null);
     setOverId(null);
 
     if (!over || active.id === over.id) return;
 
-    const activeIdStr = active.id as string;
     const overIdStr = over.id as string;
 
     // Check if dragging a question onto a batch (to move it into the batch)

@@ -15,6 +15,8 @@ export function BatchQuestionItem({
   onEdit,
   onDelete,
 }: BatchQuestionItemProps) {
+  // Use prefixed ID to ensure no collision with outer DndContext's IDs
+  const sortableId = `batch-item-${question.id}`;
   const {
     attributes,
     listeners,
@@ -22,7 +24,7 @@ export function BatchQuestionItem({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: question.id });
+  } = useSortable({ id: sortableId });
 
   const style = {
     transform: CSS.Transform.toString(transform),

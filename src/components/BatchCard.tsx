@@ -117,8 +117,11 @@ export function BatchCard({
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      const oldIndex = sortedQuestions.findIndex((q) => q.id === active.id);
-      const newIndex = sortedQuestions.findIndex((q) => q.id === over.id);
+      // Extract actual question IDs from prefixed sortable IDs
+      const activeQuestionId = String(active.id).replace('batch-item-', '');
+      const overQuestionId = String(over.id).replace('batch-item-', '');
+      const oldIndex = sortedQuestions.findIndex((q) => q.id === activeQuestionId);
+      const newIndex = sortedQuestions.findIndex((q) => q.id === overQuestionId);
       const reordered = arrayMove(sortedQuestions, oldIndex, newIndex);
       onQuestionReorder(reordered.map((q) => q.id));
     }
@@ -299,10 +302,11 @@ export function BatchCard({
                   id={dndContextId}
                   sensors={sensors}
                   collisionDetection={closestCenter}
+                  onDragStart={() => console.log('[BatchCard] drag start in batch:', batch.name)}
                   onDragEnd={handleDragEnd}
                 >
                   <SortableContext
-                    items={sortedQuestions.map((q) => q.id)}
+                    items={sortedQuestions.map((q) => `batch-item-${q.id}`)}
                     strategy={verticalListSortingStrategy}
                   >
                     <div className="space-y-2">
