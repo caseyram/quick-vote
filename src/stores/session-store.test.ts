@@ -26,6 +26,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     title: 'Test Session',
     status: 'draft',
     reasons_enabled: false,
+    test_mode: false,
     timer_expires_at: null,
     created_by: 'user-1',
     created_at: new Date().toISOString(),

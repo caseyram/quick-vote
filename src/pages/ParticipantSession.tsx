@@ -93,7 +93,7 @@ export default function ParticipantSession() {
     // Fetch session status (include timer_expires_at for countdown restoration)
     const { data: statusData } = await supabase
       .from('sessions')
-      .select('id, session_id, title, status, reasons_enabled, timer_expires_at, created_at')
+      .select('id, session_id, title, status, reasons_enabled, test_mode, timer_expires_at, created_at')
       .eq('session_id', sessionId)
       .single();
 
@@ -348,7 +348,7 @@ export default function ParticipantSession() {
       // Fetch session (explicit columns, NO admin_token, include timer_expires_at)
       const { data: sessionData, error: sessionError } = await supabase
         .from('sessions')
-        .select('id, session_id, title, status, reasons_enabled, timer_expires_at, created_at')
+        .select('id, session_id, title, status, reasons_enabled, test_mode, timer_expires_at, created_at')
         .eq('session_id', sessionId)
         .single();
 
