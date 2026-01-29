@@ -1,9 +1,11 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { supabase } from '../lib/supabase';
-import { aggregateVotes, type VoteCount } from '../lib/vote-aggregation';
+import { aggregateVotes, buildConsistentBarData, type VoteCount } from '../lib/vote-aggregation';
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../components/BarChart';
 import { exportSession, downloadJSON, generateExportFilename } from '../lib/session-export';
+import { useReadReasons } from '../hooks/use-read-reasons';
+import { useKeyboardNavigation } from '../hooks/use-keyboard-navigation';
 import type { Session, Batch, Question, Vote } from '../types/database';
 
 interface QuestionWithVotes extends Question {
@@ -12,7 +14,9 @@ interface QuestionWithVotes extends Question {
 }
 
 function buildBarData(question: Question, aggregated: VoteCount[]) {
-  return aggregated.map((vc, index) => {
+  // Use consistent ordering for stable column positions
+  const ordered = buildConsistentBarData(question, aggregated);
+  return ordered.map((vc, index) => {
     let color: string;
     if (question.type === 'agree_disagree') {
       const key = vc.value.toLowerCase() as 'agree' | 'disagree' | 'sometimes';
@@ -38,6 +42,9 @@ export default function SessionReview() {
   const [questionsByBatch, setQuestionsByBatch] = useState<Map<string | null, QuestionWithVotes[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+
+  // Refs for scrolling to questions
+  const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -118,6 +125,34 @@ export default function SessionReview() {
     }
   }
 
+  // Flatten questions for navigation (batched first, then unbatched)
+  const allQuestions = useMemo(() => {
+    const result: QuestionWithVotes[] = [];
+    // Add batched questions in batch order
+    for (const batch of batches) {
+      const batchQuestions = questionsByBatch.get(batch.id) ?? [];
+      result.push(...batchQuestions);
+    }
+    // Add unbatched at end
+    const unbatched = questionsByBatch.get(null) ?? [];
+    result.push(...unbatched);
+    return result;
+  }, [batches, questionsByBatch]);
+
+  // Navigation and read state hooks
+  const { currentIndex, goToNext, goToPrev, canGoNext, canGoPrev } = useKeyboardNavigation(allQuestions.length);
+  const { markAsRead, isUnread } = useReadReasons(sessionId ?? '');
+
+  // Scroll to current question when index changes
+  useEffect(() => {
+    if (allQuestions.length > 0 && questionRefs.current[currentIndex]) {
+      questionRefs.current[currentIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  }, [currentIndex, allQuestions.length]);
+
   // Calculate total questions
   const totalQuestions = useMemo(() => {
     let count = 0;
@@ -175,8 +210,37 @@ export default function SessionReview() {
     );
   }
 
+  // Track global index for question cards
+  let globalQuestionIndex = 0;
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Floating navigation arrows */}
+      {allQuestions.length > 1 && (
+        <>
+          <button
+            onClick={goToPrev}
+            disabled={!canGoPrev}
+            className="fixed left-4 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            aria-label="Previous question"
+          >
+            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button
+            onClick={goToNext}
+            disabled={!canGoNext}
+            className="fixed right-4 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            aria-label="Next question"
+          >
+            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </>
+      )}
+
       <div className="max-w-3xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -200,8 +264,15 @@ export default function SessionReview() {
           </button>
         </div>
 
+        {/* Question position indicator */}
+        {allQuestions.length > 0 && (
+          <div className="text-center text-sm text-gray-500 mb-4">
+            Question {currentIndex + 1} of {allQuestions.length} (use left/right arrows to navigate)
+          </div>
+        )}
+
         {/* Scrollable content */}
-        <div className="space-y-6 max-h-[calc(100vh-120px)] overflow-y-auto pr-1">
+        <div className="space-y-6 max-h-[calc(100vh-160px)] overflow-y-auto pr-1">
           {/* Render batched questions in order */}
           {batches.map(batch => {
             const questions = questionsByBatch.get(batch.id) ?? [];
@@ -218,9 +289,21 @@ export default function SessionReview() {
                 </div>
                 {/* Questions in batch */}
                 <div className="space-y-4">
-                  {questions.map((q, idx) => (
-                    <QuestionCard key={q.id} question={q} index={idx + 1} />
-                  ))}
+                  {questions.map((q) => {
+                    const thisIndex = globalQuestionIndex;
+                    globalQuestionIndex++;
+                    return (
+                      <QuestionCard
+                        key={q.id}
+                        question={q}
+                        index={thisIndex + 1}
+                        markAsRead={markAsRead}
+                        isUnread={isUnread}
+                        cardRef={(el) => { questionRefs.current[thisIndex] = el; }}
+                        isActive={currentIndex === thisIndex}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -236,9 +319,21 @@ export default function SessionReview() {
                 </span>
               </div>
               <div className="space-y-4">
-                {questionsByBatch.get(null)!.map((q, idx) => (
-                  <QuestionCard key={q.id} question={q} index={idx + 1} />
-                ))}
+                {questionsByBatch.get(null)!.map((q) => {
+                  const thisIndex = globalQuestionIndex;
+                  globalQuestionIndex++;
+                  return (
+                    <QuestionCard
+                      key={q.id}
+                      question={q}
+                      index={thisIndex + 1}
+                      markAsRead={markAsRead}
+                      isUnread={isUnread}
+                      cardRef={(el) => { questionRefs.current[thisIndex] = el; }}
+                      isActive={currentIndex === thisIndex}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
@@ -251,9 +346,13 @@ export default function SessionReview() {
 interface QuestionCardProps {
   question: QuestionWithVotes;
   index: number;
+  markAsRead: (reasonId: string) => void;
+  isUnread: (reasonId: string) => boolean;
+  cardRef?: (el: HTMLDivElement | null) => void;
+  isActive?: boolean;
 }
 
-function QuestionCard({ question, index }: QuestionCardProps) {
+function QuestionCard({ question, index, markAsRead, isUnread, cardRef, isActive }: QuestionCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   const barData = buildBarData(question, question.aggregated);
@@ -272,7 +371,12 @@ function QuestionCard({ question, index }: QuestionCardProps) {
   const totalReasons = reasonsByColumn.reduce((sum, col) => sum + col.reasons.length, 0);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-5 space-y-3">
+    <div
+      ref={cardRef}
+      className={`bg-white border rounded-lg p-5 space-y-3 transition-all ${
+        isActive ? 'border-indigo-400 ring-2 ring-indigo-200' : 'border-gray-200'
+      }`}
+    >
       {/* Question header */}
       <div className="flex items-start gap-3">
         <span className="text-sm font-mono mt-0.5 text-gray-500">
@@ -331,7 +435,12 @@ function QuestionCard({ question, index }: QuestionCardProps) {
                     {col.reasons.map((reason) => (
                       <div
                         key={reason.id}
-                        className="rounded px-2 py-1 text-left bg-gray-50"
+                        onClick={() => markAsRead(reason.id)}
+                        className={`rounded px-2 py-1 text-left cursor-pointer transition-colors ${
+                          isUnread(reason.id)
+                            ? 'bg-blue-50 hover:bg-blue-100'
+                            : 'bg-gray-50 hover:bg-gray-100'
+                        }`}
                         style={{ borderLeft: `2px solid ${col.color}` }}
                       >
                         <span className="text-sm lg:text-base text-gray-700">
