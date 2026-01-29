@@ -16,6 +16,7 @@ import { AdminControlBar } from '../components/AdminControlBar';
 import { AdminPasswordGate } from '../components/AdminPasswordGate';
 import { SessionImportExport } from '../components/SessionImportExport';
 import { TemplatePanel } from '../components/TemplatePanel';
+import { ProgressDashboard } from '../components/ProgressDashboard';
 import type { Question, Vote, Batch } from '../types/database';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -46,6 +47,8 @@ export default function AdminSession() {
   const [lastClosedQuestionId, setLastClosedQuestionId] = useState<string | null>(null);
   const [addingQuestionToBatchId, setAddingQuestionToBatchId] = useState<string | null>(null);
   const [pendingBatchId, setPendingBatchId] = useState<string | null>(null);
+  const [lastActiveBatchId, setLastActiveBatchId] = useState<string | null>(null);
+  const [lastBatchQuestionIds, setLastBatchQuestionIds] = useState<string[]>([]);
 
   // Track session ID in a ref for the channel setup callback
   const sessionIdRef = useRef<string | null>(null);
@@ -229,6 +232,21 @@ export default function AdminSession() {
   const isActive = session?.status === 'active';
   const isEnded = session?.status === 'ended';
   const isLive = isLobby || isActive;
+
+  // Vote counts per question for progress tracking
+  const questionVoteCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const qId of Object.keys(sessionVotes)) {
+      counts[qId] = sessionVotes[qId].length;
+    }
+    return counts;
+  }, [sessionVotes]);
+
+  // Question IDs for the currently active batch
+  const activeBatchQuestionIds = useMemo(() => {
+    if (!activeBatchId) return [];
+    return questions.filter(q => q.batch_id === activeBatchId).map(q => q.id);
+  }, [activeBatchId, questions]);
 
   // Realtime channel
   const presenceConfig = userId ? { userId, role: 'admin' as const } : undefined;
@@ -673,8 +691,10 @@ export default function AdminSession() {
       return;
     }
 
-    // 3. Update local store
+    // 3. Update local store and clear last batch state
     setActiveBatchId(batchId);
+    setLastActiveBatchId(null);
+    setLastBatchQuestionIds([]);
     useSessionStore.getState().updateBatch(batchId, { status: 'active' });
 
     // 4. Get question IDs for this batch
@@ -690,6 +710,11 @@ export default function AdminSession() {
   }
 
   async function handleCloseBatch(batchId: string) {
+    // Capture batch question IDs for post-close display before any state changes
+    const batchQuestionIds = questions
+      .filter(q => q.batch_id === batchId)
+      .map(q => q.id);
+
     // 1. Update batch status to closed
     const { error } = await supabase
       .from('batches')
@@ -698,10 +723,6 @@ export default function AdminSession() {
 
     if (!error) {
       // 2. Close all questions in the batch so they show in results
-      const batchQuestionIds = questions
-        .filter(q => q.batch_id === batchId)
-        .map(q => q.id);
-
       if (batchQuestionIds.length > 0) {
         await supabase
           .from('questions')
@@ -714,7 +735,9 @@ export default function AdminSession() {
         }
       }
 
-      // 3. Update local store
+      // 3. Update local store and capture for post-close display
+      setLastActiveBatchId(batchId);
+      setLastBatchQuestionIds(batchQuestionIds);
       setActiveBatchId(null);
       useSessionStore.getState().updateBatch(batchId, { status: 'closed' });
 
@@ -1039,8 +1062,17 @@ export default function AdminSession() {
             <ParticipantCount count={participantCount} size="default" />
           </div>
 
-          {/* Hero fills viewport minus header (56px) and control bar (56px) */}
-          <div className="max-w-6xl mx-auto px-6" style={{ height: 'calc(100dvh - 7rem)' }}>
+          {/* Progress Dashboard - during active batch or showing final stats after close */}
+          {(activeBatchId || lastActiveBatchId) && (
+            <ProgressDashboard
+              questionIds={activeBatchId ? activeBatchQuestionIds : lastBatchQuestionIds}
+              participantCount={participantCount}
+              voteCounts={questionVoteCounts}
+            />
+          )}
+
+          {/* Hero fills viewport minus header (56px), control bar (56px), and optional dashboard */}
+          <div className="max-w-6xl mx-auto px-6" style={{ height: (activeBatchId || lastActiveBatchId) ? 'calc(100dvh - 12rem)' : 'calc(100dvh - 7rem)' }}>
             {/* Hero active question */}
             {activeQuestion ? (
               <ActiveQuestionHero
