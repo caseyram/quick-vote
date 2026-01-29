@@ -17,6 +17,7 @@ import { AdminPasswordGate } from '../components/AdminPasswordGate';
 import { SessionImportExport } from '../components/SessionImportExport';
 import { TemplatePanel } from '../components/TemplatePanel';
 import { ProgressDashboard } from '../components/ProgressDashboard';
+import { DevTestFab } from '../components/DevTestFab';
 import type { Question, Vote, Batch } from '../types/database';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -1227,8 +1228,16 @@ export default function AdminSession() {
         </div>
       )}
 
-      {/* QR Code overlay — always visible */}
+      {/* QR Code overlay — always visible (hideable) */}
       <SessionQRCode url={participantUrl} visible />
+
+      {/* Dev test FAB — dev mode only */}
+      <DevTestFab
+        sessionId={session.session_id}
+        activeQuestion={activeQuestion}
+        activeBatchId={activeBatchId}
+        batchQuestionIds={activeBatchQuestionIds}
+      />
 
       {/* Admin Control Bar — always visible */}
       <AdminControlBar
