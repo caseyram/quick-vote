@@ -905,6 +905,24 @@ export default function AdminSession() {
       {/* Lobby View: large centered QR for projection */}
       {isLobby && (
         <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 pb-20">
+          {/* Settings toggle in top-right corner */}
+          <div className="absolute top-4 right-4">
+            <button
+              onClick={handleToggleSessionReasons}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                session.reasons_enabled
+                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+              title={session.reasons_enabled ? 'Reasons enabled - click to disable' : 'Reasons disabled - click to enable'}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+              </svg>
+              {session.reasons_enabled ? 'Reasons On' : 'Reasons Off'}
+            </button>
+          </div>
+
           <h1 className="text-5xl font-bold text-gray-900 mb-10 text-center">
             {session.title}
           </h1>
@@ -930,7 +948,23 @@ export default function AdminSession() {
           {/* Top header bar */}
           <div className="border-b border-gray-200 px-6 py-3 flex items-center justify-between h-14 shrink-0">
             <h1 className="text-2xl font-bold text-gray-900">{session.title}</h1>
-            <ParticipantCount count={participantCount} size="default" />
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleToggleSessionReasons}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  session.reasons_enabled
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+                title={session.reasons_enabled ? 'Reasons enabled - click to disable' : 'Reasons disabled - click to enable'}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                </svg>
+                {session.reasons_enabled ? 'Reasons On' : 'Reasons Off'}
+              </button>
+              <ParticipantCount count={participantCount} size="default" />
+            </div>
           </div>
 
           {/* Progress Dashboard - only during active batch voting */}
