@@ -164,7 +164,7 @@ export default function VoteAgreeDisagree({
       </div>
 
       {/* Voting buttons */}
-      <div className="flex flex-col gap-3 px-4" style={{ minHeight: '280px' }}>
+      <div className="flex flex-col gap-3 px-4">
         {/* Agree button */}
         <motion.button
           ref={agreeRef}
@@ -174,7 +174,7 @@ export default function VoteAgreeDisagree({
           }}
           whileTap={{ scale: 0.97 }}
           transition={{ backgroundColor: { duration: 0.15 }, scale: { duration: 0.1 } }}
-          className="flex-1 min-h-[100px] flex flex-col items-center justify-center rounded-2xl text-white text-2xl font-bold"
+          className="h-[120px] flex flex-col items-center justify-center rounded-2xl text-white text-2xl font-bold"
           style={{
             touchAction: 'manipulation',
             WebkitTapHighlightColor: 'transparent',
@@ -200,7 +200,7 @@ export default function VoteAgreeDisagree({
           }}
           whileTap={{ scale: 0.97 }}
           transition={{ backgroundColor: { duration: 0.15 }, scale: { duration: 0.1 } }}
-          className="flex-1 min-h-[80px] flex flex-col items-center justify-center rounded-2xl text-white text-xl font-bold"
+          className="h-[100px] flex flex-col items-center justify-center rounded-2xl text-white text-xl font-bold"
           style={{
             touchAction: 'manipulation',
             WebkitTapHighlightColor: 'transparent',
@@ -226,7 +226,7 @@ export default function VoteAgreeDisagree({
           }}
           whileTap={{ scale: 0.97 }}
           transition={{ backgroundColor: { duration: 0.15 }, scale: { duration: 0.1 } }}
-          className="flex-1 min-h-[100px] flex flex-col items-center justify-center rounded-2xl text-white text-2xl font-bold"
+          className="h-[120px] flex flex-col items-center justify-center rounded-2xl text-white text-2xl font-bold"
           style={{
             touchAction: 'manipulation',
             WebkitTapHighlightColor: 'transparent',
