@@ -599,7 +599,7 @@ export default function ParticipantSession() {
   // Batch voting state
   if (view === 'batch-voting' && batchQuestions.length > 0 && participantId) {
     return (
-      <div className="h-dvh bg-gray-950 flex flex-col overflow-hidden">
+      <div className="min-h-dvh bg-gray-950 flex flex-col">
         <ConnectionPill status={connectionStatus} />
         {/* Timer at top when running */}
         {isRunning && (
@@ -610,7 +610,7 @@ export default function ParticipantSession() {
             />
           </div>
         )}
-        <div className="flex-1 min-h-0">
+        <div className="flex-1">
           <BatchVotingCarousel
             questions={batchQuestions}
             sessionId={sessionId!}

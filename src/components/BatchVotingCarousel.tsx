@@ -173,9 +173,9 @@ export function BatchVotingCarousel({
   const answeredCount = pendingVotes.size;
 
   return (
-    <div className="h-full bg-gray-950 flex flex-col overflow-hidden">
+    <div className="flex flex-col min-h-full bg-gray-950">
       {/* Progress indicator - text counter at top */}
-      <div ref={progressRef} className="px-4 py-3 text-center">
+      <div ref={progressRef} className="px-4 py-3 text-center shrink-0">
         <p className="text-gray-400 text-sm font-medium">
           Question {currentIndex + 1} of {questions.length}
           {answeredCount > 0 && (
@@ -187,52 +187,49 @@ export function BatchVotingCarousel({
       </div>
 
       {/* Question area with slide transitions */}
-      <div className="flex-1 flex flex-col min-h-0">
-        <div className="flex-1 flex flex-col lg:items-center lg:justify-center lg:p-8">
-          <div className="flex-1 flex flex-col lg:flex-initial lg:w-full lg:max-w-2xl lg:rounded-2xl lg:bg-gray-900/50 lg:overflow-hidden">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={currentQuestion.id}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={slideTransition}
-                className="flex-1 flex flex-col"
-              >
-                {currentQuestion.type === 'agree_disagree' ? (
-                  <VoteAgreeDisagree
-                    question={currentQuestion}
-                    sessionId={sessionId}
-                    participantId={participantId}
-                    displayName={displayName}
-                    reasonsEnabled={reasonsEnabled}
-                    batchMode={true}
-                    onSelectionChange={currentQuestionSelectionChange}
-                    initialSelection={currentVote?.value ?? null}
-                    initialReason={currentVote?.reason ?? ''}
-                  />
-                ) : (
-                  <VoteMultipleChoice
-                    question={currentQuestion}
-                    sessionId={sessionId}
-                    participantId={participantId}
-                    displayName={displayName}
-                    reasonsEnabled={reasonsEnabled}
-                    batchMode={true}
-                    onSelectionChange={currentQuestionSelectionChange}
-                    initialSelection={currentVote?.value ?? null}
-                    initialReason={currentVote?.reason ?? ''}
-                  />
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </div>
+      <div className="flex-1 lg:flex lg:items-center lg:justify-center lg:p-8">
+        <div className="w-full lg:max-w-2xl lg:rounded-2xl lg:bg-gray-900/50 lg:overflow-hidden">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={currentQuestion.id}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={slideTransition}
+            >
+              {currentQuestion.type === 'agree_disagree' ? (
+                <VoteAgreeDisagree
+                  question={currentQuestion}
+                  sessionId={sessionId}
+                  participantId={participantId}
+                  displayName={displayName}
+                  reasonsEnabled={reasonsEnabled}
+                  batchMode={true}
+                  onSelectionChange={currentQuestionSelectionChange}
+                  initialSelection={currentVote?.value ?? null}
+                  initialReason={currentVote?.reason ?? ''}
+                />
+              ) : (
+                <VoteMultipleChoice
+                  question={currentQuestion}
+                  sessionId={sessionId}
+                  participantId={participantId}
+                  displayName={displayName}
+                  reasonsEnabled={reasonsEnabled}
+                  batchMode={true}
+                  onSelectionChange={currentQuestionSelectionChange}
+                  initialSelection={currentVote?.value ?? null}
+                  initialReason={currentVote?.reason ?? ''}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
 
       {/* Navigation footer - fixed at bottom */}
-      <div className="px-4 py-4 flex gap-3 bg-gray-950">
+      <div className="px-4 py-4 flex gap-3 bg-gray-950 shrink-0">
         <button
           onClick={handlePrevious}
           disabled={isFirstQuestion}
