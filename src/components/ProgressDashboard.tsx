@@ -16,10 +16,10 @@ export function ProgressDashboard({
   countdownRemaining = 0,
   countdownRunning = false,
 }: ProgressDashboardProps) {
-  // Calculate totals
+  // Calculate totals — only count votes for the active batch questions
   const totalVotes = useMemo(
-    () => Object.values(voteCounts).reduce((sum, c) => sum + c, 0),
-    [voteCounts]
+    () => questionIds.reduce((sum, qId) => sum + (voteCounts[qId] || 0), 0),
+    [questionIds, voteCounts]
   );
 
   // Approximate completed participants: floor of totalVotes / questionIds.length
