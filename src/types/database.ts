@@ -19,6 +19,7 @@ export interface Session {
   title: string;
   status: SessionStatus;
   reasons_enabled: boolean;
+  test_mode: boolean;
   timer_expires_at: string | null;
   created_by: string;
   created_at: string;

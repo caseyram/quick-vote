@@ -4,6 +4,7 @@ import type { Question } from '../types/database';
 
 interface DevTestFabProps {
   sessionId: string;
+  testMode: boolean;
   activeQuestion: Question | null;
   activeBatchId: string | null;
   batchQuestionIds: string[];
@@ -17,6 +18,7 @@ const VOTE_OPTIONS = [
 
 export function DevTestFab({
   sessionId,
+  testMode,
   activeQuestion,
   activeBatchId,
   batchQuestionIds,
@@ -25,7 +27,7 @@ export function DevTestFab({
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  if (!import.meta.env.DEV) return null;
+  if (!testMode) return null;
 
   const hasTarget = !!activeQuestion || (!!activeBatchId && batchQuestionIds.length > 0);
 
@@ -97,7 +99,7 @@ export function DevTestFab({
         disabled={!hasTarget || loading}
         className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all
           ${hasTarget
-            ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+            ? 'bg-amber-500 hover:bg-amber-400 text-white'
             : 'bg-gray-300 text-gray-500 cursor-not-allowed'}
           ${loading ? 'animate-pulse' : ''}
         `}
