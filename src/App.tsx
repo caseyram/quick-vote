@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router';
 import { useAuth } from './hooks/use-auth';
 import Home from './pages/Home';
+import AdminList from './pages/AdminList';
 import AdminSession from './pages/AdminSession';
 import ParticipantSession from './pages/ParticipantSession';
 
@@ -19,6 +20,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/admin" element={<AdminList />} />
         <Route path="/admin/:adminToken" element={<AdminSession />} />
         <Route path="/session/:sessionId" element={<ParticipantSession />} />
       </Routes>
