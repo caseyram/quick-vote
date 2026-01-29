@@ -219,24 +219,22 @@ export function AdminControlBar({
               ) : (
                 /* Simplified: Timer + Quick input + Activate Next (batch or question) */
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  {/* Timer selection pills - only show for single question activation */}
-                  {nextItem?.type === 'question' && (
-                    <div className="flex items-center gap-1 shrink-0">
-                      {timerOptions.map((opt) => (
-                        <button
-                          key={opt.label}
-                          onClick={() => setTimerDuration(opt.value)}
-                          className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
-                            timerDuration === opt.value
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  {/* Timer selection pills - for quick questions and single question activation */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {timerOptions.map((opt) => (
+                      <button
+                        key={opt.label}
+                        onClick={() => setTimerDuration(opt.value)}
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                          timerDuration === opt.value
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
 
                   {/* Quick question input */}
                   <input
