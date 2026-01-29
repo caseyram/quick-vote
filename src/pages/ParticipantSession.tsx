@@ -676,8 +676,8 @@ export default function ParticipantSession() {
         {/* Full-screen voting area with slide transitions */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* Desktop: centered card. Mobile: edge-to-edge */}
-          <div className="flex-1 flex flex-col lg:items-center lg:justify-center lg:p-8">
-            <div className="flex-1 flex flex-col lg:flex-initial lg:w-full lg:max-w-2xl lg:rounded-2xl lg:bg-gray-900/50 lg:overflow-hidden">
+          <div className="flex-1 flex flex-col min-h-0 lg:items-center lg:justify-center lg:p-8">
+            <div className="flex-1 flex flex-col min-h-0 lg:flex-initial lg:w-full lg:max-w-2xl lg:rounded-2xl lg:bg-gray-900/50 lg:overflow-hidden">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={activeQuestion.id}
@@ -686,7 +686,7 @@ export default function ParticipantSession() {
                   animate="center"
                   exit="exit"
                   transition={questionTransition}
-                  className="flex-1 flex flex-col"
+                  className="flex-1 flex flex-col min-h-0"
                 >
                   {activeQuestion.type === 'agree_disagree' ? (
                     <VoteAgreeDisagree
