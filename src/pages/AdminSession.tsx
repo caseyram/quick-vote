@@ -760,7 +760,7 @@ export default function AdminSession() {
 
   // --- Pending batch handlers (for building batch during active session) ---
 
-  async function handleAddToBatch(text: string) {
+  async function _handleAddToBatch(text: string) {
     if (!session || !text.trim()) return;
 
     let batchId = pendingBatchId;
@@ -815,13 +815,13 @@ export default function AdminSession() {
     }
   }
 
-  async function handleActivatePendingBatch() {
+  async function _handleActivatePendingBatch() {
     if (!pendingBatchId) return;
     await handleActivateBatch(pendingBatchId);
     setPendingBatchId(null);
   }
 
-  async function handleClearPendingBatch() {
+  async function _handleClearPendingBatch() {
     if (!pendingBatchId || !session) return;
 
     // Delete all questions in the pending batch
@@ -853,7 +853,7 @@ export default function AdminSession() {
     setPendingBatchId(null);
   }
 
-  async function handleRemoveFromBatch(questionId: string) {
+  async function _handleRemoveFromBatch(questionId: string) {
     if (!session) return;
 
     // Delete the question
@@ -884,7 +884,7 @@ export default function AdminSession() {
   }
 
   // Derive pending batch questions
-  const pendingBatchQuestions = useMemo(() => {
+  const _pendingBatchQuestions = useMemo(() => {
     if (!pendingBatchId) return [];
     return questions.filter(q => q.batch_id === pendingBatchId);
   }, [pendingBatchId, questions]);
@@ -1013,7 +1013,7 @@ export default function AdminSession() {
                 onDeleteQuestion={handleDelete}
                 onBatchNameChange={handleBatchNameChange}
                 onQuestionReorder={handleQuestionReorder}
-                onAddQuestionToBatch={(batchId) => setAddingQuestionToBatchId(batchId)}
+                onAddQuestionToBatch={(batchId) => _setAddingQuestionToBatchId(batchId)}
                 onCreateBatch={handleCreateBatch}
                 onDeleteBatch={handleDeleteBatch}
                 onActivateBatch={handleActivateBatch}
