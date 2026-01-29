@@ -64,3 +64,6 @@ CREATE POLICY "Session creator can delete batches"
       AND sessions.created_by = (select auth.uid())
     )
   );
+
+-- Add batches to realtime publication
+ALTER PUBLICATION supabase_realtime ADD TABLE batches;

@@ -14,6 +14,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     title: 'Test Session',
     status: 'draft',
     reasons_enabled: false,
+    timer_expires_at: null,
     created_by: 'user1',
     created_at: '2025-01-01T00:00:00Z',
     ...overrides,

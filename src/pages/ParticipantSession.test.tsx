@@ -165,6 +165,7 @@ const makeSession = (overrides: Partial<Session> = {}): Session => ({
   title: 'Test Session',
   status: 'lobby',
   reasons_enabled: false,
+  timer_expires_at: null,
   created_by: '',
   created_at: '2025-01-01T00:00:00Z',
   ...overrides,
