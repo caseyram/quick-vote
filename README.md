@@ -7,6 +7,7 @@ Real-time polling app for meetings, classrooms, and presentations. An admin crea
 - **Live voting sessions** -- create a session, add questions, and control the flow from an admin dashboard
 - **QR code join** -- participants scan a QR code or tap a link to join instantly on their phones
 - **Agree/Disagree and Multiple Choice** -- two question types with up to 10 options for multiple choice
+- **Batch questions** -- group questions into batches for participants to answer all at once via swipeable carousel
 - **Real-time results** -- bar charts update live as votes come in, sized for projection in large rooms
 - **Participant reasons** -- optionally let voters explain their choice; reasons display grouped under each vote column
 - **On-the-fly questions** -- type and launch a quick question mid-session without pre-planning
@@ -15,6 +16,7 @@ Real-time polling app for meetings, classrooms, and presentations. An admin crea
 - **Admin password gate** -- optionally protect admin pages with a password (set via environment variable)
 - **Anonymous or named voting** -- toggle per question whether voter names are visible
 - **Countdown timers** -- set a timer on any question to keep things moving
+- **Drag-and-drop ordering** -- reorder questions and batches with drag handles
 - **Mobile-first participant UI** -- full-screen voting with haptic feedback and slide transitions
 
 ## Tech Stack
@@ -104,6 +106,8 @@ Open the **SQL Editor** in your Supabase dashboard and run each file from the `s
 | 2 | `sql/moddatetime-trigger.sql` | Adds a trigger to auto-update the `updated_at` timestamp on votes |
 | 3 | `sql/realtime-publication.sql` | Enables real-time Postgres Changes on the votes and questions tables |
 | 4 | `sql/add-reasons.sql` | Adds the `reasons_enabled` column to sessions and `reason` column to votes |
+| 5 | `sql/add-batches.sql` | Creates the batches table for grouping questions |
+| 6 | `sql/add-batch-status.sql` | Adds status column to batches table |
 
 Paste the contents of each file into the SQL Editor and click **Run**.
 
@@ -160,6 +164,8 @@ src/
   types/        TypeScript type definitions
 sql/            Database migration scripts
 ```
+
+For detailed technical documentation, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## License
 
