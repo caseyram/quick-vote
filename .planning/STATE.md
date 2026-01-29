@@ -9,12 +9,12 @@
 ## Current Position
 
 **Milestone:** v1.1 — Batch Questions & Polish
-**Phase:** 8 of 10 (Participant Batch Experience) - Verified
-**Plan:** 4 of 4 complete (includes gap closure plan)
-**Status:** Phase 8 verified (7/7 must-haves), ready for Phase 9
-**Last activity:** 2026-01-28 — Phase 8 verified after gap closure
+**Phase:** 9 of 10 (Session Management) - In Progress
+**Plan:** 1 of 5 complete
+**Status:** Phase 9 started, 09-01 complete
+**Last activity:** 2026-01-29 — Completed 09-01-PLAN.md
 
-Progress: [################....] 80% (v1.0 complete, Phases 6-8 complete)
+Progress: [#################...] 82% (v1.0 complete, Phases 6-8 verified, 09-01 done)
 
 ## Milestone History
 
@@ -30,7 +30,7 @@ Progress: [################....] 80% (v1.0 complete, Phases 6-8 complete)
 | 6 | Batch Schema & UI | BATCH-01, BATCH-02 | Verified |
 | 7 | Batch Activation | BATCH-03 | Verified |
 | 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | Verified (7/7 must-haves) |
-| 9 | Session Management | SESS-01 to SESS-05 | Not started |
+| 9 | Session Management | SESS-01 to SESS-05 | In Progress (1/5 plans) |
 | 10 | Progress Dashboard & Results Polish | PROG-01 to PROG-04, RESL-01 to RESL-04 | Not started |
 
 ## Performance Metrics
@@ -41,7 +41,7 @@ Progress: [################....] 80% (v1.0 complete, Phases 6-8 complete)
 - Total execution time: ~6.5 hours
 
 **v1.1 Metrics:**
-- Plans completed: 9
+- Plans completed: 10
 - Total phases: 5
 - Requirements: 23
 
@@ -70,6 +70,16 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 - Drag handle only pattern - listeners on grip icon, not entire card
 - Accordion state local to BatchList (not global store)
 
+### From 09-01 Summary
+
+Admin session list at /admin route:
+- AdminList page shows sessions with title, status, date, question count, participant count
+- Sessions ordered by created_at descending (most recent first)
+- Debounced search filtering (300ms) by session title
+- New Session creates session with nanoid and navigates to admin view
+- Delete with ConfirmDialog confirmation modal
+- ConfirmDialog is reusable component with danger/primary variants
+
 ### From 08-04 Summary (Gap Closure)
 
 Answer review screen before batch completion:
@@ -94,10 +104,10 @@ Keyboard navigation and completion feedback:
 
 ## Session Continuity
 
-**Last session:** 2026-01-28 — Phase 8 verified
-**Next action:** Initialize Phase 9 (Session Management)
+**Last session:** 2026-01-29 — Completed 09-01
+**Next action:** Execute 09-02-PLAN.md (Session rename)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-28 — Phase 8 verified (7/7 must-haves)*
+*Updated: 2026-01-29 — Completed 09-01 (admin session list)*
