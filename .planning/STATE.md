@@ -9,19 +9,19 @@
 ## Current Position
 
 **Milestone:** v1.1 — Batch Questions & Polish
-**Phase:** 10 (Progress Dashboard & Results Polish) - In Progress
-**Plan:** 1 of 2 complete (10-01 done)
-**Status:** Plan 10-01 complete, ready for 10-02
-**Last activity:** 2026-01-29 — Completed 10-01-PLAN.md (Progress Dashboard)
+**Phase:** 10 (Progress Dashboard & Results Polish) - Complete
+**Plan:** 2 of 2 complete
+**Status:** Phase 10 complete, v1.1 milestone complete
+**Last activity:** 2026-01-29 — Completed 10-02-PLAN.md (Results Polish)
 
-Progress: [###################.] 97% (v1.0 complete, Phases 6-9.1 verified, 10-01 complete)
+Progress: [####################] 100% (v1.0 complete, v1.1 complete)
 
 ## Milestone History
 
 | Version | Name | Shipped | Phases |
 |---------|------|---------|--------|
 | v1.0 | MVP | 2026-01-28 | 1-5 (16 plans) |
-| v1.1 | Batch Questions & Polish | In progress | 6-10 (TBD plans) |
+| v1.1 | Batch Questions & Polish | 2026-01-29 | 6-10 (17 plans) |
 
 ## v1.1 Phase Summary
 
@@ -32,7 +32,7 @@ Progress: [###################.] 97% (v1.0 complete, Phases 6-9.1 verified, 10-0
 | 8 | Participant Batch Experience | BATCH-04 to BATCH-10 | Verified (7/7 must-haves) |
 | 9 | Session Management | SESS-01 to SESS-05 | Verified (5/5 plans) |
 | 09.1 | Consolidate Batch and Go Live | GOLIVE-01 to GOLIVE-04 | Verified (2/2 plans) |
-| 10 | Progress Dashboard & Results Polish | PROG-01 to PROG-04, RESL-01 to RESL-04 | In Progress (1/2 plans) |
+| 10 | Progress Dashboard & Results Polish | PROG-01 to PROG-04, RESL-01 to RESL-04 | Complete (2/2 plans) |
 
 ## Performance Metrics
 
@@ -42,7 +42,7 @@ Progress: [###################.] 97% (v1.0 complete, Phases 6-9.1 verified, 10-0
 - Total execution time: ~6.5 hours
 
 **v1.1 Metrics:**
-- Plans completed: 16
+- Plans completed: 17
 - Total phases: 6
 - Requirements: 27
 
@@ -70,6 +70,16 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 - dnd-kit for drag-and-drop (utilities v3.2.2 is latest, not v4.x)
 - Drag handle only pattern - listeners on grip icon, not entire card
 - Accordion state local to BatchList (not global store)
+
+### From 10-02 Summary
+
+Results Polish enhancements:
+- useReadReasons hook for localStorage-based read/unread tracking
+- useKeyboardNavigation hook for arrow key navigation
+- buildConsistentBarData for stable column ordering (Agree/Sometimes/Disagree)
+- SessionReview enhanced with floating nav arrows, keyboard navigation
+- Click reasons to mark as read (blue-50 unread, gray-50 read)
+- Active question highlight with indigo ring
 
 ### From 10-01 Summary
 
@@ -156,10 +166,10 @@ Admin session list at /admin route:
 
 ## Session Continuity
 
-**Last session:** 2026-01-29 — Plan 10-01 complete
-**Next action:** Execute Plan 10-02 (Results Polish)
+**Last session:** 2026-01-29 — Plan 10-02 complete (v1.1 milestone complete)
+**Next action:** Plan v1.2 milestone or deploy v1.1
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-29 — Plan 10-01 complete (Progress Dashboard)*
+*Updated: 2026-01-29 — Phase 10 complete (v1.1 milestone shipped)*
