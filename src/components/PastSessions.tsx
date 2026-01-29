@@ -34,7 +34,6 @@ export function PastSessions() {
       const { data } = await supabase
         .from('sessions')
         .select('*, questions(count), votes(participant_id)')
-        .eq('created_by', user.id)
         .order('created_at', { ascending: false });
 
       if (data) {
