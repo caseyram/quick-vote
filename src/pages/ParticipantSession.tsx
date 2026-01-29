@@ -109,6 +109,31 @@ export default function ParticipantSession() {
     }
 
     if (statusData.status === 'active') {
+      // First check for an active batch (participant may have disconnected during batch voting)
+      const { data: activeBatch } = await supabase
+        .from('batches')
+        .select('*')
+        .eq('session_id', sessionId)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (activeBatch) {
+        // Fetch questions belonging to this batch
+        const { data: batchQs } = await supabase
+          .from('questions')
+          .select('*')
+          .eq('batch_id', activeBatch.id)
+          .order('position');
+
+        if (batchQs && batchQs.length > 0) {
+          setBatchQuestions(batchQs);
+          setActiveBatchId(activeBatch.id);
+          setView('batch-voting');
+          return;
+        }
+      }
+
+      // No active batch, check for active individual question
       const { data: qData } = await supabase
         .from('questions')
         .select('*')
@@ -131,7 +156,7 @@ export default function ParticipantSession() {
     setActiveQuestion(null);
     stopCountdown();
     setView('lobby');
-  }, [sessionId, setSession, stopCountdown]);
+  }, [sessionId, setSession, stopCountdown, setBatchQuestions, setActiveBatchId]);
 
   // Handle batch completion - clears batch state and returns to waiting
   const handleBatchComplete = useCallback(() => {
@@ -310,19 +335,46 @@ export default function ParticipantSession() {
       };
       setSession(sessionForStore);
 
-      // If session is active, fetch active question
+      // If session is active, check for active batch or question
       let question: Question | null = null;
+      let hasBatchActive = false;
       if (sessionData.status === 'active') {
-        const { data: qData } = await supabase
-          .from('questions')
+        // First check for active batch
+        const { data: activeBatch } = await supabase
+          .from('batches')
           .select('*')
           .eq('session_id', sessionId)
           .eq('status', 'active')
           .maybeSingle();
 
-        if (!cancelled && qData) {
-          question = qData;
-          setActiveQuestion(qData);
+        if (!cancelled && activeBatch) {
+          // Fetch questions belonging to this batch
+          const { data: batchQs } = await supabase
+            .from('questions')
+            .select('*')
+            .eq('batch_id', activeBatch.id)
+            .order('position');
+
+          if (!cancelled && batchQs && batchQs.length > 0) {
+            setBatchQuestions(batchQs);
+            setActiveBatchId(activeBatch.id);
+            hasBatchActive = true;
+          }
+        }
+
+        // If no active batch, check for active question
+        if (!hasBatchActive) {
+          const { data: qData } = await supabase
+            .from('questions')
+            .select('*')
+            .eq('session_id', sessionId)
+            .eq('status', 'active')
+            .maybeSingle();
+
+          if (!cancelled && qData) {
+            question = qData;
+            setActiveQuestion(qData);
+          }
         }
       }
 
@@ -340,8 +392,12 @@ export default function ParticipantSession() {
       }
 
       if (!cancelled) {
-        const derivedView = deriveView(sessionData.status, question);
-        setView(derivedView);
+        if (hasBatchActive) {
+          setView('batch-voting');
+        } else {
+          const derivedView = deriveView(sessionData.status, question);
+          setView(derivedView);
+        }
       }
     }
 
@@ -350,7 +406,7 @@ export default function ParticipantSession() {
     return () => {
       cancelled = true;
     };
-  }, [sessionId, setSession]);
+  }, [sessionId, setSession, setBatchQuestions, setActiveBatchId]);
 
   // Derive view from session + activeQuestion state (used only for initial load)
   function deriveView(status: SessionStatus | undefined, question: Question | null): ParticipantView {
