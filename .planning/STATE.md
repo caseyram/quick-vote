@@ -70,6 +70,16 @@ See PROJECT.md for full decision log. Key v1.0 decisions:
 - Drag handle only pattern - listeners on grip icon, not entire card
 - Accordion state local to BatchList (not global store)
 
+### From 09-02 Summary
+
+Session export library:
+- session-export.ts with Zod schemas for export and import validation
+- exportSession() fetches session, batches, questions, and votes
+- Questions grouped by batch; unbatched in '_unbatched' pseudo-batch
+- Full vote fidelity with participant_id and reasons
+- downloadJSON() for client-side download with memory leak prevention
+- generateExportFilename() for safe filenames with date stamp
+
 ### From 09-04 Summary
 
 JSON import functionality:
@@ -115,10 +125,10 @@ Keyboard navigation and completion feedback:
 
 ## Session Continuity
 
-**Last session:** 2026-01-29 — Completed 09-04
+**Last session:** 2026-01-29 — Completed 09-02-PLAN.md
 **Next action:** Execute 09-05-PLAN.md (final plan in phase 9)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-01-29 — Completed 09-04 (JSON import functionality)*
+*Updated: 2026-01-29 — Completed 09-02 (session export library)*
