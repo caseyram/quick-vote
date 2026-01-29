@@ -290,7 +290,6 @@ export default function AdminSession() {
   const {
     remaining: countdownRemaining,
     isRunning: countdownRunning,
-    expired: countdownExpired,
     start: startCountdown,
     stop: stopCountdown,
   } = useCountdown(handleCountdownComplete);
