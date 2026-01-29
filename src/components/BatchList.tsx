@@ -278,7 +278,9 @@ export function BatchList({
   // Unique ID for this DndContext to prevent conflicts with nested DndContext in BatchCard
   const dndContextId = useId();
 
-  const sensors = useSensors(
+  // Create sensors - but disable them when a batch is expanded to prevent
+  // interference with the nested DndContext inside BatchCard
+  const activeSensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
@@ -288,6 +290,9 @@ export function BatchList({
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+  const emptySensors = useSensors();
+  // Disable outer sensors when any batch is expanded
+  const sensors = expandedBatchId ? emptySensors : activeSensors;
 
   // Create interleaved list sorted by position
   const interleavedItems = useMemo(() => {
