@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams } from 'react-router';
 import { supabase } from '../lib/supabase';
 import { useSessionStore } from '../stores/session-store';
+import { useTemplateStore } from '../stores/template-store';
 import { useRealtimeChannel } from '../hooks/use-realtime-channel';
 import { useCountdown } from '../hooks/use-countdown';
 import { aggregateVotes } from '../lib/vote-aggregation';
@@ -18,6 +19,9 @@ import { SessionImportExport } from '../components/SessionImportExport';
 import { ResponseTemplatePanel } from '../components/ResponseTemplatePanel';
 import { ProgressDashboard } from '../components/ProgressDashboard';
 import { DevTestFab } from '../components/DevTestFab';
+import { TemplateSelector } from '../components/TemplateSelector';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { checkQuestionVotes } from '../lib/template-api';
 import type { Question, Vote, Batch } from '../types/database';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -39,6 +43,7 @@ export default function AdminSession() {
     activeBatchId,
     setActiveBatchId,
   } = useSessionStore();
+  const { templates } = useTemplateStore();
   const [copied, setCopied] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [transitioning, setTransitioning] = useState(false);
@@ -49,6 +54,8 @@ export default function AdminSession() {
   const [_addingQuestionToBatchId, _setAddingQuestionToBatchId] = useState<string | null>(null);
   const [pendingBatchId] = useState<string | null>(null);
   const [resultsViewIndex, setResultsViewIndex] = useState(0);
+  const [bulkApplyConfirm, setBulkApplyConfirm] = useState<{ templateId: string; questionCount: number; skippedCount: number } | null>(null);
+  const [bulkApplying, setBulkApplying] = useState(false);
 
   // Track session ID in a ref for the channel setup callback
   const sessionIdRef = useRef<string | null>(null);
@@ -808,6 +815,91 @@ export default function AdminSession() {
     }
   }
 
+  // --- Default template handlers ---
+
+  async function handleDefaultTemplateChange(templateId: string | null) {
+    if (!session) return;
+
+    // Persist the default template setting
+    await useSessionStore.getState().setSessionDefaultTemplate(templateId);
+
+    // If setting a template (not clearing), check for templateless MC questions
+    if (templateId) {
+      // Find templateless MC questions
+      const templatelessQuestions = questions.filter(
+        q => q.type === 'multiple_choice' && !q.template_id
+      );
+
+      if (templatelessQuestions.length > 0) {
+        // Check each for votes
+        const voteChecks = await Promise.all(
+          templatelessQuestions.map(q => checkQuestionVotes(q.id))
+        );
+
+        // Count safe-to-update vs skipped (have votes)
+        const safeQuestions = templatelessQuestions.filter((_, idx) => !voteChecks[idx]);
+        const skippedCount = templatelessQuestions.length - safeQuestions.length;
+
+        if (safeQuestions.length > 0) {
+          setBulkApplyConfirm({
+            templateId,
+            questionCount: safeQuestions.length,
+            skippedCount,
+          });
+        }
+      }
+    }
+  }
+
+  async function handleBulkApplyConfirm() {
+    if (!bulkApplyConfirm || !session) return;
+
+    setBulkApplying(true);
+
+    try {
+      // Re-fetch templateless MC questions without votes to be safe
+      const templatelessQuestions = questions.filter(
+        q => q.type === 'multiple_choice' && !q.template_id
+      );
+
+      // Re-check for votes
+      const voteChecks = await Promise.all(
+        templatelessQuestions.map(q => checkQuestionVotes(q.id))
+      );
+      const safeQuestions = templatelessQuestions.filter((_, idx) => !voteChecks[idx]);
+
+      // Update each safe question
+      await Promise.all(
+        safeQuestions.map(q =>
+          supabase
+            .from('questions')
+            .update({ template_id: bulkApplyConfirm.templateId })
+            .eq('id', q.id)
+        )
+      );
+
+      // Refresh questions from database to get updated template_id values
+      const { data: refreshedQuestions } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('session_id', session.session_id)
+        .order('position', { ascending: true });
+
+      if (refreshedQuestions) {
+        useSessionStore.getState().setQuestions(refreshedQuestions);
+      }
+    } catch (error) {
+      console.error('Bulk apply failed:', error);
+    } finally {
+      setBulkApplying(false);
+      setBulkApplyConfirm(null);
+    }
+  }
+
+  function handleBulkApplyCancel() {
+    setBulkApplyConfirm(null);
+  }
+
   // --- Loading / error states ---
 
   if (loading) {
@@ -916,6 +1008,21 @@ export default function AdminSession() {
                 </svg>
                 {session.test_mode ? 'Test Mode On' : 'Test Mode Off'}
               </button>
+
+              {/* Default Template */}
+              <div className="pt-3 border-t border-gray-200">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Default Template
+                </label>
+                <p className="text-xs text-gray-400 mb-2">
+                  Auto-applied to new multiple choice questions
+                </p>
+                <TemplateSelector
+                  value={session.default_template_id ?? null}
+                  onChange={handleDefaultTemplateChange}
+                  templates={templates}
+                />
+              </div>
             </div>
 
             {/* Question list with edit/delete/reorder */}
@@ -1296,6 +1403,26 @@ export default function AdminSession() {
         // Existing batches from draft mode
         batches={batches}
         onActivateBatch={handleActivateBatch}
+      />
+
+      {/* Bulk Apply Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={bulkApplyConfirm !== null}
+        onConfirm={handleBulkApplyConfirm}
+        onCancel={handleBulkApplyCancel}
+        title="Apply to existing questions?"
+        message={
+          bulkApplyConfirm
+            ? `${bulkApplyConfirm.questionCount} multiple choice question(s) without a template will be assigned this template.${
+                bulkApplyConfirm.skippedCount > 0
+                  ? ` ${bulkApplyConfirm.skippedCount} question(s) with votes will be skipped.`
+                  : ''
+              }`
+            : ''
+        }
+        confirmLabel="Apply"
+        confirmVariant="primary"
+        loading={bulkApplying}
       />
     </AdminPasswordGate>
   );
