@@ -14,11 +14,19 @@ CREATE TABLE response_templates (
 -- GIN index for efficient JSONB operations
 CREATE INDEX idx_response_templates_options ON response_templates USING GIN (options);
 
--- Auto-update updated_at timestamp using moddatetime extension
+-- Auto-update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_response_templates_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE TRIGGER handle_response_templates_updated_at
   BEFORE UPDATE ON response_templates
   FOR EACH ROW
-  EXECUTE PROCEDURE moddatetime(updated_at);
+  EXECUTE PROCEDURE update_response_templates_updated_at();
 
 -- Add template_id foreign key to questions table
 ALTER TABLE questions ADD COLUMN template_id UUID REFERENCES response_templates(id) ON DELETE SET NULL;
