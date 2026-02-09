@@ -104,6 +104,7 @@ export function TemplateEditor({
   const [options, setOptions] = useState<string[]>(['', '']);
   const [validationError, setValidationError] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const mouseDownOnOverlay = useRef(false);
 
   const isEditMode = !!template;
 
@@ -194,10 +195,31 @@ export function TemplateEditor({
     await onSave(trimmedName, filteredOptions);
   }
 
-  function handleOverlayClick(e: React.MouseEvent) {
-    if (e.target === e.currentTarget) {
-      onCancel();
+  function hasDraft(): boolean {
+    if (isEditMode) {
+      if (name.trim() !== template!.name) return true;
+      if (options.length !== template!.options.length) return true;
+      return options.some((opt, i) => opt !== template!.options[i]);
     }
+    return name.trim().length > 0 || options.some((opt) => opt.trim().length > 0);
+  }
+
+  function confirmClose() {
+    if (hasDraft()) {
+      if (!window.confirm('You have unsaved changes. Discard them?')) return;
+    }
+    onCancel();
+  }
+
+  function handleOverlayMouseDown(e: React.MouseEvent) {
+    mouseDownOnOverlay.current = e.target === e.currentTarget;
+  }
+
+  function handleOverlayClick(e: React.MouseEvent) {
+    if (e.target === e.currentTarget && mouseDownOnOverlay.current) {
+      confirmClose();
+    }
+    mouseDownOnOverlay.current = false;
   }
 
   const sortableIds = options.map((_, index) => `option-${index}`);
@@ -205,6 +227,7 @@ export function TemplateEditor({
   return (
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4"
+      onMouseDown={handleOverlayMouseDown}
       onClick={handleOverlayClick}
     >
       <div className="bg-white rounded-xl p-6 w-full max-w-lg space-y-4">
@@ -274,7 +297,7 @@ export function TemplateEditor({
         {/* Footer buttons */}
         <div className="flex justify-end gap-2">
           <button
-            onClick={onCancel}
+            onClick={confirmClose}
             disabled={saving}
             className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium disabled:text-gray-400"
           >
