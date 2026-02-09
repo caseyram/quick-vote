@@ -11,16 +11,16 @@ See: .planning/PROJECT.md (updated 2026-02-09)
 ## Current Position
 
 **Milestone:** v1.2 Response Templates
-**Phase:** 11 (not started)
-**Plan:** None
-**Status:** Ready to plan
-**Last activity:** 2026-02-09 — Roadmap created
+**Phase:** 11 of 4 (Template Database & CRUD)
+**Plan:** 1 of 3 in current phase
+**Status:** In progress
+**Last activity:** 2026-02-09 — Completed 11-01-PLAN.md
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0% (0/4 phases)
+Progress: [█████░░░░░░░░░░░░░░░] 8% (1/12 plans estimated)
 
 **Current Focus:** Enable admin to create and manage reusable response templates with full CRUD operations.
 
-**Next Action:** `/gsd:plan-phase 11`
+**Next Action:** `/gsd:execute-phase 11` (continue to next plan)
 
 ## Milestone History
 
@@ -62,6 +62,13 @@ See PROJECT.md for full decision log.
 - Session-level default template for faster question creation
 - Export/import includes templates with deduplication by name
 
+**Phase 11-01 (Template Database & CRUD):**
+- JSONB array storage for options (simpler than normalized table)
+- ON DELETE SET NULL preserves question options when template deleted
+- Global RLS policies (all authenticated users can CRUD templates)
+- Unique constraint on template name with code 23505 error handling
+- Alphabetical sorting in store for consistent ordering
+
 ### Potential Next Features
 
 From v1.1 deferred requirements:
@@ -84,10 +91,10 @@ Other possibilities:
 
 ## Session Continuity
 
-**Last session:** 2026-02-09 — Roadmap created for v1.2
-**Next action:** `/gsd:plan-phase 11` to plan Template Database & CRUD phase
+**Last session:** 2026-02-09T19:48:38Z — Completed 11-01-PLAN.md
+**Stopped at:** Completed 11-01-PLAN.md (Template Database & CRUD)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-09 — v1.2 roadmap created*
+*Updated: 2026-02-09 — Completed plan 11-01*

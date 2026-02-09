@@ -36,7 +36,7 @@ Introduce reusable response templates to eliminate participant confusion from in
 **Plans:** 3 plans
 
 Plans:
-- [ ] 11-01-PLAN.md — Database migration, TypeScript types, Zustand store, Supabase API functions
+- [x] 11-01-PLAN.md — Database migration, TypeScript types, Zustand store, Supabase API functions (Completed 2026-02-09)
 - [ ] 11-02-PLAN.md — Template management UI (list, editor with DnD, delete confirmation, AdminSession integration)
 - [ ] 11-03-PLAN.md — Database migration application and human verification of all TMPL requirements
 
