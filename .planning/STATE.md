@@ -11,16 +11,16 @@ See: .planning/PROJECT.md (updated 2026-02-09)
 ## Current Position
 
 **Milestone:** v1.2 Response Templates
-**Phase:** 11 (complete)
-**Plan:** 3 of 3 complete
-**Status:** Phase 11 complete — ready to plan Phase 12
-**Last activity:** 2026-02-09 — Phase 11 executed and verified
+**Phase:** 12 (in progress)
+**Plan:** 1 of 3+ complete
+**Status:** Phase 12 in progress — data layer complete
+**Last activity:** 2026-02-09 — Completed 12-01-PLAN.md
 
-Progress: [█████░░░░░░░░░░░░░░░] 25% (1/4 phases)
+Progress: [██████░░░░░░░░░░░░░░] 30% (1.25/4 phases)
 
 **Current Focus:** Template assignment to questions and session defaults.
 
-**Next Action:** `/gsd:discuss-phase 12`
+**Next Action:** Continue Phase 12 execution (Plans 02-03)
 
 ## Milestone History
 
@@ -55,6 +55,11 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 - Completed: 2026-02-09
 - Requirements: TMPL-01, TMPL-02, TMPL-03, TMPL-04 (all verified)
 
+**v1.2 Phase 12:**
+- Plans: 1 of 3+ complete
+- In progress: 2026-02-09
+- Next: Session settings UI and QuestionForm template assignment
+
 ## Accumulated Context
 
 ### Key Decisions
@@ -76,6 +81,12 @@ See PROJECT.md for full decision log.
 - Inline PL/pgSQL trigger function for updated_at (moddatetime extension unavailable)
 - Modal overlay close requires mousedown+mouseup on overlay (prevents text selection drift)
 - Unsaved changes confirmation on Cancel/overlay close
+
+**Phase 12 (Template Assignment & Defaults) - In Progress:**
+- Nullable FK session.default_template_id for per-session defaults
+- checkQuestionVotes(questionId) helper for vote-based validation
+- Spread merge pattern in Zustand to prevent field loss on updates
+- Session store method setSessionDefaultTemplate(templateId) for persistence
 
 ### Potential Next Features
 
@@ -99,10 +110,11 @@ Other possibilities:
 
 ## Session Continuity
 
-**Last session:** 2026-02-09 — Phase 11 complete
-**Next action:** `/gsd:discuss-phase 12` to plan Template Assignment & Defaults
+**Last session:** 2026-02-09 — Completed Phase 12 Plan 01
+**Stopped at:** Data layer complete (migration, types, API helpers, store methods)
+**Next action:** Execute Phase 12 Plans 02-03 (UI for session defaults and question assignment)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-09 — Phase 11 complete*
+*Updated: 2026-02-09 — Phase 12 Plan 01 complete*
