@@ -15,7 +15,7 @@ import { CountdownTimer } from '../components/CountdownTimer';
 import { AdminControlBar } from '../components/AdminControlBar';
 import { AdminPasswordGate } from '../components/AdminPasswordGate';
 import { SessionImportExport } from '../components/SessionImportExport';
-import { TemplatePanel } from '../components/TemplatePanel';
+import { ResponseTemplatePanel } from '../components/ResponseTemplatePanel';
 import { ProgressDashboard } from '../components/ProgressDashboard';
 import { DevTestFab } from '../components/DevTestFab';
 import type { Question, Vote, Batch } from '../types/database';
@@ -968,7 +968,7 @@ export default function AdminSession() {
             </div>
 
             {/* Templates */}
-            <TemplatePanel sessionId={session.session_id} />
+            <ResponseTemplatePanel />
           </div>
         </div>
       )}

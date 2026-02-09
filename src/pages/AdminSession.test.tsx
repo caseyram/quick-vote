@@ -278,8 +278,8 @@ vi.mock('../components/SessionImportExport', () => ({
   SessionImportExport: () => <div data-testid="session-import-export">SessionImportExport</div>,
 }));
 
-vi.mock('../components/TemplatePanel', () => ({
-  TemplatePanel: () => <div data-testid="template-panel">TemplatePanel</div>,
+vi.mock('../components/ResponseTemplatePanel', () => ({
+  ResponseTemplatePanel: () => <div data-testid="template-panel">ResponseTemplatePanel</div>,
 }));
 
 vi.mock('../components/BatchList', () => ({
