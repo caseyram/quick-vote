@@ -62,6 +62,13 @@ Plans:
 5. Admin can change the template assignment on an existing question (switch templates)
 6. Admin can set a session-level default template that auto-applies to new multiple choice questions
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 12-01-PLAN.md — Database migration for session default_template_id, TypeScript types, checkQuestionVotes helper, session store method
+- [ ] 12-02-PLAN.md — TemplateSelector component and template-aware QuestionForm with locked/unlocked modes, detach, and vote guard
+- [ ] 12-03-PLAN.md — Session default template UI in AdminSession settings, bulk apply, migration application, and human verification
+
 **Technical Scope:**
 - Database: Add `template_id` column to questions table, add `default_template_id` column to sessions table
 - Zustand: Add template assignment/detachment methods, default template management
