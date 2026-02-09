@@ -50,7 +50,16 @@ Participants can instantly vote on questions in a way that feels immersive and t
 
 ### Active
 
-(Next milestone to be defined)
+**Current Milestone: v1.2 Response Templates**
+
+**Goal:** Eliminate participant confusion from inconsistent multiple choice layouts by introducing reusable response templates with locked order, colors, and layout.
+
+**Target features:**
+- Response templates: named, reusable sets of response options stored globally in Supabase
+- Template assignment: select a template from a dropdown when creating multiple choice questions
+- Full consistency: same template = identical option order, colors, button layout for participants
+- Works in both live and batch voting modes
+- Export/import: templates included in JSON export so they travel with session data
 
 ### Out of Scope
 
@@ -91,4 +100,4 @@ Participants can instantly vote on questions in a way that feels immersive and t
 | Direct batch submit (no review screen) | Faster flow, review screen proved unnecessary | ✓ Good |
 
 ---
-*Last updated: 2026-01-29 after v1.1 milestone*
+*Last updated: 2026-02-09 after v1.2 milestone start*
