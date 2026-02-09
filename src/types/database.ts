@@ -23,6 +23,7 @@ export interface Session {
   timer_expires_at: string | null;
   created_by: string;
   created_at: string;
+  default_template_id: string | null;
 }
 
 export interface Question {
