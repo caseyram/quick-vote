@@ -12,11 +12,11 @@ See: .planning/PROJECT.md (updated 2026-02-09)
 
 **Milestone:** v1.2 Response Templates
 **Phase:** 11 of 4 (Template Database & CRUD)
-**Plan:** 1 of 3 in current phase
+**Plan:** 2 of 3 in current phase
 **Status:** In progress
-**Last activity:** 2026-02-09 — Completed 11-01-PLAN.md
+**Last activity:** 2026-02-09 — Completed 11-02-PLAN.md
 
-Progress: [█████░░░░░░░░░░░░░░░] 8% (1/12 plans estimated)
+Progress: [██████████░░░░░░░░░░] 17% (2/12 plans estimated)
 
 **Current Focus:** Enable admin to create and manage reusable response templates with full CRUD operations.
 
@@ -69,6 +69,12 @@ See PROJECT.md for full decision log.
 - Unique constraint on template name with code 23505 error handling
 - Alphabetical sorting in store for consistent ordering
 
+**Phase 11-02 (Template Management UI):**
+- TemplateEditor uses overlay click to close (matches ConfirmDialog pattern)
+- Edit flow checks votes first, then shows propagation warning for linked questions
+- Old TemplatePanel remains in codebase for backward compatibility
+- ResponseTemplatePanel does not accept sessionId prop (templates are global)
+
 ### Potential Next Features
 
 From v1.1 deferred requirements:
@@ -91,10 +97,10 @@ Other possibilities:
 
 ## Session Continuity
 
-**Last session:** 2026-02-09T19:48:38Z — Completed 11-01-PLAN.md
-**Stopped at:** Completed 11-01-PLAN.md (Template Database & CRUD)
+**Last session:** 2026-02-09T19:57:44Z — Completed 11-02-PLAN.md
+**Stopped at:** Completed 11-02-PLAN.md (Template Management UI)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-09 — Completed plan 11-01*
+*Updated: 2026-02-09 — Completed plan 11-02*
