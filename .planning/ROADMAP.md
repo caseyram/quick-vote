@@ -33,11 +33,18 @@ Introduce reusable response templates to eliminate participant confusion from in
 3. Admin can delete a template with confirmation dialog if template is in use by questions
 4. Templates persist in Supabase and are available globally across all sessions
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — Database migration, TypeScript types, Zustand store, Supabase API functions
+- [ ] 11-02-PLAN.md — Template management UI (list, editor with DnD, delete confirmation, AdminSession integration)
+- [ ] 11-03-PLAN.md — Database migration application and human verification of all TMPL requirements
+
 **Technical Scope:**
 - Database: Create `response_templates` table with columns: id, name, options (JSONB array), created_at, updated_at
 - Zustand store: Add template management methods (create, update, delete, list)
 - UI: Template management panel accessible from admin session view
-- Components: TemplateList, TemplateEditor, TemplateDeleteConfirmation
+- Components: ResponseTemplatePanel, TemplateEditor
 
 ## Phase 12: Template Assignment & Defaults
 
