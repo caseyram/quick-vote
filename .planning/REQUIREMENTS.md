@@ -69,28 +69,35 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TMPL-01 | - | Pending |
-| TMPL-02 | - | Pending |
-| TMPL-03 | - | Pending |
-| TMPL-04 | - | Pending |
-| TMPL-05 | - | Pending |
-| ASGN-01 | - | Pending |
-| ASGN-02 | - | Pending |
-| ASGN-03 | - | Pending |
-| ASGN-04 | - | Pending |
-| ASGN-05 | - | Pending |
-| REND-01 | - | Pending |
-| REND-02 | - | Pending |
-| REND-03 | - | Pending |
-| EXPT-01 | - | Pending |
-| EXPT-02 | - | Pending |
-| EXPT-03 | - | Pending |
+| TMPL-01 | 11 | Pending |
+| TMPL-02 | 11 | Pending |
+| TMPL-03 | 11 | Pending |
+| TMPL-04 | 11 | Pending |
+| TMPL-05 | 12 | Pending |
+| ASGN-01 | 12 | Pending |
+| ASGN-02 | 12 | Pending |
+| ASGN-03 | 12 | Pending |
+| ASGN-04 | 12 | Pending |
+| ASGN-05 | 12 | Pending |
+| REND-01 | 13 | Pending |
+| REND-02 | 13 | Pending |
+| REND-03 | 13 | Pending |
+| EXPT-01 | 14 | Pending |
+| EXPT-02 | 14 | Pending |
+| EXPT-03 | 14 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 16 total
-- Mapped to phases: 0
-- Unmapped: 16
+- Mapped to phases: 16
+- Unmapped: 0
+- Coverage: 100%
+
+**Phase Distribution:**
+- Phase 11 (Template Database & CRUD): 4 requirements
+- Phase 12 (Template Assignment & Defaults): 6 requirements
+- Phase 13 (Consistent Rendering): 3 requirements
+- Phase 14 (Export/Import Integration): 3 requirements
 
 ---
 *Requirements defined: 2026-02-09*
-*Last updated: 2026-02-09 after initial definition*
+*Last updated: 2026-02-09 after roadmap creation*
