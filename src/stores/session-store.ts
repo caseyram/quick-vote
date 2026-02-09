@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Session, Question, Vote, Batch } from '../types/database';
 import type { ConnectionStatus } from '../hooks/use-realtime-channel';
+import { supabase } from '../lib/supabase';
 
 interface SessionState {
   session: Session | null;
@@ -22,6 +23,7 @@ interface SessionState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   reset: () => void;
+  setSessionDefaultTemplate: (templateId: string | null) => Promise<void>;
 
   // Voting state
   currentVote: Vote | null;
@@ -48,7 +50,7 @@ interface SessionState {
   setBatchQuestions: (questions: Question[]) => void;
 }
 
-export const useSessionStore = create<SessionState>()((set) => ({
+export const useSessionStore = create<SessionState>()((set, get) => ({
   session: null,
   questions: [],
   batches: [],
@@ -140,4 +142,22 @@ export const useSessionStore = create<SessionState>()((set) => ({
   setTimerEndTime: (endTime) => set({ timerEndTime: endTime }),
   setActiveBatchId: (id) => set({ activeBatchId: id }),
   setBatchQuestions: (questions) => set({ batchQuestions: questions }),
+
+  setSessionDefaultTemplate: async (templateId) => {
+    const session = get().session;
+    if (!session) return;
+
+    const { data, error } = await supabase
+      .from('sessions')
+      .update({ default_template_id: templateId })
+      .eq('id', session.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    set((state) => ({
+      session: state.session ? { ...state.session, ...data } : null,
+    }));
+  },
 }));

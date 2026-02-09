@@ -136,3 +136,19 @@ export async function checkTemplateVotes(templateId: string): Promise<boolean> {
   // Return true if votes exist (not safe to edit)
   return votes !== null && votes.length > 0;
 }
+
+/**
+ * Check if a question has received any votes.
+ * Used to prevent template changes on questions with votes.
+ */
+export async function checkQuestionVotes(questionId: string): Promise<boolean> {
+  const { data: votes, error } = await supabase
+    .from('votes')
+    .select('id')
+    .eq('question_id', questionId)
+    .limit(1);
+
+  if (error) throw error;
+
+  return votes !== null && votes.length > 0;
+}
