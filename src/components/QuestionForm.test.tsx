@@ -37,9 +37,23 @@ vi.mock('../stores/session-store', () => ({
       getState: vi.fn(() => ({
         addQuestion: vi.fn(),
         updateQuestion: vi.fn(),
+        session: null,
       })),
     }
   ),
+}));
+
+vi.mock('../stores/template-store', () => ({
+  useTemplateStore: vi.fn(() => ({
+    templates: [],
+    loading: false,
+    error: null,
+  })),
+}));
+
+vi.mock('../lib/template-api', () => ({
+  fetchTemplates: vi.fn(() => Promise.resolve([])),
+  checkQuestionVotes: vi.fn(() => Promise.resolve(false)),
 }));
 
 import QuestionForm from './QuestionForm';
@@ -63,7 +77,7 @@ describe('QuestionForm', () => {
     const q = {
       id: 'q1', session_id: 's1', text: 'Edit me', type: 'agree_disagree' as const,
       options: null, position: 0, anonymous: false, status: 'pending' as const,
-      created_at: new Date().toISOString(), batch_id: null,
+      created_at: new Date().toISOString(), batch_id: null, template_id: null,
     };
     render(<QuestionForm sessionId="s1" editingQuestion={q} onSaved={onSaved} onCancel={onCancel} />);
     expect(screen.getByText('Edit Question')).toBeDefined();
@@ -124,7 +138,7 @@ describe('QuestionForm', () => {
     const q = {
       id: 'q1', session_id: 's1', text: 'Edit me', type: 'agree_disagree' as const,
       options: null, position: 0, anonymous: false, status: 'pending' as const,
-      created_at: new Date().toISOString(), batch_id: null,
+      created_at: new Date().toISOString(), batch_id: null, template_id: null,
     };
     render(<QuestionForm sessionId="s1" editingQuestion={q} onSaved={onSaved} onCancel={onCancel} />);
     fireEvent.click(screen.getByText('Cancel'));
