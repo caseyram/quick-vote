@@ -9,10 +9,10 @@ Requirements for milestone v1.2: Response Templates.
 
 ### Response Template CRUD
 
-- [ ] **TMPL-01**: Admin can create a named response template with an ordered list of options
-- [ ] **TMPL-02**: Admin can edit a template (rename, reorder options, add/remove options)
-- [ ] **TMPL-03**: Admin can delete a template (with confirmation if in use by questions)
-- [ ] **TMPL-04**: Templates are stored globally in Supabase and available across all sessions
+- [x] **TMPL-01**: Admin can create a named response template with an ordered list of options
+- [x] **TMPL-02**: Admin can edit a template (rename, reorder options, add/remove options)
+- [x] **TMPL-03**: Admin can delete a template (with confirmation if in use by questions)
+- [x] **TMPL-04**: Templates are stored globally in Supabase and available across all sessions
 - [ ] **TMPL-05**: Admin can set a session-level default template that auto-applies to new MC questions
 
 ### Template Assignment
@@ -69,10 +69,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TMPL-01 | 11 | Pending |
-| TMPL-02 | 11 | Pending |
-| TMPL-03 | 11 | Pending |
-| TMPL-04 | 11 | Pending |
+| TMPL-01 | 11 | Complete |
+| TMPL-02 | 11 | Complete |
+| TMPL-03 | 11 | Complete |
+| TMPL-04 | 11 | Complete |
 | TMPL-05 | 12 | Pending |
 | ASGN-01 | 12 | Pending |
 | ASGN-02 | 12 | Pending |

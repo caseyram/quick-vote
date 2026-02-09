@@ -11,16 +11,16 @@ See: .planning/PROJECT.md (updated 2026-02-09)
 ## Current Position
 
 **Milestone:** v1.2 Response Templates
-**Phase:** 11 of 4 (Template Database & CRUD)
-**Plan:** 2 of 3 in current phase
-**Status:** In progress
-**Last activity:** 2026-02-09 — Completed 11-02-PLAN.md
+**Phase:** 11 (complete)
+**Plan:** 3 of 3 complete
+**Status:** Phase 11 complete — ready to plan Phase 12
+**Last activity:** 2026-02-09 — Phase 11 executed and verified
 
-Progress: [██████████░░░░░░░░░░] 17% (2/12 plans estimated)
+Progress: [█████░░░░░░░░░░░░░░░] 25% (1/4 phases)
 
-**Current Focus:** Enable admin to create and manage reusable response templates with full CRUD operations.
+**Current Focus:** Template assignment to questions and session defaults.
 
-**Next Action:** `/gsd:execute-phase 11` (continue to next plan)
+**Next Action:** `/gsd:discuss-phase 12`
 
 ## Milestone History
 
@@ -50,6 +50,11 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 - Requirements: 16
 - Expected plans: ~12-14 (3-4 per phase)
 
+**v1.2 Phase 11:**
+- Plans: 3
+- Completed: 2026-02-09
+- Requirements: TMPL-01, TMPL-02, TMPL-03, TMPL-04 (all verified)
+
 ## Accumulated Context
 
 ### Key Decisions
@@ -62,18 +67,15 @@ See PROJECT.md for full decision log.
 - Session-level default template for faster question creation
 - Export/import includes templates with deduplication by name
 
-**Phase 11-01 (Template Database & CRUD):**
+**Phase 11 (Template Database & CRUD):**
 - JSONB array storage for options (simpler than normalized table)
 - ON DELETE SET NULL preserves question options when template deleted
 - Global RLS policies (all authenticated users can CRUD templates)
 - Unique constraint on template name with code 23505 error handling
 - Alphabetical sorting in store for consistent ordering
-
-**Phase 11-02 (Template Management UI):**
-- TemplateEditor uses overlay click to close (matches ConfirmDialog pattern)
-- Edit flow checks votes first, then shows propagation warning for linked questions
-- Old TemplatePanel remains in codebase for backward compatibility
-- ResponseTemplatePanel does not accept sessionId prop (templates are global)
+- Inline PL/pgSQL trigger function for updated_at (moddatetime extension unavailable)
+- Modal overlay close requires mousedown+mouseup on overlay (prevents text selection drift)
+- Unsaved changes confirmation on Cancel/overlay close
 
 ### Potential Next Features
 
@@ -97,10 +99,10 @@ Other possibilities:
 
 ## Session Continuity
 
-**Last session:** 2026-02-09T19:57:44Z — Completed 11-02-PLAN.md
-**Stopped at:** Completed 11-02-PLAN.md (Template Management UI)
+**Last session:** 2026-02-09 — Phase 11 complete
+**Next action:** `/gsd:discuss-phase 12` to plan Template Assignment & Defaults
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-09 — Completed plan 11-02*
+*Updated: 2026-02-09 — Phase 11 complete*

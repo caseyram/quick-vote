@@ -14,7 +14,7 @@ Introduce reusable response templates to eliminate participant confusion from in
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
-| 11 | Template Database & CRUD | Admin can create, edit, and manage reusable response templates | TMPL-01, TMPL-02, TMPL-03, TMPL-04 | 4 |
+| 11 | Template Database & CRUD ✓ | Admin can create, edit, and manage reusable response templates | TMPL-01, TMPL-02, TMPL-03, TMPL-04 | 4 |
 | 12 | Template Assignment & Defaults | Admin can assign templates to questions and set session defaults | ASGN-01, ASGN-02, ASGN-03, ASGN-04, ASGN-05, TMPL-05 | 5 |
 | 13 | Consistent Rendering | Template-linked questions display identically for participants | REND-01, REND-02, REND-03 | 3 |
 | 14 | Export/Import Integration | Templates travel with session data through JSON export/import | EXPT-01, EXPT-02, EXPT-03 | 3 |
@@ -37,8 +37,8 @@ Introduce reusable response templates to eliminate participant confusion from in
 
 Plans:
 - [x] 11-01-PLAN.md — Database migration, TypeScript types, Zustand store, Supabase API functions (Completed 2026-02-09)
-- [ ] 11-02-PLAN.md — Template management UI (list, editor with DnD, delete confirmation, AdminSession integration)
-- [ ] 11-03-PLAN.md — Database migration application and human verification of all TMPL requirements
+- [x] 11-02-PLAN.md — Template management UI (list, editor with DnD, delete confirmation, AdminSession integration) (Completed 2026-02-09)
+- [x] 11-03-PLAN.md — Database migration application and human verification of all TMPL requirements (Completed 2026-02-09)
 
 **Technical Scope:**
 - Database: Create `response_templates` table with columns: id, name, options (JSONB array), created_at, updated_at
