@@ -36,6 +36,15 @@ export interface Question {
   status: QuestionStatus;
   created_at: string;
   batch_id: string | null;
+  template_id: string | null;
+}
+
+export interface ResponseTemplate {
+  id: string;
+  name: string;
+  options: string[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Vote {
