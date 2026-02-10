@@ -11,16 +11,16 @@ See: .planning/PROJECT.md (updated 2026-02-09)
 ## Current Position
 
 **Milestone:** v1.2 Response Templates
-**Phase:** 15 (not started)
-**Plan:** 0 of TBD
-**Status:** Phase 15 added — admin results template ordering (tech debt closure)
-**Last activity:** 2026-02-10 — Added gap closure phase from audit
+**Phase:** 15 (complete)
+**Plan:** 1 of 1
+**Status:** v1.2 Complete — All template features delivered, tech debt closed
+**Last activity:** 2026-02-10 — Completed Phase 15 Plan 01
 
-Progress: [████████████████░░░░] 80% (4/5 phases)
+Progress: [████████████████████] 100% (5/5 phases)
 
-**Current Focus:** Phase 15 — Fix admin results ordering to match participant template order
+**Current Focus:** v1.2 milestone complete
 
-**Next Action:** Plan and execute Phase 15
+**Next Action:** Verify v1.2 requirements, prepare for shipment
 
 ## Milestone History
 
@@ -45,10 +45,12 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 - Delivered: All requirements
 - Inserted phases: 1 (Phase 09.1)
 
-**v1.2 Target:**
-- Phases: 4
-- Requirements: 16
-- Expected plans: ~12-14 (3-4 per phase)
+**v1.2 Actual:**
+- Phases: 5 (4 planned + 1 gap closure)
+- Plans: 11
+- Avg plans/phase: 2.2
+- Requirements: All 16 delivered
+- Delivered: 2026-02-10
 
 **v1.2 Phase 11:**
 - Plans: 3
@@ -75,6 +77,13 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 - Plan 02 duration: 6 minutes
 - Requirements: All export/import integration requirements delivered
 - Status: Template-aware export/import fully functional
+
+**v1.2 Phase 15:**
+- Plans: 1 of 1 complete
+- Completed: 2026-02-10
+- Plan 01 duration: 6 minutes
+- Tech debt: Closed items #1 and #2 from milestone audit
+- Status: Admin results ordering now matches participant view
 
 ## Accumulated Context
 
@@ -133,6 +142,14 @@ See PROJECT.md for full decision log.
 - UI shows template count in preview/success messages (only when > 0)
 - CSV import returns templateCount: 0 (CSV format doesn't support templates)
 
+**Phase 15 (Admin Results Template Ordering) - Complete:**
+- 3-arg buildConsistentBarData pattern: pass live template from store for current ordering
+- Template lookup pattern: check template_id → find in store → pass options to buildConsistentBarData
+- Explicit fetchTemplates() in useEffect for robust template availability
+- Admin views use CURRENT template definition from store (not snapshot from question.options)
+- Fire-and-forget fetchTemplates().catch(console.error) pattern for template loading
+- All three admin result views (Previous Results grid, ActiveQuestionHero, SessionResults) now match participant ordering
+
 ### Potential Next Features
 
 From v1.1 deferred requirements:
@@ -156,11 +173,11 @@ Other possibilities:
 
 ## Session Continuity
 
-**Last session:** 2026-02-10 — Added Phase 15 from audit gap closure
-**Stopped at:** Phase 15 roadmap entry created
-**Next action:** Plan Phase 15 (admin results template ordering)
+**Last session:** 2026-02-10 — Completed Phase 15 Plan 01
+**Stopped at:** Completed 15-01-PLAN.md
+**Next action:** Verify v1.2 requirements and prepare milestone shipment
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-10 — Phase 15 added from audit gap closure*
+*Updated: 2026-02-10 — Phase 15 complete, v1.2 milestone delivered*
