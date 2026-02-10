@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { aggregateVotes, type VoteCount } from '../lib/vote-aggregation';
+import { aggregateVotes, buildConsistentBarData, type VoteCount } from '../lib/vote-aggregation';
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from './BarChart';
+import { useTemplateStore } from '../stores/template-store';
+import { fetchTemplates } from '../lib/template-api';
 import type { Question, Vote } from '../types/database';
 
 interface SessionResultsProps {
@@ -15,8 +17,12 @@ interface QuestionResult {
   aggregated: VoteCount[];
 }
 
-function buildBarData(result: QuestionResult) {
-  return result.aggregated.map((vc, index) => {
+function buildBarData(result: QuestionResult, templates: { id: string; options: string[] }[]) {
+  const template = result.question.template_id
+    ? templates.find(t => t.id === result.question.template_id)
+    : null;
+  const ordered = buildConsistentBarData(result.question, result.aggregated, template?.options);
+  return ordered.map((vc, index) => {
     let color: string;
     if (result.question.type === 'agree_disagree') {
       const key = vc.value.toLowerCase() as 'agree' | 'disagree' | 'sometimes';
@@ -34,10 +40,15 @@ function buildBarData(result: QuestionResult) {
 }
 
 export default function SessionResults({ sessionId, theme = 'dark' }: SessionResultsProps) {
+  const { templates } = useTemplateStore();
   const [results, setResults] = useState<QuestionResult[]>([]);
   const [loading, setLoading] = useState(true);
 
   const isLight = theme === 'light';
+
+  useEffect(() => {
+    fetchTemplates().catch(console.error);
+  }, []);
 
   useEffect(() => {
     async function fetchResults() {
@@ -149,7 +160,7 @@ export default function SessionResults({ sessionId, theme = 'dark' }: SessionRes
             ) : (
               <div className="pl-7">
                 <BarChart
-                  data={buildBarData(result)}
+                  data={buildBarData(result, templates)}
                   totalVotes={result.votes.length}
                   theme={theme}
                 />
@@ -159,7 +170,7 @@ export default function SessionResults({ sessionId, theme = 'dark' }: SessionRes
             {/* Reasons grouped by vote value */}
             <ReasonsSection
               votes={result.votes}
-              barData={buildBarData(result)}
+              barData={buildBarData(result, templates)}
               isLight={isLight}
             />
           </div>
