@@ -18,7 +18,7 @@ Introduce reusable response templates to eliminate participant confusion from in
 | 12 | Template Assignment & Defaults ✓ | Admin can assign templates to questions and set session defaults | ASGN-01, ASGN-02, ASGN-03, ASGN-04, ASGN-05, TMPL-05 | 5 |
 | 13 | Consistent Rendering ✓ | Template-linked questions display identically for participants | REND-01, REND-02, REND-03 | 3 |
 | 14 | Export/Import Integration ✓ | Templates travel with session data through JSON export/import | EXPT-01, EXPT-02, EXPT-03 | 3 |
-| 15 | Admin Results Template Ordering | Admin result views match participant template ordering | Audit tech debt #1 | 1 |
+| 15 | Admin Results Template Ordering ✓ | Admin result views match participant template ordering | Audit tech debt #1 | 1 |
 
 ## Phase 11: Template Database & CRUD
 
@@ -150,7 +150,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 15-01-PLAN.md — Replace inline aggregated.map() with buildConsistentBarData() in AdminSession and SessionResults, add explicit template loading
+- [x] 15-01-PLAN.md — Replace inline aggregated.map() with buildConsistentBarData() in AdminSession and SessionResults, add explicit template loading (Completed 2026-02-10)
 
 ## Requirement Coverage
 
