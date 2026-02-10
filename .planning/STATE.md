@@ -11,16 +11,16 @@ See: .planning/PROJECT.md (updated 2026-02-09)
 ## Current Position
 
 **Milestone:** v1.2 Response Templates
-**Phase:** 14 (in progress)
-**Plan:** 1 of 2 complete
-**Status:** Phase 14 in progress — export/import core logic complete
-**Last activity:** 2026-02-09 — Completed 14-01-PLAN.md
+**Phase:** 14 (complete)
+**Plan:** 2 of 2 complete
+**Status:** Phase 14 complete — export/import integration delivered
+**Last activity:** 2026-02-10 — Completed 14-02-PLAN.md
 
-Progress: [████████████████░░░░] 80% (3.25/4 phases)
+Progress: [████████████████████] 100% (4/4 phases)
 
-**Current Focus:** Phase 14 Plan 01 complete (export/import core logic)
+**Current Focus:** v1.2 milestone COMPLETE — all 16 requirements delivered
 
-**Next Action:** Plan 14-02 (UI Integration)
+**Next Action:** Milestone verification, then v1.3 planning
 
 ## Milestone History
 
@@ -69,9 +69,12 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 - Orchestrator fix: Restored question templates panel (removed in Phase 11)
 
 **v1.2 Phase 14:**
-- Plans: 1 of 2 complete
+- Plans: 2 of 2 complete
+- Completed: 2026-02-10
 - Plan 01 duration: 4 minutes
-- Status: Export/import core logic complete
+- Plan 02 duration: 6 minutes
+- Requirements: All export/import integration requirements delivered
+- Status: Template-aware export/import fully functional
 
 ## Accumulated Context
 
@@ -119,13 +122,16 @@ See PROJECT.md for full decision log.
 - buildConsistentBarData accepts optional templateOptions parameter (backwards compatible)
 - Restored question templates panel alongside response templates in admin view
 
-**Phase 14 (Export/Import Integration) - In Progress:**
+**Phase 14 (Export/Import Integration) - Complete:**
 - Template ID semantics in export: field named template_id stores NAME (not UUID) for portability
 - Name-based deduplication on import: reuse if name+options match, update if options differ
 - Backward compatibility: templates field optional in schemas (old exports still validate)
 - Import ordering: templates before questions (FK constraint satisfaction)
 - Race condition handling: catch 23505 unique constraint error, retry fetch
 - ID-to-name mapping pattern for export, name-to-ID mapping pattern for import
+- Export filters to only templates referenced by questions (prevents unused template export)
+- UI shows template count in preview/success messages (only when > 0)
+- CSV import returns templateCount: 0 (CSV format doesn't support templates)
 
 ### Potential Next Features
 
@@ -150,11 +156,11 @@ Other possibilities:
 
 ## Session Continuity
 
-**Last session:** 2026-02-09 — Completed 14-01-PLAN.md
-**Stopped at:** Phase 14 Plan 01 complete (export/import core logic)
-**Next action:** Plan 14-02 (UI Integration)
+**Last session:** 2026-02-10 — Completed 14-02-PLAN.md
+**Stopped at:** Phase 14 complete (export/import integration delivered)
+**Next action:** v1.2 milestone verification
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-09 — Phase 13 complete*
+*Updated: 2026-02-10 — v1.2 milestone complete (Phase 14)*
