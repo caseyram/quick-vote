@@ -122,6 +122,7 @@ From v1.1 deferred requirements:
 - Hybrid mode (mix live + batch): BATCH-F02
 
 Other possibilities:
+- Question templates in database (upgrade TemplatePanel from localStorage to Supabase — save/load full question sets globally)
 - CSV/PDF export of results
 - Ranked choice voting
 - Performance optimizations for larger scale

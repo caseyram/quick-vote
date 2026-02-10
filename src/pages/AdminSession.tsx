@@ -597,7 +597,7 @@ export default function AdminSession() {
 
   // --- Batch handlers ---
 
-  async function handleCreateBatch() {
+  async function handleCreateBatch(): Promise<string | undefined> {
     if (!session) return;
     // Consider both batch positions AND unbatched question positions
     // since they're interleaved in the UI sorted by position
@@ -622,6 +622,7 @@ export default function AdminSession() {
 
     if (!err && data) {
       useSessionStore.getState().addBatch(data);
+      return data.id;
     }
   }
 

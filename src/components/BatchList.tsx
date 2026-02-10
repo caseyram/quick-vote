@@ -35,7 +35,7 @@ interface BatchListProps {
   onBatchNameChange: (batchId: string, name: string) => void;
   onQuestionReorder: (batchId: string, questionIds: string[]) => void;
   onAddQuestionToBatch: (batchId: string) => void;
-  onCreateBatch: () => void;
+  onCreateBatch: () => Promise<string | undefined>;
   onDeleteBatch: (batchId: string) => void;
   onActivateBatch: (batchId: string) => void;
   onCloseBatch: (batchId: string) => void;
@@ -336,6 +336,11 @@ export function BatchList({
     setExpandedBatchId((prev) => (prev === batchId ? null : batchId));
   }
 
+  async function handleCreateAndExpand() {
+    const newBatchId = await onCreateBatch();
+    if (newBatchId) setExpandedBatchId(newBatchId);
+  }
+
   function handleDragStart(event: DragStartEvent) {
     const id = event.active.id as string;
     // Ignore events from nested batch item drags
@@ -391,7 +396,7 @@ export function BatchList({
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={onCreateBatch}
+            onClick={handleCreateAndExpand}
             className="flex-1 px-4 py-2 border border-dashed border-gray-600 hover:border-indigo-500 text-gray-400 hover:text-indigo-400 rounded-lg transition-colors"
           >
             + New Batch
@@ -422,7 +427,7 @@ export function BatchList({
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={onCreateBatch}
+            onClick={handleCreateAndExpand}
             className="flex-1 px-4 py-2 border border-dashed border-gray-600 hover:border-indigo-500 text-gray-400 hover:text-indigo-400 rounded-lg transition-colors"
           >
             + New Batch
@@ -573,7 +578,7 @@ export function BatchList({
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={onCreateBatch}
+            onClick={handleCreateAndExpand}
             className="flex-1 px-4 py-2 border border-dashed border-gray-600 hover:border-indigo-500 text-gray-400 hover:text-indigo-400 rounded-lg transition-colors"
           >
             + New Batch
