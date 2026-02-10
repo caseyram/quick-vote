@@ -821,7 +821,12 @@ export default function AdminSession() {
     if (!session) return;
 
     // Persist the default template setting
-    await useSessionStore.getState().setSessionDefaultTemplate(templateId);
+    try {
+      await useSessionStore.getState().setSessionDefaultTemplate(templateId);
+    } catch (err) {
+      console.error('Failed to set default template:', err);
+      return;
+    }
 
     // If setting a template (not clearing), check for templateless MC questions
     if (templateId) {
@@ -868,12 +873,16 @@ export default function AdminSession() {
       );
       const safeQuestions = templatelessQuestions.filter((_, idx) => !voteChecks[idx]);
 
-      // Update each safe question
+      // Find the template to get its options
+      const template = templates.find(t => t.id === bulkApplyConfirm.templateId);
+      const templateOptions = template?.options ?? null;
+
+      // Update each safe question with template_id and options
       await Promise.all(
         safeQuestions.map(q =>
           supabase
             .from('questions')
-            .update({ template_id: bulkApplyConfirm.templateId })
+            .update({ template_id: bulkApplyConfirm.templateId, options: templateOptions })
             .eq('id', q.id)
         )
       );

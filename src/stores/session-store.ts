@@ -150,7 +150,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     const { data, error } = await supabase
       .from('sessions')
       .update({ default_template_id: templateId })
-      .eq('id', session.id)
+      .eq('session_id', session.session_id)
       .select()
       .single();
 

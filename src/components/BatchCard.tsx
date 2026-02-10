@@ -27,10 +27,12 @@ interface BatchCardProps {
   isActive: boolean;
   canActivate: boolean;
   showActivateButton: boolean;
+  editingQuestion?: Question | null;
   onToggle: () => void;
   onNameChange: (name: string) => void;
   onQuestionReorder: (questionIds: string[]) => void;
   onEditQuestion: (question: Question) => void;
+  onCancelEdit?: () => void;
   onDeleteQuestion: (question: Question) => void;
   onAddQuestion: () => void;
   onAddQuestionDone: () => void;
@@ -49,10 +51,12 @@ export function BatchCard({
   isActive,
   canActivate,
   showActivateButton,
+  editingQuestion,
   onToggle,
   onNameChange,
   onQuestionReorder,
   onEditQuestion,
+  onCancelEdit,
   onDeleteQuestion,
   onAddQuestion,
   onAddQuestionDone,
@@ -309,15 +313,27 @@ export function BatchCard({
                     strategy={verticalListSortingStrategy}
                   >
                     <div className="space-y-2">
-                      {sortedQuestions.map((question, index) => (
-                        <BatchQuestionItem
-                          key={question.id}
-                          question={question}
-                          index={index}
-                          onEdit={onEditQuestion}
-                          onDelete={onDeleteQuestion}
-                        />
-                      ))}
+                      {sortedQuestions.map((question, index) =>
+                        editingQuestion?.id === question.id ? (
+                          <div key={question.id} className="bg-gray-900 border border-indigo-500 rounded-lg p-4">
+                            <QuestionForm
+                              sessionId={sessionId}
+                              batchId={batch.id}
+                              editingQuestion={editingQuestion}
+                              onSaved={onCancelEdit ?? (() => {})}
+                              onCancel={onCancelEdit}
+                            />
+                          </div>
+                        ) : (
+                          <BatchQuestionItem
+                            key={question.id}
+                            question={question}
+                            index={index}
+                            onEdit={onEditQuestion}
+                            onDelete={onDeleteQuestion}
+                          />
+                        )
+                      )}
                     </div>
                   </SortableContext>
                 </DndContext>

@@ -457,10 +457,12 @@ export function BatchList({
                 isActive={activeBatchId === item.batch.id}
                 canActivate={canActivateBatch(item.batch)}
                 showActivateButton={showActivateButton}
+                editingQuestion={editingQuestion}
                 onToggle={() => handleBatchToggle(item.batch.id)}
                 onNameChange={(name) => onBatchNameChange(item.batch.id, name)}
                 onQuestionReorder={(ids) => onQuestionReorder(item.batch.id, ids)}
                 onEditQuestion={onEditQuestion}
+                onCancelEdit={onCancelEdit}
                 onDeleteQuestion={onDeleteQuestion}
                 onAddQuestion={() => {
                   setExpandedBatchId(item.batch.id);

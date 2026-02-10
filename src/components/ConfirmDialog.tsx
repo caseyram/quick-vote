@@ -35,6 +35,7 @@ export function ConfirmDialog({
         <p className="text-sm text-gray-500">{message}</p>
         <div className="flex justify-end gap-2">
           <button
+            type="button"
             onClick={onCancel}
             disabled={loading}
             className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium disabled:text-gray-400"
@@ -42,6 +43,7 @@ export function ConfirmDialog({
             Cancel
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={loading}
             className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:cursor-not-allowed ${confirmButtonStyles}`}
