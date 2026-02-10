@@ -2,7 +2,7 @@
 
 **Milestone:** v1.2 Response Templates
 **Created:** 2026-02-09
-**Phases:** 4 (starting from Phase 11)
+**Phases:** 5 (starting from Phase 11)
 **Requirements:** 16
 **Depth:** Quick (3-5 phases)
 
@@ -18,6 +18,7 @@ Introduce reusable response templates to eliminate participant confusion from in
 | 12 | Template Assignment & Defaults ✓ | Admin can assign templates to questions and set session defaults | ASGN-01, ASGN-02, ASGN-03, ASGN-04, ASGN-05, TMPL-05 | 5 |
 | 13 | Consistent Rendering ✓ | Template-linked questions display identically for participants | REND-01, REND-02, REND-03 | 3 |
 | 14 | Export/Import Integration ✓ | Templates travel with session data through JSON export/import | EXPT-01, EXPT-02, EXPT-03 | 3 |
+| 15 | Admin Results Template Ordering | Admin result views match participant template ordering | Audit tech debt #1 | 1 |
 
 ## Phase 11: Template Database & CRUD
 
@@ -125,6 +126,29 @@ Plans:
 - Zod schemas: Add Template schema, update SessionExport schema
 - Verification: Test export → import → export produces identical template data
 
+## Phase 15: Admin Results Template Ordering
+
+**Goal:** Admin result views display bar chart columns in template-defined order, matching participant view
+
+**Dependencies:** Phase 14
+
+**Requirements:** Tech debt closure (audit item #1)
+
+**Gap Closure:** Closes admin results ordering mismatch from v1.2 audit
+
+**Success Criteria:**
+1. AdminSession "Previous Results" grid uses `buildConsistentBarData()` with template options for column ordering
+2. AdminSession ActiveQuestionHero live results use `buildConsistentBarData()` with template options
+3. SessionResults end-of-session view uses `buildConsistentBarData()` with template options
+4. Admin sees bar chart columns in same order as participants for template-linked questions
+
+**Technical Scope:**
+- AdminSession.tsx: Replace 2 inline `aggregated.map()` calls with `buildConsistentBarData()` (template lookup from store)
+- SessionResults.tsx: Add template store integration, pass `templateOptions` to `buildConsistentBarData()`
+- Both files already import from vote-aggregation.ts, minimal new dependencies
+
+**Plans:** TBD
+
 ## Requirement Coverage
 
 | Requirement | Phase | Description |
@@ -158,6 +182,8 @@ Phase 12 (Assignment & Defaults)
 Phase 13 (Consistent Rendering)
     ↓
 Phase 14 (Export/Import)
+    ↓
+Phase 15 (Admin Results Ordering) — tech debt closure
 ```
 
 Linear dependency chain: each phase builds on previous. No parallel work possible.
