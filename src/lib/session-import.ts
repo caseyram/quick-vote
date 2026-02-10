@@ -2,6 +2,12 @@ import { z } from 'zod';
 import { supabase } from './supabase';
 import type { Question, Batch } from '../types/database';
 
+// Schema for template import
+const TemplateImportSchema = z.object({
+  name: z.string(),
+  options: z.array(z.string()),
+});
+
 // Schema for question import (votes ignored per CONTEXT.md)
 const QuestionImportSchema = z.object({
   text: z.string().min(1, 'Question text is required'),
@@ -9,6 +15,7 @@ const QuestionImportSchema = z.object({
   options: z.array(z.string()).nullable(),
   anonymous: z.boolean(),
   position: z.number().optional(), // Original position for interleaving with unbatched questions
+  template_id: z.string().nullable().optional(), // Template name (optional for old exports)
   // Votes in import file are ignored (structure only import)
   votes: z.array(z.any()).optional(),
 });
@@ -25,6 +32,7 @@ export const ImportSchema = z.object({
   session_name: z.string().optional(),
   created_at: z.string().optional(),
   batches: z.array(BatchImportSchema).min(1, 'At least one batch is required'),
+  templates: z.array(TemplateImportSchema).optional(),
 });
 
 export type ImportData = z.infer<typeof ImportSchema>;
@@ -50,8 +58,15 @@ export interface ValidationResult {
 export function exportSessionData(
   questions: Question[],
   batches: Batch[],
-  sessionName?: string
+  sessionName?: string,
+  templates?: Array<{ id: string; name: string; options: string[] }>
 ): string {
+  // Build ID-to-name map for templates
+  const idToNameMap = new Map<string, string>();
+  for (const t of templates ?? []) {
+    idToNameMap.set(t.id, t.name);
+  }
+
   // Group questions by batch
   const batchedQuestions = new Map<string | null, Question[]>();
 
@@ -73,6 +88,7 @@ export function exportSessionData(
       options: string[] | null;
       anonymous: boolean;
       position: number;
+      template_id: string | null;
     }>;
   }> = [];
 
@@ -91,6 +107,7 @@ export function exportSessionData(
         options: q.options,
         anonymous: q.anonymous,
         position: q.position,
+        template_id: q.template_id ? (idToNameMap.get(q.template_id) ?? null) : null,
       })),
     });
   }
@@ -109,6 +126,7 @@ export function exportSessionData(
         options: q.options,
         anonymous: q.anonymous,
         position: q.position,
+        template_id: q.template_id ? (idToNameMap.get(q.template_id) ?? null) : null,
       })),
     });
   }
@@ -117,6 +135,7 @@ export function exportSessionData(
     session_name: sessionName,
     created_at: new Date().toISOString(),
     batches: exportBatches,
+    templates: (templates ?? []).map(t => ({ name: t.name, options: t.options })),
   };
 
   return JSON.stringify(exportData, null, 2);
@@ -179,6 +198,84 @@ export async function validateImportFile(file: File): Promise<ValidationResult> 
 }
 
 /**
+ * Upserts templates during import with name-based deduplication.
+ *
+ * For each template:
+ * - If name exists with same options: reuse existing template
+ * - If name exists with different options: update existing template
+ * - If name doesn't exist: insert new template
+ *
+ * Returns a map of template name -> database UUID for question linking.
+ */
+async function upsertTemplates(
+  templates: Array<{ name: string; options: string[] }>
+): Promise<Map<string, string>> {
+  const nameToIdMap = new Map<string, string>();
+
+  for (const tmpl of templates) {
+    // Check for existing template with same name
+    const { data: existing } = await supabase
+      .from('response_templates')
+      .select('id, options')
+      .eq('name', tmpl.name)
+      .maybeSingle();
+
+    if (existing) {
+      // Template with this name exists
+      const optionsMatch = JSON.stringify(existing.options) === JSON.stringify(tmpl.options);
+
+      if (optionsMatch) {
+        // Same name, same options - reuse
+        nameToIdMap.set(tmpl.name, existing.id);
+      } else {
+        // Same name, different options - overwrite per 14-CONTEXT.md
+        const { data: updated, error } = await supabase
+          .from('response_templates')
+          .update({ options: tmpl.options })
+          .eq('id', existing.id)
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        nameToIdMap.set(tmpl.name, updated.id);
+      }
+    } else {
+      // New template - insert
+      const { data: created, error } = await supabase
+        .from('response_templates')
+        .insert({ name: tmpl.name, options: tmpl.options })
+        .select('id')
+        .single();
+
+      if (error) {
+        // Handle unique constraint race condition
+        if (error.code === '23505') {
+          // Another process inserted it - retry fetch
+          const { data: retry } = await supabase
+            .from('response_templates')
+            .select('id')
+            .eq('name', tmpl.name)
+            .single();
+
+          if (retry) {
+            nameToIdMap.set(tmpl.name, retry.id);
+          } else {
+            // Shouldn't happen - throw original error
+            throw error;
+          }
+        } else {
+          throw error;
+        }
+      } else {
+        nameToIdMap.set(tmpl.name, created.id);
+      }
+    }
+  }
+
+  return nameToIdMap;
+}
+
+/**
  * Imports validated session data into the database.
  * Creates batches and questions, preserving batch groupings.
  * Votes in import data are ignored (structure-only import).
@@ -189,7 +286,10 @@ export async function validateImportFile(file: File): Promise<ValidationResult> 
 export async function importSessionData(
   sessionId: string,
   data: ImportData
-): Promise<{ batchCount: number; questionCount: number }> {
+): Promise<{ batchCount: number; questionCount: number; templateCount: number }> {
+  // Import templates FIRST (before questions, due to FK constraint)
+  const templateMap = await upsertTemplates(data.templates ?? []);
+
   // Get existing batch positions to append after
   const { data: existingBatches } = await supabase
     .from('batches')
@@ -330,6 +430,7 @@ export async function importSessionData(
     anonymous: item.question.anonymous,
     position: questionStartPos + idx,
     status: 'pending' as const,
+    template_id: item.question.template_id ? (templateMap.get(item.question.template_id) ?? null) : null,
   }));
 
   if (questionInserts.length > 0) {
@@ -346,5 +447,6 @@ export async function importSessionData(
   return {
     batchCount: insertedBatches.length,
     questionCount: totalQuestions,
+    templateCount: templateMap.size,
   };
 }
