@@ -11,16 +11,16 @@ See: .planning/PROJECT.md (updated 2026-02-09)
 ## Current Position
 
 **Milestone:** v1.2 Response Templates
-**Phase:** 13 (complete)
-**Plan:** 2 of 2 complete
-**Status:** Phase 13 complete — consistent rendering verified
-**Last activity:** 2026-02-09 — Completed Phase 13
+**Phase:** 14 (in progress)
+**Plan:** 1 of 2 complete
+**Status:** Phase 14 in progress — export/import core logic complete
+**Last activity:** 2026-02-09 — Completed 14-01-PLAN.md
 
-Progress: [███████████████░░░░░] 75% (3/4 phases)
+Progress: [████████████████░░░░] 80% (3.25/4 phases)
 
-**Current Focus:** Phase 13 complete. Ready for Phase 14.
+**Current Focus:** Phase 14 Plan 01 complete (export/import core logic)
 
-**Next Action:** Plan Phase 14 (Export/Import Integration)
+**Next Action:** Plan 14-02 (UI Integration)
 
 ## Milestone History
 
@@ -68,6 +68,11 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 - Requirements: REND-01, REND-02, REND-03 (all verified)
 - Orchestrator fix: Restored question templates panel (removed in Phase 11)
 
+**v1.2 Phase 14:**
+- Plans: 1 of 2 complete
+- Plan 01 duration: 4 minutes
+- Status: Export/import core logic complete
+
 ## Accumulated Context
 
 ### Key Decisions
@@ -114,6 +119,14 @@ See PROJECT.md for full decision log.
 - buildConsistentBarData accepts optional templateOptions parameter (backwards compatible)
 - Restored question templates panel alongside response templates in admin view
 
+**Phase 14 (Export/Import Integration) - In Progress:**
+- Template ID semantics in export: field named template_id stores NAME (not UUID) for portability
+- Name-based deduplication on import: reuse if name+options match, update if options differ
+- Backward compatibility: templates field optional in schemas (old exports still validate)
+- Import ordering: templates before questions (FK constraint satisfaction)
+- Race condition handling: catch 23505 unique constraint error, retry fetch
+- ID-to-name mapping pattern for export, name-to-ID mapping pattern for import
+
 ### Potential Next Features
 
 From v1.1 deferred requirements:
@@ -137,9 +150,9 @@ Other possibilities:
 
 ## Session Continuity
 
-**Last session:** 2026-02-09 — Completed Phase 13
-**Stopped at:** Phase 13 complete (all 3 REND requirements verified)
-**Next action:** Plan Phase 14 (Export/Import Integration)
+**Last session:** 2026-02-09 — Completed 14-01-PLAN.md
+**Stopped at:** Phase 14 Plan 01 complete (export/import core logic)
+**Next action:** Plan 14-02 (UI Integration)
 **Resume file:** None
 
 ---
