@@ -147,7 +147,10 @@ Plans:
 - SessionResults.tsx: Add template store integration, pass `templateOptions` to `buildConsistentBarData()`
 - Both files already import from vote-aggregation.ts, minimal new dependencies
 
-**Plans:** TBD
+**Plans:** 1 plan
+
+Plans:
+- [ ] 15-01-PLAN.md — Replace inline aggregated.map() with buildConsistentBarData() in AdminSession and SessionResults, add explicit template loading
 
 ## Requirement Coverage
 
