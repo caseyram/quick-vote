@@ -62,7 +62,17 @@ Participants can instantly vote on questions in a way that feels immersive and t
 
 ### Active
 
-(No active milestone — planning next)
+**Current Milestone: v1.3 Presentation Mode**
+
+**Goal:** Transform sessions into guided presentations with image slides, unified sequencing, and reusable session templates stored in Supabase.
+
+**Target features:**
+- Image slides: upload full-screen images to Supabase Storage, display on admin projection between voting batches
+- Unified session sequence: single ordered list mixing slides and batches, drag-and-drop arrangement
+- Manual advance: admin controls presentation flow, advancing through slides and batches
+- Session templates in Supabase: upgrade TemplatePanel from localStorage to database, save/load full session blueprints including slides and images
+- JSON export includes image URLs (not binary); results data excludes images
+- Participants see normal voting/waiting experience (images are admin-projection only)
 
 ### Out of Scope
 
@@ -114,4 +124,4 @@ Participants can instantly vote on questions in a way that feels immersive and t
 | Vote guard on template changes | Prevents data integrity issues with existing votes | ✓ Good |
 
 ---
-*Last updated: 2026-02-10 after v1.2 milestone*
+*Last updated: 2026-02-10 after v1.3 milestone start*
