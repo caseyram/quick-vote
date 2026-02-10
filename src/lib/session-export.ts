@@ -5,6 +5,12 @@ import { supabase } from './supabase';
 // Export Schemas (full fidelity with votes and participant_id)
 // ============================================================================
 
+// Template in export
+const TemplateExportSchema = z.object({
+  name: z.string(),
+  options: z.array(z.string()),
+});
+
 // Vote in export (includes participant_id for full fidelity per CONTEXT.md)
 const VoteExportSchema = z.object({
   participant_id: z.string(),
@@ -18,6 +24,7 @@ const QuestionExportSchema = z.object({
   type: z.enum(['agree_disagree', 'multiple_choice']),
   options: z.array(z.string()).nullable(),
   anonymous: z.boolean(),
+  template_id: z.string().nullable(),
   votes: z.array(VoteExportSchema),
 });
 
@@ -33,6 +40,7 @@ export const SessionExportSchema = z.object({
   session_name: z.string(),
   created_at: z.string(),
   batches: z.array(BatchExportSchema),
+  templates: z.array(TemplateExportSchema).optional(),
 });
 
 export type SessionExport = z.infer<typeof SessionExportSchema>;
@@ -111,6 +119,30 @@ export async function exportSession(sessionId: string): Promise<SessionExport> {
   const questionList = questions ?? [];
   const voteList = votes ?? [];
 
+  // Collect unique template IDs from questions
+  const templateIds = new Set<string>();
+  for (const q of questionList) {
+    if (q.template_id) {
+      templateIds.add(q.template_id);
+    }
+  }
+
+  // Fetch templates referenced by questions
+  let templateData: Array<{ id: string; name: string; options: string[] }> = [];
+  if (templateIds.size > 0) {
+    const { data } = await supabase
+      .from('response_templates')
+      .select('id, name, options')
+      .in('id', Array.from(templateIds));
+    templateData = data ?? [];
+  }
+
+  // Build ID-to-name map for questions
+  const idToNameMap = new Map<string, string>();
+  for (const t of templateData) {
+    idToNameMap.set(t.id, t.name);
+  }
+
   // Group questions by batch
   const batchedExport = batchList.map(batch => ({
     name: batch.name,
@@ -122,6 +154,7 @@ export async function exportSession(sessionId: string): Promise<SessionExport> {
         type: q.type as 'agree_disagree' | 'multiple_choice',
         options: q.options,
         anonymous: q.anonymous,
+        template_id: q.template_id ? (idToNameMap.get(q.template_id) ?? null) : null,
         votes: voteList
           .filter(v => v.question_id === q.id)
           .map(v => ({
@@ -143,6 +176,7 @@ export async function exportSession(sessionId: string): Promise<SessionExport> {
         type: q.type as 'agree_disagree' | 'multiple_choice',
         options: q.options,
         anonymous: q.anonymous,
+        template_id: q.template_id ? (idToNameMap.get(q.template_id) ?? null) : null,
         votes: voteList
           .filter(v => v.question_id === q.id)
           .map(v => ({
@@ -158,6 +192,7 @@ export async function exportSession(sessionId: string): Promise<SessionExport> {
     session_name: session.title,
     created_at: session.created_at,
     batches: batchedExport,
+    templates: templateData.map(t => ({ name: t.name, options: t.options })),
   };
 }
 
