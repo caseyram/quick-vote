@@ -25,9 +25,9 @@ Requirements for milestone v1.2: Response Templates.
 
 ### Consistent Rendering
 
-- [ ] **REND-01**: All questions using the same template display options in identical order
-- [ ] **REND-02**: Same color mapping applied consistently across all template-linked questions
-- [ ] **REND-03**: Identical button layout and sizing in participant voting view for template-linked questions
+- [x] **REND-01**: All questions using the same template display options in identical order
+- [x] **REND-02**: Same color mapping applied consistently across all template-linked questions
+- [x] **REND-03**: Identical button layout and sizing in participant voting view for template-linked questions
 
 ### Export/Import
 
@@ -79,9 +79,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ASGN-03 | 12 | Complete |
 | ASGN-04 | 12 | Complete |
 | ASGN-05 | 12 | Complete |
-| REND-01 | 13 | Pending |
-| REND-02 | 13 | Pending |
-| REND-03 | 13 | Pending |
+| REND-01 | 13 | Complete |
+| REND-02 | 13 | Complete |
+| REND-03 | 13 | Complete |
 | EXPT-01 | 14 | Pending |
 | EXPT-02 | 14 | Pending |
 | EXPT-03 | 14 | Pending |

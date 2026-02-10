@@ -16,7 +16,7 @@ Introduce reusable response templates to eliminate participant confusion from in
 |---|-------|------|--------------|------------------|
 | 11 | Template Database & CRUD ✓ | Admin can create, edit, and manage reusable response templates | TMPL-01, TMPL-02, TMPL-03, TMPL-04 | 4 |
 | 12 | Template Assignment & Defaults ✓ | Admin can assign templates to questions and set session defaults | ASGN-01, ASGN-02, ASGN-03, ASGN-04, ASGN-05, TMPL-05 | 5 |
-| 13 | Consistent Rendering | Template-linked questions display identically for participants | REND-01, REND-02, REND-03 | 3 |
+| 13 | Consistent Rendering ✓ | Template-linked questions display identically for participants | REND-01, REND-02, REND-03 | 3 |
 | 14 | Export/Import Integration | Templates travel with session data through JSON export/import | EXPT-01, EXPT-02, EXPT-03 | 3 |
 
 ## Phase 11: Template Database & CRUD
@@ -91,8 +91,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 13-01-PLAN.md — Template-aware participant rendering (VoteMultipleChoice refactor, template loading in ParticipantSession, tests)
-- [ ] 13-02-PLAN.md — Human verification of consistent rendering in live and batch modes
+- [x] 13-01-PLAN.md — Template-aware participant rendering (VoteMultipleChoice refactor, template loading in ParticipantSession, tests) (Completed 2026-02-09)
+- [x] 13-02-PLAN.md — Human verification of consistent rendering in live and batch modes (Completed 2026-02-09)
 
 **Technical Scope:**
 - Refactor: Update VoteMultipleChoice component to use template order when template_id present
