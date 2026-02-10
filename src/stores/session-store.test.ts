@@ -14,6 +14,7 @@ function makeQuestion(overrides: Partial<Question> = {}): Question {
     status: 'pending',
     created_at: new Date().toISOString(),
     batch_id: null,
+    template_id: null,
     ...overrides,
   };
 }
@@ -30,6 +31,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     timer_expires_at: null,
     created_by: 'user-1',
     created_at: new Date().toISOString(),
+    default_template_id: null,
     ...overrides,
   };
 }

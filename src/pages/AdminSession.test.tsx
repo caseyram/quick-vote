@@ -18,6 +18,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     timer_expires_at: null,
     created_by: 'user1',
     created_at: '2025-01-01T00:00:00Z',
+    default_template_id: null,
     ...overrides,
   };
 }
@@ -34,6 +35,7 @@ function makeQuestion(overrides: Partial<Question> = {}): Question {
     status: 'pending',
     created_at: '2025-01-01T00:00:00Z',
     batch_id: null,
+    template_id: null,
     ...overrides,
   };
 }

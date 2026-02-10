@@ -11,6 +11,7 @@ import { ParticipantCount } from '../components/ParticipantCount';
 import VoteAgreeDisagree from '../components/VoteAgreeDisagree';
 import VoteMultipleChoice from '../components/VoteMultipleChoice';
 import { BatchVotingCarousel } from '../components/BatchVotingCarousel';
+import { fetchTemplates } from '../lib/template-api';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Session, Question, SessionStatus } from '../types/database';
 
@@ -93,7 +94,7 @@ export default function ParticipantSession() {
     // Fetch session status (include timer_expires_at for countdown restoration)
     const { data: statusData } = await supabase
       .from('sessions')
-      .select('id, session_id, title, status, reasons_enabled, test_mode, timer_expires_at, created_at')
+      .select('id, session_id, title, status, reasons_enabled, test_mode, timer_expires_at, created_at, default_template_id')
       .eq('session_id', sessionId)
       .single();
 
@@ -345,10 +346,13 @@ export default function ParticipantSession() {
         return;
       }
 
+      // Load templates for template-aware rendering
+      fetchTemplates().catch(console.error);
+
       // Fetch session (explicit columns, NO admin_token, include timer_expires_at)
       const { data: sessionData, error: sessionError } = await supabase
         .from('sessions')
-        .select('id, session_id, title, status, reasons_enabled, test_mode, timer_expires_at, created_at')
+        .select('id, session_id, title, status, reasons_enabled, test_mode, timer_expires_at, created_at, default_template_id')
         .eq('session_id', sessionId)
         .single();
 

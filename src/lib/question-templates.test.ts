@@ -22,6 +22,7 @@ function makeQuestion(overrides: Partial<Question> = {}): Question {
     status: 'pending',
     created_at: new Date().toISOString(),
     batch_id: null,
+    template_id: null,
     ...overrides,
   };
 }
@@ -200,7 +201,7 @@ describe('localStorage template CRUD', () => {
 
   it('saveTemplate persists batches with questions', () => {
     const batch = makeBatch({ id: 'batch-1', name: 'Test Batch', position: 0 });
-    const question = makeQuestion({ text: 'Q1', batch_id: 'batch-1' });
+    const question = makeQuestion({ text: 'Q1', batch_id: 'batch-1', template_id: null });
     saveTemplate('With Batch', [question], [batch]);
     const saved = getSavedTemplates();
     expect(saved[0].batches).toHaveLength(1);

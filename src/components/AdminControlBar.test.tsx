@@ -15,6 +15,7 @@ function makeQuestion(overrides: Partial<Question> = {}): Question {
     status: 'pending',
     created_at: new Date().toISOString(),
     batch_id: null,
+    template_id: null,
     ...overrides,
   };
 }

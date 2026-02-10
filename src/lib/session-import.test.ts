@@ -8,10 +8,12 @@ describe('session-import', () => {
       const questions: Question[] = [
         {
           id: 'q1', session_id: 's1', batch_id: 'b1', text: 'Q1', type: 'agree_disagree',
+          template_id: null,
           options: null, position: 0, anonymous: true, status: 'pending', created_at: '',
         },
         {
           id: 'q2', session_id: 's1', batch_id: 'b1', text: 'Q2', type: 'multiple_choice',
+          template_id: null,
           options: ['A', 'B'], position: 1, anonymous: false, status: 'pending', created_at: '',
         },
       ];
@@ -35,6 +37,7 @@ describe('session-import', () => {
       const questions: Question[] = [
         {
           id: 'q1', session_id: 's1', batch_id: null, text: 'Standalone Q', type: 'agree_disagree',
+          template_id: null,
           options: null, position: 0, anonymous: true, status: 'pending', created_at: '',
         },
       ];
@@ -52,10 +55,12 @@ describe('session-import', () => {
       const questions: Question[] = [
         {
           id: 'q1', session_id: 's1', batch_id: 'b1', text: 'Batched Q', type: 'agree_disagree',
+          template_id: null,
           options: null, position: 0, anonymous: true, status: 'pending', created_at: '',
         },
         {
           id: 'q2', session_id: 's1', batch_id: null, text: 'Unbatched Q', type: 'agree_disagree',
+          template_id: null,
           options: null, position: 1, anonymous: true, status: 'pending', created_at: '',
         },
       ];
@@ -76,10 +81,12 @@ describe('session-import', () => {
       const questions: Question[] = [
         {
           id: 'q2', session_id: 's1', batch_id: 'b1', text: 'Q2', type: 'agree_disagree',
+          template_id: null,
           options: null, position: 1, anonymous: true, status: 'pending', created_at: '',
         },
         {
           id: 'q1', session_id: 's1', batch_id: 'b1', text: 'Q1', type: 'agree_disagree',
+          template_id: null,
           options: null, position: 0, anonymous: true, status: 'pending', created_at: '',
         },
       ];
@@ -100,10 +107,12 @@ describe('session-import', () => {
       const questions: Question[] = [
         {
           id: 'q1', session_id: 's1', batch_id: 'b2', text: 'B2 Q1', type: 'agree_disagree',
+          template_id: null,
           options: null, position: 0, anonymous: true, status: 'pending', created_at: '',
         },
         {
           id: 'q2', session_id: 's1', batch_id: 'b1', text: 'B1 Q1', type: 'agree_disagree',
+          template_id: null,
           options: null, position: 0, anonymous: true, status: 'pending', created_at: '',
         },
       ];
@@ -140,6 +149,7 @@ describe('session-import', () => {
       const questions: Question[] = [
         {
           id: 'q1', session_id: 's1', batch_id: 'b1', text: 'MC Q', type: 'multiple_choice',
+          template_id: null,
           options: ['Option A', 'Option B', 'Option C'], position: 0, anonymous: false, status: 'pending', created_at: '',
         },
       ];
@@ -158,10 +168,12 @@ describe('session-import', () => {
       const questions: Question[] = [
         {
           id: 'q1', session_id: 's1', batch_id: null, text: 'Anon Q', type: 'agree_disagree',
+          template_id: null,
           options: null, position: 0, anonymous: true, status: 'pending', created_at: '',
         },
         {
           id: 'q2', session_id: 's1', batch_id: null, text: 'Named Q', type: 'agree_disagree',
+          template_id: null,
           options: null, position: 1, anonymous: false, status: 'pending', created_at: '',
         },
       ];

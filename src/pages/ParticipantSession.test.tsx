@@ -169,6 +169,7 @@ const makeSession = (overrides: Partial<Session> = {}): Session => ({
   timer_expires_at: null,
   created_by: '',
   created_at: '2025-01-01T00:00:00Z',
+  default_template_id: null,
   ...overrides,
 });
 
@@ -179,6 +180,7 @@ const makeSessionRow = (overrides: Record<string, any> = {}) => ({
   status: 'lobby',
   reasons_enabled: false,
   created_at: '2025-01-01T00:00:00Z',
+  default_template_id: null,
   ...overrides,
 });
 
@@ -193,6 +195,7 @@ const makeQuestion = (overrides: Partial<Question> = {}): Question => ({
   status: 'active',
   created_at: '2025-01-01T00:00:00Z',
   batch_id: null,
+  template_id: null,
   ...overrides,
 });
 

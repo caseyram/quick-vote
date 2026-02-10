@@ -37,10 +37,12 @@ describe('BatchCard', () => {
   const defaultQuestions: Question[] = [
     {
       id: 'q1', session_id: 's1', batch_id: 'b1', text: 'Question 1',
+      template_id: null,
       type: 'agree_disagree', options: null, position: 0, anonymous: true, status: 'pending', created_at: '',
     },
     {
       id: 'q2', session_id: 's1', batch_id: 'b1', text: 'Question 2',
+      template_id: null,
       type: 'multiple_choice', options: ['A', 'B'], position: 1, anonymous: false, status: 'pending', created_at: '',
     },
   ];

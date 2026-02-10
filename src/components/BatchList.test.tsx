@@ -36,14 +36,17 @@ describe('BatchList', () => {
   const defaultQuestions: Question[] = [
     {
       id: 'q1', session_id: 's1', batch_id: 'b1', text: 'Batch 1 Q1',
+      template_id: null,
       type: 'agree_disagree', options: null, position: 0, anonymous: true, status: 'pending', created_at: '',
     },
     {
       id: 'q2', session_id: 's1', batch_id: null, text: 'Unbatched Q',
+      template_id: null,
       type: 'agree_disagree', options: null, position: 1, anonymous: true, status: 'pending', created_at: '',
     },
     {
       id: 'q3', session_id: 's1', batch_id: 'b2', text: 'Batch 2 Q1',
+      template_id: null,
       type: 'multiple_choice', options: ['A', 'B'], position: 3, anonymous: false, status: 'pending', created_at: '',
     },
   ];

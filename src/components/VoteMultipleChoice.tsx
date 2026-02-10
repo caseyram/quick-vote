@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { useHaptic } from '../hooks/use-haptic';
 import { useSessionStore } from '../stores/session-store';
+import { useTemplateStore } from '../stores/template-store';
 import { MULTI_CHOICE_COLORS } from './BarChart';
 import type { Question } from '../types/database';
 
@@ -40,6 +41,21 @@ export default function VoteMultipleChoice({
   const [pendingSelection, setPendingSelection] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [reason, setReason] = useState('');
+
+  // Look up template if question has template_id
+  const template = useTemplateStore(state =>
+    question.template_id
+      ? state.templates.find(t => t.id === question.template_id)
+      : null
+  );
+
+  // Derive display options: template takes precedence over question.options
+  const displayOptions = useMemo(() => {
+    if (question.template_id && template?.options) {
+      return template.options;
+    }
+    return question.options ?? [];
+  }, [question.template_id, question.options, template?.options]);
 
   // Fetch existing vote on mount or when question changes
   // In batch mode, initialize from props instead of fetching
@@ -138,8 +154,7 @@ export default function VoteMultipleChoice({
     haptic.tap();
   }
 
-  const options = question.options ?? [];
-  const isCompact = options.length > 4;
+  const isCompact = displayOptions.length > 4;
 
   return (
     <div className="flex flex-col">
@@ -150,7 +165,7 @@ export default function VoteMultipleChoice({
 
       {/* Option cards */}
       <div className="flex flex-col gap-3 px-4">
-        {options.map((option, index) => {
+        {displayOptions.map((option, index) => {
           const isSelected = pendingSelection === option;
           const optionColor = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
 

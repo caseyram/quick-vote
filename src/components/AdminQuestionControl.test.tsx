@@ -34,6 +34,7 @@ const baseQuestion: Question = {
   id: 'q1', session_id: 's1', text: 'Test Q?', type: 'agree_disagree',
   options: null, position: 0, anonymous: true, status: 'pending',
   created_at: new Date().toISOString(), batch_id: null,
+  template_id: null,
 };
 
 const baseVotes: Vote[] = [

@@ -24,17 +24,20 @@ export function aggregateVotes(votes: Vote[]): VoteCount[] {
 /**
  * Builds bar data with consistent column ordering.
  * For agree_disagree: always [Agree, Sometimes, Disagree]
- * For multiple_choice: uses question.options order (as authored)
+ * For multiple_choice: uses templateOptions if provided, else question.options order (as authored)
  */
 export function buildConsistentBarData(
   question: Question,
-  aggregated: VoteCount[]
+  aggregated: VoteCount[],
+  templateOptions?: string[]
 ): VoteCount[] {
   // Define expected order based on question type
   let expectedOrder: string[];
 
   if (question.type === 'agree_disagree') {
     expectedOrder = ['Agree', 'Sometimes', 'Disagree'];
+  } else if (templateOptions && templateOptions.length > 0) {
+    expectedOrder = templateOptions;
   } else if (question.options && Array.isArray(question.options)) {
     // Use authored order for multiple choice
     expectedOrder = question.options;

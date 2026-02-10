@@ -55,6 +55,7 @@ const mcQuestion: Question = {
   id: 'q1', session_id: 's1', text: 'Pick one?', type: 'multiple_choice',
   options: ['Option A', 'Option B', 'Option C'], position: 0, anonymous: false,
   status: 'active', created_at: new Date().toISOString(), batch_id: null,
+  template_id: null,
 };
 
 describe('VoteMultipleChoice', () => {
