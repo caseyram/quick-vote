@@ -214,8 +214,10 @@ vi.mock('../hooks/use-realtime-channel', () => ({
 
 // -- vote-aggregation --
 const mockAggregateVotes = vi.fn().mockReturnValue([]);
+const mockBuildConsistentBarData = vi.fn((question: any, aggregated: any) => aggregated);
 vi.mock('../lib/vote-aggregation', () => ({
   aggregateVotes: (...args: unknown[]) => mockAggregateVotes(...args),
+  buildConsistentBarData: (...args: unknown[]) => mockBuildConsistentBarData(...args),
 }));
 
 // -- Child components --

@@ -5,7 +5,7 @@ import { useSessionStore } from '../stores/session-store';
 import { useTemplateStore } from '../stores/template-store';
 import { useRealtimeChannel } from '../hooks/use-realtime-channel';
 import { useCountdown } from '../hooks/use-countdown';
-import { aggregateVotes } from '../lib/vote-aggregation';
+import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation';
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../components/BarChart';
 import { BatchList } from '../components/BatchList';
 import { SessionQRCode } from '../components/QRCode';
@@ -22,7 +22,7 @@ import { ProgressDashboard } from '../components/ProgressDashboard';
 import { DevTestFab } from '../components/DevTestFab';
 import { TemplateSelector } from '../components/TemplateSelector';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { checkQuestionVotes } from '../lib/template-api';
+import { checkQuestionVotes, fetchTemplates } from '../lib/template-api';
 import type { Question, Vote, Batch } from '../types/database';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -69,6 +69,9 @@ export default function AdminSession() {
     async function loadSession() {
       setLoading(true);
       setError(null);
+
+      // Load templates for template-aware result ordering
+      fetchTemplates().catch(console.error);
 
       // Get current user for presence tracking
       const { data: authData } = await supabase.auth.getUser();
@@ -1303,7 +1306,9 @@ export default function AdminSession() {
                 {closedQuestions.map((q) => {
                   const votes = sessionVotes[q.id] ?? [];
                   const aggregated = aggregateVotes(votes);
-                  const barData = aggregated.map((vc, index) => {
+                  const template = q.template_id ? templates.find(t => t.id === q.template_id) : null;
+                  const ordered = buildConsistentBarData(q, aggregated, template?.options);
+                  const barData = ordered.map((vc, index) => {
                     let color: string;
                     if (q.type === 'agree_disagree') {
                       const key = vc.value.toLowerCase() as 'agree' | 'disagree' | 'sometimes';
@@ -1453,10 +1458,13 @@ function ActiveQuestionHero({
   totalQuestions: number;
   votes: Vote[];
 }) {
+  const templates = useTemplateStore(state => state.templates);
   const [reasonsCollapsed, setReasonsCollapsed] = useState(false);
   const aggregated = useMemo(() => aggregateVotes(votes), [votes]);
   const barData = useMemo(() => {
-    return aggregated.map((vc, index) => {
+    const template = question.template_id ? templates.find(t => t.id === question.template_id) : null;
+    const ordered = buildConsistentBarData(question, aggregated, template?.options);
+    return ordered.map((vc, index) => {
       let color: string;
       if (question.type === 'agree_disagree') {
         const key = vc.value.toLowerCase() as 'agree' | 'disagree' | 'sometimes';
@@ -1473,7 +1481,7 @@ function ActiveQuestionHero({
         color,
       };
     });
-  }, [aggregated, question.type]);
+  }, [aggregated, question.type, question.template_id, templates]);
 
   const isClosed = question.status === 'closed' || question.status === 'revealed';
 
