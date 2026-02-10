@@ -88,9 +88,15 @@ Plans:
 2. Same color mapping applied consistently across all template-linked questions (first option same color, etc.)
 3. Identical button layout and sizing in participant voting view for template-linked questions
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — Template-aware participant rendering (VoteMultipleChoice refactor, template loading in ParticipantSession, tests)
+- [ ] 13-02-PLAN.md — Human verification of consistent rendering in live and batch modes
+
 **Technical Scope:**
-- Refactor: Update MultipleChoiceButtons component to use template order when template_id present
-- Color mapping: Derive colors from template option index (not shuffled question option index)
+- Refactor: Update VoteMultipleChoice component to use template order when template_id present
+- Color mapping: Derive colors from template option index (position-based, already correct)
 - Layout: Ensure button grid respects template option count for consistent sizing
 - Verification: Test in both live and batch voting modes
 
