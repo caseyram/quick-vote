@@ -16,6 +16,18 @@ vi.mock('../stores/session-store', () => ({
   },
 }));
 
+// Mock template store
+const mockTemplates = vi.fn((): any[] => []);
+
+vi.mock('../stores/template-store', () => ({
+  useTemplateStore: (selector: (state: any) => any) => {
+    const state = {
+      templates: mockTemplates(),
+    };
+    return selector(state);
+  },
+}));
+
 // Mock session-import functions
 const mockValidateImportFile = vi.fn();
 const mockImportSessionData = vi.fn();
@@ -41,6 +53,7 @@ describe('SessionImportExport', () => {
     vi.clearAllMocks();
     mockQuestions.mockReturnValue([]);
     mockBatches.mockReturnValue([]);
+    mockTemplates.mockReturnValue([]);
     mockExportSessionData.mockReturnValue('{}');
     mockGenerateExportFilename.mockReturnValue('session-export.json');
   });
@@ -90,7 +103,8 @@ describe('SessionImportExport', () => {
     expect(mockExportSessionData).toHaveBeenCalledWith(
       expect.any(Array),
       expect.any(Array),
-      'My Session'
+      'My Session',
+      expect.any(Array)
     );
     expect(mockGenerateExportFilename).toHaveBeenCalledWith('My Session');
     expect(mockDownloadJSON).toHaveBeenCalled();
@@ -152,7 +166,7 @@ describe('SessionImportExport', () => {
         ],
       },
     });
-    mockImportSessionData.mockResolvedValue({ batchCount: 1, questionCount: 1 });
+    mockImportSessionData.mockResolvedValue({ batchCount: 1, questionCount: 1, templateCount: 0 });
 
     const onComplete = vi.fn();
     render(<SessionImportExport sessionId="s1" onImportComplete={onComplete} />);
@@ -171,7 +185,7 @@ describe('SessionImportExport', () => {
 
     await waitFor(() => {
       expect(mockImportSessionData).toHaveBeenCalledWith('s1', expect.any(Object));
-      expect(onComplete).toHaveBeenCalledWith({ batchCount: 1, questionCount: 1 });
+      expect(onComplete).toHaveBeenCalledWith({ batchCount: 1, questionCount: 1, templateCount: 0 });
     });
   });
 

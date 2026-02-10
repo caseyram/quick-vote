@@ -3,7 +3,7 @@ import { validateImportFile, importSessionData, type ImportData } from '../lib/s
 
 interface ImportSessionPanelProps {
   sessionId: string;
-  onImportComplete?: (result: { batchCount: number; questionCount: number }) => void;
+  onImportComplete?: (result: { batchCount: number; questionCount: number; templateCount: number }) => void;
 }
 
 export function ImportSessionPanel({ sessionId, onImportComplete }: ImportSessionPanelProps) {
@@ -63,6 +63,7 @@ export function ImportSessionPanel({ sessionId, onImportComplete }: ImportSessio
   const previewInfo = validatedData ? {
     batches: validatedData.batches.filter(b => b.name !== '_unbatched').length,
     questions: validatedData.batches.reduce((sum, b) => sum + b.questions.length, 0),
+    templates: validatedData.templates?.length ?? 0,
   } : null;
 
   return (
@@ -101,7 +102,7 @@ export function ImportSessionPanel({ sessionId, onImportComplete }: ImportSessio
       {previewInfo && !error && (
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
           <p className="text-sm text-green-700">
-            Ready to import: {previewInfo.batches} batch{previewInfo.batches !== 1 ? 'es' : ''}, {previewInfo.questions} question{previewInfo.questions !== 1 ? 's' : ''}
+            Ready to import: {previewInfo.batches} batch{previewInfo.batches !== 1 ? 'es' : ''}, {previewInfo.questions} question{previewInfo.questions !== 1 ? 's' : ''}{previewInfo.templates > 0 ? `, ${previewInfo.templates} template${previewInfo.templates !== 1 ? 's' : ''}` : ''}
           </p>
           <div className="flex gap-2">
             <button

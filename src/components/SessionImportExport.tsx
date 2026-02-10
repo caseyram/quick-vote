@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useSessionStore } from '../stores/session-store';
+import { useTemplateStore } from '../stores/template-store';
 import { validateImportFile, importSessionData, exportSessionData, type ImportData } from '../lib/session-import';
 import { downloadJSON, generateExportFilename } from '../lib/session-export';
 import { parseCsv, downloadCsvTemplate } from '../lib/csv-import';
@@ -8,12 +9,13 @@ import { bulkInsertQuestions } from '../lib/question-templates';
 interface SessionImportExportProps {
   sessionId: string;
   sessionName?: string;
-  onImportComplete?: (result: { batchCount: number; questionCount: number }) => void;
+  onImportComplete?: (result: { batchCount: number; questionCount: number; templateCount: number }) => void;
 }
 
 export function SessionImportExport({ sessionId, sessionName, onImportComplete }: SessionImportExportProps) {
   const questions = useSessionStore((s) => s.questions);
   const batches = useSessionStore((s) => s.batches);
+  const templates = useTemplateStore((s) => s.templates);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvFileInputRef = useRef<HTMLInputElement>(null);
@@ -26,7 +28,7 @@ export function SessionImportExport({ sessionId, sessionName, onImportComplete }
   const [exportDownloaded, setExportDownloaded] = useState(false);
 
   function handleExport() {
-    const json = exportSessionData(questions, batches, sessionName);
+    const json = exportSessionData(questions, batches, sessionName, templates);
     const data = JSON.parse(json);
     const filename = generateExportFilename(sessionName ?? 'session');
     downloadJSON(data, filename);
@@ -145,7 +147,7 @@ export function SessionImportExport({ sessionId, sessionName, onImportComplete }
       setFileName(null);
       if (csvFileInputRef.current) csvFileInputRef.current.value = '';
 
-      onImportComplete?.({ batchCount: result.batches.length, questionCount: result.questions.length });
+      onImportComplete?.({ batchCount: result.batches.length, questionCount: result.questions.length, templateCount: 0 });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'CSV import failed');
     } finally {
@@ -157,6 +159,7 @@ export function SessionImportExport({ sessionId, sessionName, onImportComplete }
   const previewInfo = validatedData ? {
     batches: validatedData.batches.filter(b => b.name !== '_unbatched').length,
     questions: validatedData.batches.reduce((sum, b) => sum + b.questions.length, 0),
+    templates: validatedData.templates?.length ?? 0,
   } : null;
 
   const hasContent = questions.length > 0 || batches.length > 0;
@@ -236,7 +239,7 @@ export function SessionImportExport({ sessionId, sessionName, onImportComplete }
       {previewInfo && !error && (
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
           <p className="text-sm text-green-700">
-            Ready to import (JSON): {previewInfo.batches > 0 ? `${previewInfo.batches} batch${previewInfo.batches !== 1 ? 'es' : ''}, ` : ''}{previewInfo.questions} question{previewInfo.questions !== 1 ? 's' : ''}
+            Ready to import (JSON): {previewInfo.batches > 0 ? `${previewInfo.batches} batch${previewInfo.batches !== 1 ? 'es' : ''}, ` : ''}{previewInfo.questions} question{previewInfo.questions !== 1 ? 's' : ''}{previewInfo.templates > 0 ? `, ${previewInfo.templates} template${previewInfo.templates !== 1 ? 's' : ''}` : ''}
           </p>
           <div className="flex gap-2">
             <button
