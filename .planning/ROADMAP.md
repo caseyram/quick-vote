@@ -15,7 +15,7 @@ Introduce reusable response templates to eliminate participant confusion from in
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
 | 11 | Template Database & CRUD ✓ | Admin can create, edit, and manage reusable response templates | TMPL-01, TMPL-02, TMPL-03, TMPL-04 | 4 |
-| 12 | Template Assignment & Defaults | Admin can assign templates to questions and set session defaults | ASGN-01, ASGN-02, ASGN-03, ASGN-04, ASGN-05, TMPL-05 | 5 |
+| 12 | Template Assignment & Defaults ✓ | Admin can assign templates to questions and set session defaults | ASGN-01, ASGN-02, ASGN-03, ASGN-04, ASGN-05, TMPL-05 | 5 |
 | 13 | Consistent Rendering | Template-linked questions display identically for participants | REND-01, REND-02, REND-03 | 3 |
 | 14 | Export/Import Integration | Templates travel with session data through JSON export/import | EXPT-01, EXPT-02, EXPT-03 | 3 |
 
@@ -65,9 +65,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 12-01-PLAN.md — Database migration for session default_template_id, TypeScript types, checkQuestionVotes helper, session store method
-- [ ] 12-02-PLAN.md — TemplateSelector component and template-aware QuestionForm with locked/unlocked modes, detach, and vote guard
-- [ ] 12-03-PLAN.md — Session default template UI in AdminSession settings, bulk apply, migration application, and human verification
+- [x] 12-01-PLAN.md — Database migration for session default_template_id, TypeScript types, checkQuestionVotes helper, session store method (Completed 2026-02-09)
+- [x] 12-02-PLAN.md — TemplateSelector component and template-aware QuestionForm with locked/unlocked modes, detach, and vote guard (Completed 2026-02-09)
+- [x] 12-03-PLAN.md — Session default template UI in AdminSession settings, bulk apply, migration application, and human verification (Completed 2026-02-09)
 
 **Technical Scope:**
 - Database: Add `template_id` column to questions table, add `default_template_id` column to sessions table

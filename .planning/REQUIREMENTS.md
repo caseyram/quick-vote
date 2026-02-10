@@ -13,15 +13,15 @@ Requirements for milestone v1.2: Response Templates.
 - [x] **TMPL-02**: Admin can edit a template (rename, reorder options, add/remove options)
 - [x] **TMPL-03**: Admin can delete a template (with confirmation if in use by questions)
 - [x] **TMPL-04**: Templates are stored globally in Supabase and available across all sessions
-- [ ] **TMPL-05**: Admin can set a session-level default template that auto-applies to new MC questions
+- [x] **TMPL-05**: Admin can set a session-level default template that auto-applies to new MC questions
 
 ### Template Assignment
 
-- [ ] **ASGN-01**: Admin can select a template from a dropdown when creating a multiple choice question
-- [ ] **ASGN-02**: Selecting a template auto-populates the question's options from the template
-- [ ] **ASGN-03**: Options are locked while a template is assigned (cannot edit per-question)
-- [ ] **ASGN-04**: Admin can detach a question from its template to customize options independently
-- [ ] **ASGN-05**: Admin can change the template assignment on an existing question
+- [x] **ASGN-01**: Admin can select a template from a dropdown when creating a multiple choice question
+- [x] **ASGN-02**: Selecting a template auto-populates the question's options from the template
+- [x] **ASGN-03**: Options are locked while a template is assigned (cannot edit per-question)
+- [x] **ASGN-04**: Admin can detach a question from its template to customize options independently
+- [x] **ASGN-05**: Admin can change the template assignment on an existing question
 
 ### Consistent Rendering
 
@@ -73,12 +73,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TMPL-02 | 11 | Complete |
 | TMPL-03 | 11 | Complete |
 | TMPL-04 | 11 | Complete |
-| TMPL-05 | 12 | Pending |
-| ASGN-01 | 12 | Pending |
-| ASGN-02 | 12 | Pending |
-| ASGN-03 | 12 | Pending |
-| ASGN-04 | 12 | Pending |
-| ASGN-05 | 12 | Pending |
+| TMPL-05 | 12 | Complete |
+| ASGN-01 | 12 | Complete |
+| ASGN-02 | 12 | Complete |
+| ASGN-03 | 12 | Complete |
+| ASGN-04 | 12 | Complete |
+| ASGN-05 | 12 | Complete |
 | REND-01 | 13 | Pending |
 | REND-02 | 13 | Pending |
 | REND-03 | 13 | Pending |

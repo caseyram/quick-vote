@@ -11,16 +11,16 @@ See: .planning/PROJECT.md (updated 2026-02-09)
 ## Current Position
 
 **Milestone:** v1.2 Response Templates
-**Phase:** 12 (in progress)
-**Plan:** 2 of 3 complete
-**Status:** Phase 12 in progress — template assignment UI complete
-**Last activity:** 2026-02-09 — Completed 12-02-PLAN.md
+**Phase:** 12 (complete)
+**Plan:** 3 of 3 complete
+**Status:** Phase 12 complete — template assignment & defaults shipped
+**Last activity:** 2026-02-09 — Completed Phase 12
 
-Progress: [██████░░░░░░░░░░░░░░] 33% (1.33/4 phases)
+Progress: [██████████░░░░░░░░░░] 50% (2/4 phases)
 
-**Current Focus:** Session default template settings UI.
+**Current Focus:** Phase 12 complete. Ready for Phase 13.
 
-**Next Action:** Execute Phase 12 Plan 03 (Session settings UI)
+**Next Action:** Plan Phase 13 (Consistent Rendering)
 
 ## Milestone History
 
@@ -56,9 +56,10 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 - Requirements: TMPL-01, TMPL-02, TMPL-03, TMPL-04 (all verified)
 
 **v1.2 Phase 12:**
-- Plans: 2 of 3 complete
-- In progress: 2026-02-09
-- Next: Session settings UI for default template
+- Plans: 3 of 3 complete
+- Completed: 2026-02-09
+- Requirements: ASGN-01, ASGN-02, ASGN-03, ASGN-04, ASGN-05, TMPL-05 (all verified)
+- Bug fixes: 5 (from human verification checkpoint)
 
 ## Accumulated Context
 
@@ -82,7 +83,7 @@ See PROJECT.md for full decision log.
 - Modal overlay close requires mousedown+mouseup on overlay (prevents text selection drift)
 - Unsaved changes confirmation on Cancel/overlay close
 
-**Phase 12 (Template Assignment & Defaults) - In Progress:**
+**Phase 12 (Template Assignment & Defaults) - Complete:**
 - Nullable FK session.default_template_id for per-session defaults
 - checkQuestionVotes(questionId) helper for vote-based validation
 - Spread merge pattern in Zustand to prevent field loss on updates
@@ -93,6 +94,9 @@ See PROJECT.md for full decision log.
 - Replace confirmation when switching from custom to template
 - Vote guard blocks template changes on questions with votes
 - Session default template pre-selected in QuestionForm create mode
+- Bulk apply sets both template_id AND options for immediate UI sync
+- BatchCard inline editing support (editingQuestion/onCancelEdit props)
+- ConfirmDialog buttons require type="button" when used inside forms
 
 ### Potential Next Features
 
@@ -116,9 +120,9 @@ Other possibilities:
 
 ## Session Continuity
 
-**Last session:** 2026-02-09 — Completed Phase 12 Plan 02
-**Stopped at:** Template assignment UI complete (TemplateSelector, QuestionForm with locked/unlocked modes)
-**Next action:** Execute Phase 12 Plan 03 (Session settings UI for default template)
+**Last session:** 2026-02-09 — Completed Phase 12
+**Stopped at:** Phase 12 complete (all 6 requirements verified, 5 bug fixes applied)
+**Next action:** Plan Phase 13 (Consistent Rendering)
 **Resume file:** None
 
 ---
