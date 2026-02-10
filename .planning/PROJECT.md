@@ -4,7 +4,7 @@
 
 A real-time voting web application where an administrator poses questions to a group and participants respond from their phones or desktops. Supports both live single-question push and self-paced batch voting modes. Built with Vite + React, backed by Supabase, and deployed to Vercel.
 
-**Current state:** v1.1 shipped with 16,086 LOC TypeScript across 97 files.
+**Current state:** v1.2 shipped with 18,662 LOC TypeScript across 37+ source files. Response templates provide consistent multiple choice layouts across participants and admin views.
 
 ## Core Value
 
@@ -47,19 +47,22 @@ Participants can instantly vote on questions in a way that feels immersive and t
 - ✓ Admin can mark individual reasons as read — v1.1
 - ✓ Results columns display in consistent order (agree always same position) — v1.1
 - ✓ Keyboard navigation in results view — v1.1
+- ✓ Admin can create named response templates with ordered options — v1.2
+- ✓ Admin can edit templates (rename, reorder, add/remove options) — v1.2
+- ✓ Admin can delete templates (with confirmation if in use) — v1.2
+- ✓ Templates stored globally in Supabase, available across all sessions — v1.2
+- ✓ Admin can set session-level default template for new MC questions — v1.2
+- ✓ Admin can assign templates to MC questions via dropdown — v1.2
+- ✓ Template auto-populates question options, locked while assigned — v1.2
+- ✓ Admin can detach question from template to customize independently — v1.2
+- ✓ All template-linked questions display identical option order, colors, and layout — v1.2
+- ✓ Templates included in JSON export and restored on import (name-based dedup) — v1.2
+- ✓ Template-question associations preserved through export/import round-trip — v1.2
+- ✓ Admin result views match participant template ordering — v1.2
 
 ### Active
 
-**Current Milestone: v1.2 Response Templates**
-
-**Goal:** Eliminate participant confusion from inconsistent multiple choice layouts by introducing reusable response templates with locked order, colors, and layout.
-
-**Target features:**
-- Response templates: named, reusable sets of response options stored globally in Supabase
-- Template assignment: select a template from a dropdown when creating multiple choice questions
-- Full consistency: same template = identical option order, colors, button layout for participants
-- Works in both live and batch voting modes
-- Export/import: templates included in JSON export so they travel with session data
+(No active milestone — planning next)
 
 ### Out of Scope
 
@@ -72,14 +75,18 @@ Participants can instantly vote on questions in a way that feels immersive and t
 - Mobile native app — web only, responsive design
 - Skip logic / branching in batch questions — high complexity, low value for short sessions
 - Swipe gesture navigation for mobile — arrow keys and buttons sufficient
+- Custom color picker per template — current palette sufficient, consistency is the priority
+- Template versioning — overkill for 2-5 templates
+- Template sharing between users — no user accounts exist
 
 ## Context
 
-- **Scale:** v1.1 handles 50-100 concurrent participants. Single Supabase channel per session multiplexes Broadcast + Presence + Postgres Changes.
+- **Scale:** v1.2 handles 50-100 concurrent participants. Single Supabase channel per session multiplexes Broadcast + Presence + Postgres Changes.
 - **Tech stack:** Vite + React 19 + TypeScript, Supabase (PostgreSQL + Realtime), Vercel, Zustand, Motion (framer-motion), React Router v7, Zod, dnd-kit
 - **Themes:** Admin uses light theme (projection-friendly), participants use dark theme (immersive)
 - **Voting modes:** Live single-question push, self-paced batch mode (introduced v1.1)
-- **Testing:** Vitest with happy-dom, 97 tests passing
+- **Templates:** Reusable response templates with global storage, template assignment, consistent rendering (introduced v1.2)
+- **Testing:** Vitest with happy-dom, 413 tests passing (16 pre-existing failures)
 
 ## Key Decisions
 
@@ -98,6 +105,13 @@ Participants can instantly vote on questions in a way that feels immersive and t
 | localStorage for read/unread tracking | Simple persistence without database overhead | ✓ Good |
 | Decimal phase numbering (09.1) | Clear insertion semantics for urgent work | ✓ Good |
 | Direct batch submit (no review screen) | Faster flow, review screen proved unnecessary | ✓ Good |
+| JSONB array for template options | Simpler than normalized table, sufficient for small option lists | ✓ Good |
+| ON DELETE SET NULL for template FK | Preserves question options when template deleted | ✓ Good |
+| Global templates (not session-scoped) | Reusable across sessions, simpler mental model | ✓ Good |
+| Native HTML select for TemplateSelector | Consistent with existing UI patterns, no extra dependency | ✓ Good |
+| Name-based template dedup on import | Portable across Supabase instances (UUIDs differ) | ✓ Good |
+| Locked options while template assigned | Prevents accidental inconsistency, detach to customize | ✓ Good |
+| Vote guard on template changes | Prevents data integrity issues with existing votes | ✓ Good |
 
 ---
-*Last updated: 2026-02-09 after v1.2 milestone start*
+*Last updated: 2026-02-10 after v1.2 milestone*
