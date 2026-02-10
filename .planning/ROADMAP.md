@@ -17,7 +17,7 @@ Introduce reusable response templates to eliminate participant confusion from in
 | 11 | Template Database & CRUD ✓ | Admin can create, edit, and manage reusable response templates | TMPL-01, TMPL-02, TMPL-03, TMPL-04 | 4 |
 | 12 | Template Assignment & Defaults ✓ | Admin can assign templates to questions and set session defaults | ASGN-01, ASGN-02, ASGN-03, ASGN-04, ASGN-05, TMPL-05 | 5 |
 | 13 | Consistent Rendering ✓ | Template-linked questions display identically for participants | REND-01, REND-02, REND-03 | 3 |
-| 14 | Export/Import Integration | Templates travel with session data through JSON export/import | EXPT-01, EXPT-02, EXPT-03 | 3 |
+| 14 | Export/Import Integration ✓ | Templates travel with session data through JSON export/import | EXPT-01, EXPT-02, EXPT-03 | 3 |
 
 ## Phase 11: Template Database & CRUD
 
@@ -116,8 +116,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 14-01-PLAN.md — Extend Zod schemas and both export/import functions with template support (schemas, exportSession, exportSessionData, upsertTemplates, importSessionData)
-- [ ] 14-02-PLAN.md — Wire templates into UI components (SessionImportExport, ImportSessionPanel) and add tests for schema extensions and backward compatibility
+- [x] 14-01-PLAN.md — Extend Zod schemas and both export/import functions with template support (schemas, exportSession, exportSessionData, upsertTemplates, importSessionData) (Completed 2026-02-09)
+- [x] 14-02-PLAN.md — Wire templates into UI components (SessionImportExport, ImportSessionPanel) and add tests for schema extensions and backward compatibility (Completed 2026-02-09)
 
 **Technical Scope:**
 - Export: Extend exportSession to include templates array (fetch templates for all template_ids in questions)

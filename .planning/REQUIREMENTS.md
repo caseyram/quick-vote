@@ -31,9 +31,9 @@ Requirements for milestone v1.2: Response Templates.
 
 ### Export/Import
 
-- [ ] **EXPT-01**: Response templates included in JSON session export
-- [ ] **EXPT-02**: Templates restored when importing JSON (deduplicated by name if template already exists)
-- [ ] **EXPT-03**: Template-question associations preserved through export/import round-trip
+- [x] **EXPT-01**: Response templates included in JSON session export
+- [x] **EXPT-02**: Templates restored when importing JSON (deduplicated by name if template already exists)
+- [x] **EXPT-03**: Template-question associations preserved through export/import round-trip
 
 ## Future Requirements
 
@@ -82,9 +82,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REND-01 | 13 | Complete |
 | REND-02 | 13 | Complete |
 | REND-03 | 13 | Complete |
-| EXPT-01 | 14 | Pending |
-| EXPT-02 | 14 | Pending |
-| EXPT-03 | 14 | Pending |
+| EXPT-01 | 14 | Complete |
+| EXPT-02 | 14 | Complete |
+| EXPT-03 | 14 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 16 total
