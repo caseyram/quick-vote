@@ -113,6 +113,12 @@ Plans:
 2. JSON import restores templates (deduplicates by name if template already exists globally)
 3. Template-question associations are preserved through export/import round-trip
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 14-01-PLAN.md — Extend Zod schemas and both export/import functions with template support (schemas, exportSession, exportSessionData, upsertTemplates, importSessionData)
+- [ ] 14-02-PLAN.md — Wire templates into UI components (SessionImportExport, ImportSessionPanel) and add tests for schema extensions and backward compatibility
+
 **Technical Scope:**
 - Export: Extend exportSession to include templates array (fetch templates for all template_ids in questions)
 - Import: Extend importSession to upsert templates (match by name, preserve global templates)
