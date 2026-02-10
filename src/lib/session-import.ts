@@ -131,11 +131,24 @@ export function exportSessionData(
     });
   }
 
+  // Collect unique template IDs referenced by questions
+  const referencedTemplateIds = new Set<string>();
+  for (const q of questions) {
+    if (q.template_id) {
+      referencedTemplateIds.add(q.template_id);
+    }
+  }
+
+  // Filter templates to only those referenced by questions
+  const exportTemplates = (templates ?? [])
+    .filter(t => referencedTemplateIds.has(t.id))
+    .map(t => ({ name: t.name, options: t.options }));
+
   const exportData = {
     session_name: sessionName,
     created_at: new Date().toISOString(),
     batches: exportBatches,
-    templates: (templates ?? []).map(t => ({ name: t.name, options: t.options })),
+    templates: exportTemplates,
   };
 
   return JSON.stringify(exportData, null, 2);

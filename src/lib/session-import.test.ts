@@ -184,6 +184,97 @@ describe('session-import', () => {
       expect(parsed.batches[0].questions[0].anonymous).toBe(true);
       expect(parsed.batches[0].questions[1].anonymous).toBe(false);
     });
+
+    it('includes template_id on questions when templates provided', () => {
+      const questions: Question[] = [
+        {
+          id: 'q1', session_id: 's1', batch_id: 'b1', text: 'Q1', type: 'multiple_choice',
+          template_id: 't1',
+          options: ['Yes', 'No'], position: 0, anonymous: true, status: 'pending', created_at: '',
+        },
+      ];
+
+      const batches: Batch[] = [
+        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '' },
+      ];
+
+      const templates = [
+        { id: 't1', name: 'Yes/No', options: ['Yes', 'No'] },
+      ];
+
+      const result = exportSessionData(questions, batches, 'Test', templates);
+      const parsed = JSON.parse(result);
+
+      expect(parsed.batches[0].questions[0].template_id).toBe('Yes/No');
+      expect(parsed.templates).toHaveLength(1);
+      expect(parsed.templates[0].name).toBe('Yes/No');
+      expect(parsed.templates[0].options).toEqual(['Yes', 'No']);
+    });
+
+    it('exports template_id as null for questions without templates', () => {
+      const questions: Question[] = [
+        {
+          id: 'q1', session_id: 's1', batch_id: 'b1', text: 'Q1', type: 'agree_disagree',
+          template_id: null,
+          options: null, position: 0, anonymous: true, status: 'pending', created_at: '',
+        },
+      ];
+
+      const batches: Batch[] = [
+        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '' },
+      ];
+
+      const result = exportSessionData(questions, batches, 'Test', []);
+      const parsed = JSON.parse(result);
+
+      expect(parsed.batches[0].questions[0].template_id).toBe(null);
+      expect(parsed.templates).toEqual([]);
+    });
+
+    it('exports without templates when no templates parameter provided', () => {
+      const questions: Question[] = [
+        {
+          id: 'q1', session_id: 's1', batch_id: 'b1', text: 'Q1', type: 'agree_disagree',
+          template_id: null,
+          options: null, position: 0, anonymous: true, status: 'pending', created_at: '',
+        },
+      ];
+
+      const batches: Batch[] = [
+        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '' },
+      ];
+
+      const result = exportSessionData(questions, batches, 'Test');
+      const parsed = JSON.parse(result);
+
+      expect(parsed.templates).toEqual([]);
+    });
+
+    it('only includes templates referenced by questions', () => {
+      const questions: Question[] = [
+        {
+          id: 'q1', session_id: 's1', batch_id: 'b1', text: 'Q1', type: 'multiple_choice',
+          template_id: 't1',
+          options: ['Yes', 'No'], position: 0, anonymous: true, status: 'pending', created_at: '',
+        },
+      ];
+
+      const batches: Batch[] = [
+        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '' },
+      ];
+
+      const templates = [
+        { id: 't1', name: 'Yes/No', options: ['Yes', 'No'] },
+        { id: 't2', name: 'Agree/Disagree', options: ['Strongly Agree', 'Agree', 'Disagree', 'Strongly Disagree'] },
+      ];
+
+      const result = exportSessionData(questions, batches, 'Test', templates);
+      const parsed = JSON.parse(result);
+
+      // Only t1 should be in the templates array (t2 is not referenced by any question)
+      expect(parsed.templates).toHaveLength(1);
+      expect(parsed.templates[0].name).toBe('Yes/No');
+    });
   });
 
   describe('ImportSchema', () => {
@@ -302,6 +393,94 @@ describe('session-import', () => {
 
       const result = ImportSchema.safeParse(data);
       expect(result.success).toBe(false);
+    });
+
+    it('accepts data with templates field', () => {
+      const data = {
+        batches: [
+          {
+            name: 'Batch 1',
+            position: 0,
+            questions: [
+              { text: 'Q1', type: 'multiple_choice', options: ['Yes', 'No'], anonymous: false, template_id: 'Yes/No' },
+            ],
+          },
+        ],
+        templates: [
+          { name: 'Yes/No', options: ['Yes', 'No'] },
+        ],
+      };
+
+      const result = ImportSchema.safeParse(data);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.templates).toHaveLength(1);
+        expect(result.data.templates![0].name).toBe('Yes/No');
+      }
+    });
+
+    it('accepts data without templates field (backward compat)', () => {
+      const data = {
+        batches: [
+          {
+            name: 'Batch 1',
+            position: 0,
+            questions: [
+              { text: 'Q1', type: 'agree_disagree', options: null, anonymous: true },
+            ],
+          },
+        ],
+      };
+
+      const result = ImportSchema.safeParse(data);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.templates).toBeUndefined();
+      }
+    });
+
+    it('accepts questions with template_id field', () => {
+      const data = {
+        batches: [
+          {
+            name: 'Batch 1',
+            position: 0,
+            questions: [
+              { text: 'Q1', type: 'multiple_choice', options: ['A', 'B'], anonymous: false, template_id: 'Custom Template' },
+            ],
+          },
+        ],
+        templates: [
+          { name: 'Custom Template', options: ['A', 'B'] },
+        ],
+      };
+
+      const result = ImportSchema.safeParse(data);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.batches[0].questions[0].template_id).toBe('Custom Template');
+      }
+    });
+
+    it('accepts questions without template_id field (backward compat)', () => {
+      const data = {
+        batches: [
+          {
+            name: 'Batch 1',
+            position: 0,
+            questions: [
+              { text: 'Q1', type: 'agree_disagree', options: null, anonymous: true },
+            ],
+          },
+        ],
+      };
+
+      const result = ImportSchema.safeParse(data);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        // template_id is optional, so it should be undefined when not present
+        expect(result.data.batches[0].questions[0].template_id).toBeUndefined();
+      }
     });
   });
 });
