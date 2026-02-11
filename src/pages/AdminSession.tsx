@@ -28,6 +28,7 @@ import { ProgressDashboard } from '../components/ProgressDashboard';
 import { DevTestFab } from '../components/DevTestFab';
 import { TemplateSelector } from '../components/TemplateSelector';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { PresentationControls } from '../components/PresentationControls';
 import { checkQuestionVotes, fetchTemplates } from '../lib/template-api';
 import { ensureSessionItems, createBatchSessionItem } from '../lib/sequence-api';
 import { createSlide, deleteSlide } from '../lib/slide-api';
@@ -70,6 +71,7 @@ export default function AdminSession() {
   const [bulkApplying, setBulkApplying] = useState(false);
   const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
   const [addingToBatchId, setAddingToBatchId] = useState<string | null>(null);
+  const [presentationMode, setPresentationMode] = useState(false);
 
   // Track session ID in a ref for the channel setup callback
   const sessionIdRef = useRef<string | null>(null);
@@ -1302,7 +1304,7 @@ export default function AdminSession() {
       )}
 
       {/* Active View: hero question + results for projection */}
-      {isActive && (
+      {isActive && !presentationMode && (
         <div className="bg-white flex">
           {/* Left sidebar with SequenceManager */}
           <div className="w-80 shrink-0 border-r border-gray-200 bg-gray-50 overflow-y-auto" style={{ height: '100dvh' }}>
@@ -1329,6 +1331,12 @@ export default function AdminSession() {
             <div className="border-b border-gray-200 px-6 py-3 flex items-center justify-between h-14 shrink-0">
               <h1 className="text-2xl font-bold text-gray-900">{session.title}</h1>
               <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setPresentationMode(true)}
+                  className="px-3 py-1.5 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg text-xs font-medium transition-colors"
+                >
+                  Enter Presentation
+                </button>
                 <button
                   onClick={handleToggleSessionReasons}
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
@@ -1563,6 +1571,21 @@ export default function AdminSession() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Presentation Controls View */}
+      {isActive && presentationMode && (
+        <PresentationControls
+          sessionId={session.session_id}
+          sessionTitle={session.title}
+          participantCount={participantCount}
+          connectionStatus={connectionStatus}
+          channelRef={channelRef}
+          sessionVotes={sessionVotes}
+          onActivateSequenceItem={handleActivateSequenceItem}
+          onEndSession={handleEndSession}
+          onExitPresentationMode={() => setPresentationMode(false)}
+        />
       )}
 
       {/* Ended View: full results summary */}
