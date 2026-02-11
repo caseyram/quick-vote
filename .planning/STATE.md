@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 ## Current Position
 
 **Milestone:** v1.3 Presentation Mode
-**Phase:** 20 of 21 (Session Templates) -- PHASE 20 COMPLETE
-**Plan:** 2 of 2 complete
-**Status:** Phase 20 complete, ready for Phase 21
-**Last activity:** 2026-02-11 -- Completed 20-02-PLAN.md (session template panel UI)
+**Phase:** 21 of 21 (Export/Import Polish) -- IN PROGRESS
+**Plan:** 1 of 2 complete (21-02 complete)
+**Status:** Phase 21 in progress
+**Last activity:** 2026-02-11 -- Completed 21-02-PLAN.md (slide thumbnails and QR overlay polish)
 
 Progress: [███████████████████░░] 100%
 
-**Current Focus:** Phase 20 COMPLETE -- Session templates fully implemented with API, store, and UI
+**Current Focus:** Phase 21 in progress -- Slide thumbnails enlarged, QR overlay polished
 
-**Next Action:** Execute Phase 21 (Export/Import)
+**Next Action:** Continue Phase 21 remaining plans
 
 ## Milestone History
 
@@ -89,6 +89,9 @@ See PROJECT.md for full decision log.
 | 20-02 | Relative date formatting in template list | Shows "2 hours ago", "Yesterday" instead of absolute timestamps | Better UX for frequently accessed templates |
 | 20-02 | Replace mode deletes all content before loading | Ensures truly clean slate, no position conflicts | Predictable behavior for destructive action |
 | 20-02 | Append mode offsets positions by max existing position | Prevents position collisions when adding templates to existing session | Maintains item order consistency |
+| 21-02 | w-16 h-12 thumbnail size for slides in sequence editor | Provides better visual recognition without dominating card layout | Improved slide identification at a glance |
+| 21-02 | bg-white/90 semi-transparent QR overlay | Ensures QR codes remain scannable against dark slide backgrounds | QR codes work on any slide content |
+| 21-02 | bg-gray-100 thumbnail container for light theme consistency | Aligns with admin light theme instead of dark backgrounds | Consistent admin UI aesthetic |
 
 ### Research Highlights (v1.3)
 
@@ -109,11 +112,11 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-02-11 15:11:00Z -- Phase 20 Plan 02 executed successfully
-**Stopped at:** Completed 20-02-PLAN.md (session template panel UI) -- Phase 20 COMPLETE
-**Next action:** Execute Phase 21 (Export/Import)
+**Last session:** 2026-02-11 23:29:17Z -- Phase 21 Plan 02 executed successfully
+**Stopped at:** Completed 21-02-PLAN.md (slide thumbnails and QR overlay polish)
+**Next action:** Continue Phase 21 remaining plans
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-11 -- Phase 20 complete (session templates foundation + UI)*
+*Updated: 2026-02-11 -- Phase 21 Plan 02 complete (slide thumbnails and QR overlay polish)*
