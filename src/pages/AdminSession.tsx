@@ -21,6 +21,7 @@ import { AdminPasswordGate } from '../components/AdminPasswordGate';
 import { SessionImportExport } from '../components/SessionImportExport';
 import { ResponseTemplatePanel } from '../components/ResponseTemplatePanel';
 import { TemplatePanel } from '../components/TemplatePanel';
+import { SessionTemplatePanel } from '../components/SessionTemplatePanel';
 import { SlideDisplay } from '../components/SlideDisplay';
 import { ProgressDashboard } from '../components/ProgressDashboard';
 import { DevTestFab } from '../components/DevTestFab';
@@ -1225,6 +1226,9 @@ export default function AdminSession() {
             {/* Templates */}
             <ResponseTemplatePanel />
             <TemplatePanel sessionId={session.session_id} />
+
+            {/* Session Templates */}
+            <SessionTemplatePanel sessionId={session.session_id} />
           </div>
         </div>
       )}
