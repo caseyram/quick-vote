@@ -87,6 +87,11 @@ export default function AdminSession() {
         setUserId(authData.user.id);
       }
 
+      // Reclaim session ownership for current anonymous identity.
+      // If browser data was cleared, auth.uid() changes but admin_token
+      // still proves ownership. This updates created_by so RLS passes.
+      await supabase.rpc('claim_session', { p_admin_token: adminToken });
+
       const { data: sessionData, error: sessionError } = await supabase
         .from('sessions')
         .select('*')
