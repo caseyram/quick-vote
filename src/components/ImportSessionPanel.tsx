@@ -3,7 +3,7 @@ import { validateImportFile, importSessionData, type ImportData } from '../lib/s
 
 interface ImportSessionPanelProps {
   sessionId: string;
-  onImportComplete?: (result: { batchCount: number; questionCount: number; templateCount: number }) => void;
+  onImportComplete?: (result: { batchCount: number; questionCount: number; templateCount: number; slideCount?: number; missingSlideCount?: number }) => void;
 }
 
 export function ImportSessionPanel({ sessionId, onImportComplete }: ImportSessionPanelProps) {
@@ -37,7 +37,16 @@ export function ImportSessionPanel({ sessionId, onImportComplete }: ImportSessio
     setError(null);
 
     try {
-      const result = await importSessionData(sessionId, validatedData);
+      const result = await importSessionData(
+        sessionId,
+        validatedData,
+        async (missingPaths: string[]) => {
+          // Prompt user confirmation for missing slide images
+          const count = missingPaths.length;
+          const message = `${count} slide image${count !== 1 ? 's' : ''} not found in Storage:\n${missingPaths.slice(0, 5).join('\n')}${count > 5 ? `\n... and ${count - 5} more` : ''}\n\nImport anyway (missing slides will be skipped)?`;
+          return window.confirm(message);
+        }
+      );
 
       // Reset state after successful import
       setValidatedData(null);
@@ -61,9 +70,15 @@ export function ImportSessionPanel({ sessionId, onImportComplete }: ImportSessio
 
   // Preview info from validated data
   const previewInfo = validatedData ? {
-    batches: validatedData.batches.filter(b => b.name !== '_unbatched').length,
-    questions: validatedData.batches.reduce((sum, b) => sum + b.questions.length, 0),
+    batches: validatedData.batches.filter(b => !('type' in b && b.type === 'slide') && b.name !== '_unbatched').length,
+    questions: validatedData.batches.reduce((sum, b) => {
+      if ('questions' in b) {
+        return sum + b.questions.length;
+      }
+      return sum;
+    }, 0),
     templates: validatedData.templates?.length ?? 0,
+    slides: validatedData.batches.filter(b => 'type' in b && b.type === 'slide').length,
   } : null;
 
   return (
@@ -102,7 +117,7 @@ export function ImportSessionPanel({ sessionId, onImportComplete }: ImportSessio
       {previewInfo && !error && (
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
           <p className="text-sm text-green-700">
-            Ready to import: {previewInfo.batches} batch{previewInfo.batches !== 1 ? 'es' : ''}, {previewInfo.questions} question{previewInfo.questions !== 1 ? 's' : ''}{previewInfo.templates > 0 ? `, ${previewInfo.templates} template${previewInfo.templates !== 1 ? 's' : ''}` : ''}
+            Ready to import: {previewInfo.batches > 0 ? `${previewInfo.batches} batch${previewInfo.batches !== 1 ? 'es' : ''}, ` : ''}{previewInfo.questions} question{previewInfo.questions !== 1 ? 's' : ''}{previewInfo.slides > 0 ? `, ${previewInfo.slides} slide${previewInfo.slides !== 1 ? 's' : ''}` : ''}{previewInfo.templates > 0 ? `, ${previewInfo.templates} template${previewInfo.templates !== 1 ? 's' : ''}` : ''}
           </p>
           <div className="flex gap-2">
             <button
