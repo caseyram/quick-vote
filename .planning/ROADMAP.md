@@ -70,11 +70,11 @@ Plans:
   1. Admin sees slides and batches in a single ordered list (session_items) on the session edit view
   2. Admin can drag-and-drop to reorder slides and batches within the unified sequence, with order persisted to database
   3. Existing sessions without session_items are automatically backfilled from their current batch ordering (no data loss on upgrade)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 17-01: session_items CRUD API, backfill migration, store extensions
-- [ ] 17-02: SequenceManager UI with drag-and-drop reordering
+- [ ] 17-01-PLAN.md -- sequence-api CRUD + backfill, session store extension, AdminSession load wiring
+- [ ] 17-02-PLAN.md -- SequenceManager UI with drag-and-drop reordering, AdminSession integration
 
 ### Phase 18: Presentation Controller
 **Goal**: Admin can advance through the unified sequence during a live session, projecting slides and activating batches in order
