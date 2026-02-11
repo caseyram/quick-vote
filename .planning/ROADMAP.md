@@ -38,7 +38,7 @@ See `.planning/milestones/` for archived details.
 - Integer phases (16, 17, ...): Planned milestone work
 - Decimal phases (17.1, 17.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 16: Image Slides** - DB schema, Storage bucket, image upload pipeline, and slide CRUD
+- [x] **Phase 16: Image Slides** - DB schema, Storage bucket, image upload pipeline, and slide CRUD
 - [ ] **Phase 17: Unified Sequence** - Single ordered list of slides and batches with drag-and-drop
 - [ ] **Phase 18: Presentation Controller** - Live session advancing through the sequence with keyboard and buttons
 - [ ] **Phase 19: Presenter View** - Separate projection window synced via Realtime with admin controls
@@ -59,8 +59,8 @@ See `.planning/milestones/` for archived details.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 16-01-PLAN.md -- Database schema, Storage bucket, RLS policies, TypeScript types, slide-api module
-- [ ] 16-02-PLAN.md -- Image upload pipeline with client-side compression and slide CRUD UI
+- [x] 16-01-PLAN.md -- Database schema, Storage bucket, RLS policies, TypeScript types, slide-api module
+- [x] 16-02-PLAN.md -- Image upload pipeline with client-side compression and slide CRUD UI
 
 ### Phase 17: Unified Sequence
 **Goal**: Admin can arrange slides and batches in a single ordered list that defines the session flow
@@ -144,7 +144,7 @@ Phases execute in numeric order: 16 → 17 → 18 → 19 → 20 → 21
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Image Slides | v1.3 | 0/2 | Not started | - |
+| 16. Image Slides | v1.3 | 2/2 | ✓ Complete | 2026-02-10 |
 | 17. Unified Sequence | v1.3 | 0/2 | Not started | - |
 | 18. Presentation Controller | v1.3 | 0/2 | Not started | - |
 | 19. Presenter View | v1.3 | 0/2 | Not started | - |

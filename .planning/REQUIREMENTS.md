@@ -8,10 +8,10 @@
 
 ## Image Slides
 
-- [ ] **IMG-01**: Admin can upload full-screen images to Supabase Storage with file type and size validation
-- [ ] **IMG-02**: Admin can view uploaded images displayed full-screen on the admin projection with proper aspect ratio handling (object-contain)
-- [ ] **IMG-03**: Admin can create, view, and delete image slides with automatic storage cleanup on deletion
-- [ ] **IMG-04**: Admin can add an optional title/label to each slide for sequence management (admin-only, not projected)
+- [x] **IMG-01**: Admin can upload full-screen images to Supabase Storage with file type and size validation
+- [x] **IMG-02**: Admin can view uploaded images displayed full-screen on the admin projection with proper aspect ratio handling (object-contain)
+- [x] **IMG-03**: Admin can create, view, and delete image slides with automatic storage cleanup on deletion
+- [x] **IMG-04**: Admin can add an optional title/label to each slide for sequence management (admin-only, not projected)
 
 ## Unified Session Sequence
 

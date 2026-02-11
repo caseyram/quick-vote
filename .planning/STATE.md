@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 ## Current Position
 
 **Milestone:** v1.3 Presentation Mode
-**Phase:** 16 of 21 (Image Slides) -- 6 phases, 12 plans
+**Phase:** 17 of 21 (Unified Sequence) -- 6 phases, 12 plans
 **Plan:** Not started
 **Status:** Ready to plan
-**Last activity:** 2026-02-10 -- Roadmap created (Phases 16-21)
+**Last activity:** 2026-02-10 -- Phase 16 (Image Slides) complete
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
+Progress: [████░░░░░░░░░░░░░░░░] 17%
 
-**Current Focus:** Phase 16 -- Image Slides (DB schema, Storage bucket, upload pipeline, slide CRUD)
+**Current Focus:** Phase 17 -- Unified Sequence (session_items CRUD, backfill, drag-and-drop reordering)
 
-**Next Action:** `/gsd:plan-phase 16`
+**Next Action:** `/gsd:plan-phase 17`
 
 ## Milestone History
 
@@ -73,11 +73,11 @@ See PROJECT.md for full decision log. No new decisions yet for v1.3.
 
 ## Session Continuity
 
-**Last session:** 2026-02-10 -- Roadmap created
-**Stopped at:** Roadmap complete, ready to plan Phase 16
-**Next action:** `/gsd:plan-phase 16`
+**Last session:** 2026-02-10 -- Phase 16 executed (2 plans, 2 waves)
+**Stopped at:** Phase 16 complete, ready to plan Phase 17
+**Next action:** `/gsd:plan-phase 17`
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-10 -- v1.3 roadmap created (Phases 16-21, 22 requirements)*
+*Updated: 2026-02-10 -- Phase 16 (Image Slides) complete, 4/22 requirements delivered*
