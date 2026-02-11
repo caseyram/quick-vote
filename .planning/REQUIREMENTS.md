@@ -16,9 +16,9 @@
 ## Unified Session Sequence
 
 - [x] **SEQ-01**: Admin can arrange slides and batches in a single ordered list (session_items) with drag-and-drop reordering
-- [ ] **SEQ-02**: Admin can manually advance forward and backward through the sequence using keyboard (arrow keys, Space) and on-screen buttons
-- [ ] **SEQ-03**: Participants see a waiting state ("Waiting for next question...") when admin is on a content slide
-- [ ] **SEQ-04**: Smooth transition animations (fade/slide) play when advancing between sequence items
+- [x] **SEQ-02**: Admin can manually advance forward and backward through the sequence using keyboard (arrow keys, Space) and on-screen buttons
+- [x] **SEQ-03**: Participants see a waiting state ("Waiting for next question...") when admin is on a content slide
+- [x] **SEQ-04**: Smooth transition animations (fade/slide) play when advancing between sequence items
 
 ## Presenter View
 

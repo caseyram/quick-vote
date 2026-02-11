@@ -14,14 +14,14 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 **Milestone:** v1.3 Presentation Mode
 **Phase:** 18 of 21 (Presentation Controller) -- 6 phases, 12 plans
 **Plan:** 2 of 2 complete (Phase 18 COMPLETE)
-**Status:** Phase 18 complete, ready for Phase 19 (Session Templates)
+**Status:** Phase 18 complete, ready for Phase 19 (Presenter View)
 **Last activity:** 2026-02-11 -- Completed 18-02-PLAN.md (slide display and animations)
 
 Progress: [███████░░░░░░░░░░░░░] 39%
 
 **Current Focus:** Phase 18 COMPLETE -- Presentation Controller delivered
 
-**Next Action:** Phase 19 planning (Session Templates)
+**Next Action:** `/gsd:discuss-phase 19`
 
 ## Milestone History
 
@@ -95,7 +95,7 @@ See PROJECT.md for full decision log.
 
 **Last session:** 2026-02-11 -- Plan 18-02 executed successfully
 **Stopped at:** Completed 18-02-PLAN.md (slide display and animations) -- PHASE 18 COMPLETE
-**Next action:** Phase 19 planning (Session Templates)
+**Next action:** `/gsd:discuss-phase 19`
 **Resume file:** None
 
 ---

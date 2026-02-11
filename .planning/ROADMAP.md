@@ -40,7 +40,7 @@ See `.planning/milestones/` for archived details.
 
 - [x] **Phase 16: Image Slides** - DB schema, Storage bucket, image upload pipeline, and slide CRUD
 - [x] **Phase 17: Unified Sequence** - Single ordered list of slides and batches with drag-and-drop
-- [ ] **Phase 18: Presentation Controller** - Live session advancing through the sequence with keyboard and buttons
+- [x] **Phase 18: Presentation Controller** - Live session advancing through the sequence with keyboard and buttons
 - [ ] **Phase 19: Presenter View** - Separate projection window synced via Realtime with admin controls
 - [ ] **Phase 20: Session Templates** - Save, load, and manage full session blueprints in Supabase
 - [ ] **Phase 21: Export/Import + Polish** - Extended JSON export/import with slides, thumbnails, and QR overlay
@@ -88,8 +88,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 18-01-PLAN.md -- Presentation state machine, session store extension, keyboard navigation hook, SequenceManager live mode with controls
-- [ ] 18-02-PLAN.md -- SlideDisplay projection component, animated transitions, participant slide_activated broadcast handler
+- [x] 18-01-PLAN.md -- Presentation state machine, session store extension, keyboard navigation hook, SequenceManager live mode with controls
+- [x] 18-02-PLAN.md -- SlideDisplay projection component, animated transitions, participant slide_activated broadcast handler
 
 ### Phase 19: Presenter View
 **Goal**: Admin can operate the session from a control view while a separate presentation window shows the clean projected output, synced across devices via Realtime
@@ -146,7 +146,7 @@ Phases execute in numeric order: 16 → 17 → 18 → 19 → 20 → 21
 |-------|-----------|----------------|--------|-----------|
 | 16. Image Slides | v1.3 | 2/2 | ✓ Complete | 2026-02-10 |
 | 17. Unified Sequence | v1.3 | 2/2 | ✓ Complete | 2026-02-11 |
-| 18. Presentation Controller | v1.3 | 0/2 | Not started | - |
+| 18. Presentation Controller | v1.3 | 2/2 | ✓ Complete | 2026-02-11 |
 | 19. Presenter View | v1.3 | 0/2 | Not started | - |
 | 20. Session Templates | v1.3 | 0/2 | Not started | - |
 | 21. Export/Import + Polish | v1.3 | 0/2 | Not started | - |
