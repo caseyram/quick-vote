@@ -310,6 +310,16 @@ export default function ParticipantSession() {
         setView('waiting');
         setWaitingMessage('Batch completed');
       });
+
+      // 9. slide_activated: admin navigated to a content slide
+      channel.on('broadcast', { event: 'slide_activated' }, () => {
+        // Clear any active voting state
+        stopCountdown();
+        setActiveQuestion(null);
+        // Show waiting state — participants don't see slide images
+        setView('waiting');
+        setWaitingMessage('Waiting for next question...');
+      });
     },
     [sessionId, startCountdown, stopCountdown, setBatchQuestions, setActiveBatchId],
   );
