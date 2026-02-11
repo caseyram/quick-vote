@@ -131,11 +131,11 @@ Plans:
   3. Session template references are preserved through JSON export/import round-trips
   4. Slide preview thumbnails appear next to slide items in the sequence editor for at-a-glance identification
   5. QR code overlay is available on content slides in the presentation view so latecomers can join mid-session
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 21-01: Export/import schema extension with slides, sequence, and templates
-- [ ] 21-02: Slide thumbnails in sequence editor and QR overlay on presentation slides
+- [ ] 21-01-PLAN.md -- Export/import schema extension with slides, sequence, template provenance, and Storage validation
+- [ ] 21-02-PLAN.md -- Slide thumbnails in sequence editor and QR overlay semi-transparent background
 
 ## Progress
 
