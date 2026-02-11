@@ -13,15 +13,15 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Milestone:** v1.3 Presentation Mode
 **Phase:** 17 of 21 (Unified Sequence) -- 6 phases, 12 plans
-**Plan:** Not started
-**Status:** Ready to plan
-**Last activity:** 2026-02-10 -- Phase 16 (Image Slides) complete
+**Plan:** 1 of 2 complete
+**Status:** In progress
+**Last activity:** 2026-02-10 -- Completed 17-01-PLAN.md (Unified Sequence Data Layer)
 
-Progress: [████░░░░░░░░░░░░░░░░] 17%
+Progress: [████░░░░░░░░░░░░░░░░] 18%
 
-**Current Focus:** Phase 17 -- Unified Sequence (session_items CRUD, backfill, drag-and-drop reordering)
+**Current Focus:** Phase 17 Plan 02 -- Unified Sequence UI (drag-and-drop reordering)
 
-**Next Action:** `/gsd:plan-phase 17`
+**Next Action:** Execute Plan 17-02
 
 ## Milestone History
 
@@ -57,7 +57,15 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 
 ### Decisions
 
-See PROJECT.md for full decision log. No new decisions yet for v1.3.
+See PROJECT.md for full decision log.
+
+**v1.3 Decisions:**
+
+| Phase | Decision | Rationale | Impact |
+|-------|----------|-----------|--------|
+| 17-01 | ensureSessionItems is idempotent - safe to call on every session load | Prevents duplicate session_items from multiple loads, simplifies integration | Reliable backfill without manual state tracking |
+| 17-01 | Preserve slide positions during backfill - batches get 0..N-1, slides keep current | Avoids breaking existing slide ordering, position collisions acceptable | Simpler backfill logic, UI reorder can fix collisions |
+| 17-01 | Sequential position updates in reorderSessionItems | Proven pattern from AdminSession, avoids PostgrestFilterBuilder type issues | Reliable position updates without race conditions |
 
 ### Research Highlights (v1.3)
 
@@ -73,11 +81,11 @@ See PROJECT.md for full decision log. No new decisions yet for v1.3.
 
 ## Session Continuity
 
-**Last session:** 2026-02-10 -- Phase 16 executed (2 plans, 2 waves)
-**Stopped at:** Phase 16 complete, ready to plan Phase 17
-**Next action:** `/gsd:plan-phase 17`
+**Last session:** 2026-02-10 22:49 UTC -- Phase 17 Plan 01 executed
+**Stopped at:** Completed 17-01-PLAN.md (Unified Sequence Data Layer)
+**Next action:** Execute Plan 17-02 (Unified Sequence UI)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-10 -- Phase 16 (Image Slides) complete, 4/22 requirements delivered*
+*Updated: 2026-02-10 -- Phase 17 Plan 01 complete, 5/22 requirements delivered*
