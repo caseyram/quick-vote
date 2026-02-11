@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 ## Current Position
 
 **Milestone:** v1.3 Presentation Mode
-**Phase:** 20 of 21 (Session Templates) -- 6 phases, 12 plans
-**Plan:** 1 of 2 complete
-**Status:** In progress - Phase 20
-**Last activity:** 2026-02-11 -- Completed 20-01-PLAN.md (session templates foundation)
+**Phase:** 20 of 21 (Session Templates) -- PHASE 20 COMPLETE
+**Plan:** 2 of 2 complete
+**Status:** Phase 20 complete, ready for Phase 21
+**Last activity:** 2026-02-11 -- Completed 20-02-PLAN.md (session template panel UI)
 
-Progress: [██████████░░░░░░░░░░] 50%
+Progress: [███████████████████░░] 100%
 
-**Current Focus:** Phase 20 Plan 01 COMPLETE -- Session templates data layer delivered
+**Current Focus:** Phase 20 COMPLETE -- Session templates fully implemented with API, store, and UI
 
-**Next Action:** Execute 20-02-PLAN.md (template UI)
+**Next Action:** Execute Phase 21 (Export/Import)
 
 ## Milestone History
 
@@ -83,6 +83,12 @@ See PROJECT.md for full decision log.
 | 20-01 | serializeSession is pure function | No DB calls enables unit testing, faster execution | Pure function takes state params, returns blueprint synchronously |
 | 20-01 | Response template validation in loadTemplateIntoSession | Prevents broken template_id references | Returns missingTemplateCount for UI warnings |
 | 20-01 | structuredClone prevents blueprint mutation | Prevents accidental modification during deserialization | Safe to modify cloned blueprint during processing |
+| 20-02 | Inline success state on save button (green checkmark) instead of toast | Better visual continuity and discoverability than notification toast | Immediate feedback stays in component context |
+| 20-02 | Type-to-confirm delete (GitHub-style) | User must type template name to enable delete button | Safety pattern prevents accidental deletion |
+| 20-02 | Load modal shows summary preview before replace/append | Item count, batch/slide breakdown, thumbnails help users understand what they're loading | Informed choice reduces surprises |
+| 20-02 | Relative date formatting in template list | Shows "2 hours ago", "Yesterday" instead of absolute timestamps | Better UX for frequently accessed templates |
+| 20-02 | Replace mode deletes all content before loading | Ensures truly clean slate, no position conflicts | Predictable behavior for destructive action |
+| 20-02 | Append mode offsets positions by max existing position | Prevents position collisions when adding templates to existing session | Maintains item order consistency |
 
 ### Research Highlights (v1.3)
 
@@ -103,11 +109,11 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-02-11 18:51:49Z -- Phase 20 Plan 01 executed successfully
-**Stopped at:** Completed 20-01-PLAN.md (session templates foundation)
-**Next action:** Execute 20-02-PLAN.md (template UI)
+**Last session:** 2026-02-11 15:11:00Z -- Phase 20 Plan 02 executed successfully
+**Stopped at:** Completed 20-02-PLAN.md (session template panel UI) -- Phase 20 COMPLETE
+**Next action:** Execute Phase 21 (Export/Import)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-11 -- Phase 20 Plan 01 complete (session templates foundation)*
+*Updated: 2026-02-11 -- Phase 20 complete (session templates foundation + UI)*
