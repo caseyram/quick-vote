@@ -5,7 +5,7 @@
 - ✅ **v1.0 MVP** - Phases 1-5 (shipped 2026-01-28)
 - ✅ **v1.1 Batch Questions & Polish** - Phases 6-10 + 09.1 (shipped 2026-01-29)
 - ✅ **v1.2 Response Templates** - Phases 11-15 (shipped 2026-02-10)
-- 🚧 **v1.3 Presentation Mode** - Phases 16-21 (in progress)
+- ✅ **v1.3 Presentation Mode** - Phases 16-21 (shipped 2026-02-11)
 
 ## Phases
 
@@ -30,7 +30,7 @@ See `.planning/milestones/` for archived details.
 
 </details>
 
-### 🚧 v1.3 Presentation Mode (In Progress)
+### ✅ v1.3 Presentation Mode (SHIPPED 2026-02-11)
 
 **Milestone Goal:** Transform sessions into guided presentations with image slides, unified sequencing, a dedicated presenter view, and reusable session templates stored in Supabase.
 
@@ -43,7 +43,7 @@ See `.planning/milestones/` for archived details.
 - [x] **Phase 18: Presentation Controller** - Live session advancing through the sequence with keyboard and buttons
 - [x] **Phase 19: Presenter View** - Separate projection window synced via Realtime with admin controls
 - [x] **Phase 20: Session Templates** - Save, load, and manage full session blueprints in Supabase
-- [ ] **Phase 21: Export/Import + Polish** - Extended JSON export/import with slides, thumbnails, and QR overlay
+- [x] **Phase 21: Export/Import + Polish** - Extended JSON export/import with slides, thumbnails, and QR overlay
 
 ## Phase Details
 
@@ -134,8 +134,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 21-01-PLAN.md -- Export/import schema extension with slides, sequence, template provenance, and Storage validation
-- [ ] 21-02-PLAN.md -- Slide thumbnails in sequence editor and QR overlay semi-transparent background
+- [x] 21-01-PLAN.md -- Export/import schema extension with slides, sequence, template provenance, and Storage validation
+- [x] 21-02-PLAN.md -- Slide thumbnails in sequence editor and QR overlay semi-transparent background
 
 ## Progress
 
@@ -149,7 +149,7 @@ Phases execute in numeric order: 16 → 17 → 18 → 19 → 20 → 21
 | 18. Presentation Controller | v1.3 | 2/2 | ✓ Complete | 2026-02-11 |
 | 19. Presenter View | v1.3 | 2/2 | ✓ Complete | 2026-02-11 |
 | 20. Session Templates | v1.3 | 2/2 | ✓ Complete | 2026-02-11 |
-| 21. Export/Import + Polish | v1.3 | 0/2 | Not started | - |
+| 21. Export/Import + Polish | v1.3 | 2/2 | ✓ Complete | 2026-02-11 |
 
 ---
 *Created: 2026-02-10*

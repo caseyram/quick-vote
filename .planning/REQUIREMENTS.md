@@ -37,14 +37,14 @@
 
 ## Export/Import Extension
 
-- [ ] **EXP-01**: JSON session export includes slide image URLs and sequence order (backward-compatible with v1.2 exports)
-- [ ] **EXP-02**: JSON import restores slides (referencing existing Storage URLs) and sequence order
-- [ ] **EXP-03**: Session template references included in JSON export/import
+- [x] **EXP-01**: JSON session export includes slide image URLs and sequence order (backward-compatible with v1.2 exports)
+- [x] **EXP-02**: JSON import restores slides (referencing existing Storage URLs) and sequence order
+- [x] **EXP-03**: Session template references included in JSON export/import
 
 ## Presentation Polish
 
-- [ ] **POL-01**: Slide preview thumbnails displayed next to slide items in the sequence editor
-- [ ] **POL-02**: QR code overlay available on content slides in the presentation view for latecomers to join
+- [x] **POL-01**: Slide preview thumbnails displayed next to slide items in the sequence editor
+- [x] **POL-02**: QR code overlay available on content slides in the presentation view for latecomers to join
 
 ---
 
@@ -95,11 +95,11 @@ Deferred to later milestones.
 | STPL-01 | Phase 20 | ✓ Save session as template in Supabase |
 | STPL-02 | Phase 20 | ✓ Load template into new session |
 | STPL-03 | Phase 20 | ✓ Template CRUD (list, rename, delete) |
-| EXP-01 | Phase 21 | Slides and sequence in JSON export |
-| EXP-02 | Phase 21 | Import restores slides and sequence |
-| EXP-03 | Phase 21 | Session templates in export/import |
-| POL-01 | Phase 21 | Slide preview thumbnails in sequence editor |
-| POL-02 | Phase 21 | QR code overlay on presentation slides |
+| EXP-01 | Phase 21 | ✓ Slides and sequence in JSON export |
+| EXP-02 | Phase 21 | ✓ Import restores slides and sequence |
+| EXP-03 | Phase 21 | ✓ Session templates in export/import |
+| POL-01 | Phase 21 | ✓ Slide preview thumbnails in sequence editor |
+| POL-02 | Phase 21 | ✓ QR code overlay on presentation slides |
 
 **Coverage:**
 - v1.3 requirements: 22 total
