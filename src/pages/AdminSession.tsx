@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams } from 'react-router';
+import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import { useSessionStore } from '../stores/session-store';
 import { useTemplateStore } from '../stores/template-store';
@@ -22,6 +23,7 @@ import { SessionImportExport } from '../components/SessionImportExport';
 import { ResponseTemplatePanel } from '../components/ResponseTemplatePanel';
 import { TemplatePanel } from '../components/TemplatePanel';
 import { SlideManager } from '../components/SlideManager';
+import { SlideDisplay } from '../components/SlideDisplay';
 import { ProgressDashboard } from '../components/ProgressDashboard';
 import { DevTestFab } from '../components/DevTestFab';
 import { TemplateSelector } from '../components/TemplateSelector';
@@ -38,6 +40,7 @@ export default function AdminSession() {
     session,
     questions,
     batches,
+    sessionItems,
     setSession,
     setQuestions,
     setBatches,
@@ -50,6 +53,7 @@ export default function AdminSession() {
     activeBatchId,
     setActiveBatchId,
     activeSessionItemId,
+    navigationDirection,
   } = useSessionStore();
   const { templates } = useTemplateStore();
   const [copied, setCopied] = useState(false);
@@ -266,6 +270,32 @@ export default function AdminSession() {
   const isActive = session?.status === 'active';
   const isEnded = session?.status === 'ended';
   const isLive = isLobby || isActive;
+
+  // Determine active item for projection area
+  const activeItem = activeSessionItemId
+    ? sessionItems.find(item => item.id === activeSessionItemId)
+    : null;
+  const isSlideActive = activeItem?.item_type === 'slide';
+  const isBatchActive = activeItem?.item_type === 'batch';
+
+  // Animation variants for projection area transitions
+  const slideVariants = {
+    enter: (direction: 'forward' | 'backward' | null) => ({
+      x: direction === 'forward' ? '100%' : direction === 'backward' ? '-100%' : 0,
+      opacity: direction ? 0 : 1,
+    }),
+    center: { x: 0, opacity: 1 },
+    exit: (direction: 'forward' | 'backward' | null) => ({
+      x: direction === 'forward' ? '-100%' : direction === 'backward' ? '100%' : 0,
+      opacity: direction ? 0 : 1,
+    }),
+  };
+
+  const crossfadeVariants = {
+    enter: { opacity: 0 },
+    center: { opacity: 1 },
+    exit: { opacity: 0 },
+  };
 
   // Vote counts per question for progress tracking
   const questionVoteCounts = useMemo(() => {
@@ -1341,39 +1371,57 @@ export default function AdminSession() {
             )}
 
             {/* Hero fills viewport minus header (56px), control bar (56px), and optional dashboard/timer bar */}
-            <div className="max-w-6xl mx-auto px-6 overflow-y-auto" style={{
+            <div className="flex-1" style={{
               height: showProgressDashboard
                 ? 'calc(100dvh - 12rem)'
                 : (activeQuestion && countdownRunning)
                   ? 'calc(100dvh - 10rem)'
                   : 'calc(100dvh - 7rem)'
             }}>
-            {/* Active batch summary */}
-            {showProgressDashboard ? (
-              (() => {
-                const activeBatch = batches.find((b) => b.id === activeBatchId);
-                const batchQuestionCount = questions.filter((q) => q.batch_id === activeBatchId).length;
-                return (
-                  <div className="h-full flex flex-col items-center justify-center text-center">
-                    <p className="text-2xl text-gray-500">Batch Voting</p>
-                    <h2 className="text-5xl font-bold text-gray-900 mt-3 leading-tight">
-                      {activeBatch?.name ?? 'Untitled Batch'}
-                    </h2>
-                    <p className="text-2xl text-gray-600 mt-4">
-                      {batchQuestionCount} Question{batchQuestionCount !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                );
-              })()
-            ) : activeQuestion ? (
-              /* Hero active question */
-              <ActiveQuestionHero
-                question={activeQuestion}
-                questionIndex={questions.findIndex((q) => q.id === activeQuestion.id)}
-                totalQuestions={questions.length}
-                votes={sessionVotes[activeQuestion.id] ?? []}
-              />
-            ) : closedQuestions.length > 0 ? (
+            <AnimatePresence mode="wait" custom={navigationDirection}>
+              <motion.div
+                key={activeSessionItemId ?? 'none'}
+                custom={navigationDirection}
+                variants={isSlideActive ? slideVariants : crossfadeVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={isSlideActive
+                  ? { x: { type: 'spring', stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }
+                  : { duration: 0.35, ease: 'easeInOut' }
+                }
+                className="h-full"
+              >
+                {isSlideActive && activeItem?.slide_image_path ? (
+                  <SlideDisplay imagePath={activeItem.slide_image_path} caption={activeItem.slide_caption} />
+                ) : (
+                  <div className="max-w-6xl mx-auto px-6 overflow-y-auto h-full">
+                    {/* Active batch summary */}
+                    {showProgressDashboard ? (
+                      (() => {
+                        const activeBatch = batches.find((b) => b.id === activeBatchId);
+                        const batchQuestionCount = questions.filter((q) => q.batch_id === activeBatchId).length;
+                        return (
+                          <div className="h-full flex flex-col items-center justify-center text-center">
+                            <p className="text-2xl text-gray-500">Batch Voting</p>
+                            <h2 className="text-5xl font-bold text-gray-900 mt-3 leading-tight">
+                              {activeBatch?.name ?? 'Untitled Batch'}
+                            </h2>
+                            <p className="text-2xl text-gray-600 mt-4">
+                              {batchQuestionCount} Question{batchQuestionCount !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                        );
+                      })()
+                    ) : activeQuestion ? (
+                      /* Hero active question */
+                      <ActiveQuestionHero
+                        question={activeQuestion}
+                        questionIndex={questions.findIndex((q) => q.id === activeQuestion.id)}
+                        totalQuestions={questions.length}
+                        votes={sessionVotes[activeQuestion.id] ?? []}
+                      />
+                    ) : closedQuestions.length > 0 ? (
               /* Show closed question results with navigation through ALL closed questions */
               (() => {
                 // Clamp index to valid range
@@ -1451,6 +1499,10 @@ export default function AdminSession() {
                 </div>
               </div>
             )}
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
             {/* Previous results grid — only shown when no active voting */}
