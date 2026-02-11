@@ -115,11 +115,11 @@ Plans:
   1. Admin can save the current session (sequence order, slides with image references, batches, questions, response template assignments) as a named template stored in Supabase
   2. Admin can load a saved template into a new session, restoring the full structure including slide image references and sequence order
   3. Admin can list all saved session templates, rename them, and delete them (with confirmation)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 20-01: session_templates table, blueprint serialization, Zustand store
-- [ ] 20-02: SessionTemplatePanel UI with save, load, rename, delete
+- [ ] 20-01-PLAN.md -- Database migration, TypeScript types, session-template-api CRUD + serialization, Zustand store
+- [ ] 20-02-PLAN.md -- SessionTemplatePanel UI with save, load, rename, delete, AdminSession integration
 
 ### Phase 21: Export/Import + Polish
 **Goal**: JSON export/import captures the complete session including slides and sequence, with visual polish for the sequence editor and presentation view
