@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core Value:** Participants can instantly vote on questions in a way that feels immersive and tactile -- not like filling out a form.
-**Stack:** Vite + React (TypeScript), Supabase (database + realtime), Vercel deployment
+**Stack:** Vite + React (TypeScript), Supabase (database + realtime + storage), Vercel deployment
 **Repo:** C:/code/quick-vote
 **Current focus:** v1.3 Presentation Mode
 
 ## Current Position
 
 **Milestone:** v1.3 Presentation Mode
-**Phase:** Not started (defining requirements)
-**Plan:** —
-**Status:** Defining requirements
-**Last activity:** 2026-02-10 — Milestone v1.3 started
+**Phase:** 16 of 21 (Image Slides) -- 6 phases, 12 plans
+**Plan:** Not started
+**Status:** Ready to plan
+**Last activity:** 2026-02-10 -- Roadmap created (Phases 16-21)
 
 Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
 
-**Current Focus:** Defining requirements for v1.3
+**Current Focus:** Phase 16 -- Image Slides (DB schema, Storage bucket, upload pipeline, slide CRUD)
 
-**Next Action:** Research → Requirements → Roadmap
+**Next Action:** `/gsd:plan-phase 16`
 
 ## Milestone History
 
@@ -51,31 +51,21 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 - Plans: 11
 - Avg plans/phase: 2.2
 - Requirements: 16/16 delivered
-- Timeline: 2 days (2026-02-09 → 2026-02-10)
-- Audit: passed (16/16 req, 5/5 phases, 24/24 integration, 6/6 E2E flows)
+- Timeline: 2 days (2026-02-09 to 2026-02-10)
 
 ## Accumulated Context
 
-### Key Decisions
+### Decisions
 
-See PROJECT.md for full decision log.
+See PROJECT.md for full decision log. No new decisions yet for v1.3.
 
-### Potential Next Features
+### Research Highlights (v1.3)
 
-From deferred requirements:
-- Collections (reusable question sets): COLL-01 to COLL-05
-- Mobile swipe gesture navigation: BATCH-F01
-- Hybrid mode (mix live + batch): BATCH-F02
-
-Other possibilities:
-- Question templates in database (upgrade TemplatePanel from localStorage to Supabase)
-- CSV/PDF export of results
-- Ranked choice voting
-- Performance optimizations for larger scale
-
-### Open Questions
-
-(none)
+- Inline slide data into session_items (no separate slides table)
+- Do NOT add session_items to Supabase Realtime publication (use Broadcast)
+- browser-image-compression for client-side resize before upload
+- Store relative Storage paths, construct full URLs at display time
+- Session templates use JSONB blueprint column
 
 ### Blockers
 
@@ -83,11 +73,11 @@ Other possibilities:
 
 ## Session Continuity
 
-**Last session:** 2026-02-10 — v1.3 milestone started
-**Stopped at:** Defining requirements
-**Next action:** Research → Requirements → Roadmap
+**Last session:** 2026-02-10 -- Roadmap created
+**Stopped at:** Roadmap complete, ready to plan Phase 16
+**Next action:** `/gsd:plan-phase 16`
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-10 — v1.3 milestone started*
+*Updated: 2026-02-10 -- v1.3 roadmap created (Phases 16-21, 22 requirements)*

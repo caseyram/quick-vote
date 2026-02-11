@@ -78,33 +78,34 @@ Deferred to later milestones.
 
 | Requirement | Phase | Description |
 |-------------|-------|-------------|
-| IMG-01 | — | Image upload to Supabase Storage |
-| IMG-02 | — | Full-screen image display on admin projection |
-| IMG-03 | — | Image slide CRUD with storage cleanup |
-| IMG-04 | — | Slide title/label for admin |
-| SEQ-01 | — | Unified sequence with drag-and-drop |
-| SEQ-02 | — | Manual advance with keyboard and buttons |
-| SEQ-03 | — | Participant waiting state during slides |
-| SEQ-04 | — | Transition animations between items |
-| PRES-01 | — | Separate presentation window |
-| PRES-02 | — | Admin control view with sequence controls |
-| PRES-03 | — | Cross-device sync via Supabase Realtime |
-| PRES-04 | — | QR code expand/collapse overlay control |
-| PRES-05 | — | Extended keyboard shortcuts |
-| PRES-06 | — | Fullscreen API toggle |
-| STPL-01 | — | Save session as template in Supabase |
-| STPL-02 | — | Load template into new session |
-| STPL-03 | — | Template CRUD (list, rename, delete) |
-| EXP-01 | — | Slides and sequence in JSON export |
-| EXP-02 | — | Import restores slides and sequence |
-| EXP-03 | — | Session templates in export/import |
-| POL-01 | — | Slide preview thumbnails in sequence editor |
-| POL-02 | — | QR code overlay on presentation slides |
+| IMG-01 | Phase 16 | Image upload to Supabase Storage |
+| IMG-02 | Phase 16 | Full-screen image display on admin projection |
+| IMG-03 | Phase 16 | Image slide CRUD with storage cleanup |
+| IMG-04 | Phase 16 | Slide title/label for admin |
+| SEQ-01 | Phase 17 | Unified sequence with drag-and-drop |
+| SEQ-02 | Phase 18 | Manual advance with keyboard and buttons |
+| SEQ-03 | Phase 18 | Participant waiting state during slides |
+| SEQ-04 | Phase 18 | Transition animations between items |
+| PRES-01 | Phase 19 | Separate presentation window |
+| PRES-02 | Phase 19 | Admin control view with sequence controls |
+| PRES-03 | Phase 19 | Cross-device sync via Supabase Realtime |
+| PRES-04 | Phase 19 | QR code expand/collapse overlay control |
+| PRES-05 | Phase 19 | Extended keyboard shortcuts |
+| PRES-06 | Phase 19 | Fullscreen API toggle |
+| STPL-01 | Phase 20 | Save session as template in Supabase |
+| STPL-02 | Phase 20 | Load template into new session |
+| STPL-03 | Phase 20 | Template CRUD (list, rename, delete) |
+| EXP-01 | Phase 21 | Slides and sequence in JSON export |
+| EXP-02 | Phase 21 | Import restores slides and sequence |
+| EXP-03 | Phase 21 | Session templates in export/import |
+| POL-01 | Phase 21 | Slide preview thumbnails in sequence editor |
+| POL-02 | Phase 21 | QR code overlay on presentation slides |
 
 **Coverage:**
 - v1.3 requirements: 22 total
-- Mapped to phases: 0 (pending roadmap)
-- Coverage: 0% (pending)
+- Mapped to phases: 22/22
+- Coverage: 100%
 
 ---
 *Created: 2026-02-10*
+*Updated: 2026-02-10 -- Traceability mapped to Phases 16-21*
