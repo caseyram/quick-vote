@@ -108,18 +108,20 @@ export function SequenceItemCard({
             </div>
           </button>
         ) : isSlide ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {item.slide_image_path && (
-              <img
-                src={getSlideImageUrl(item.slide_image_path)}
-                alt={item.slide_caption || 'Slide'}
-                className="w-8 h-8 object-cover rounded shrink-0"
-                loading="lazy"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23e5e7eb" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="10"%3ENot found%3C/text%3E%3C/svg%3E';
-                }}
-              />
+              <div className="w-16 h-12 bg-gray-100 rounded shrink-0 overflow-hidden">
+                <img
+                  src={getSlideImageUrl(item.slide_image_path)}
+                  alt={item.slide_caption || 'Slide'}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23e5e7eb" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="10"%3ENot found%3C/text%3E%3C/svg%3E';
+                  }}
+                />
+              </div>
             )}
             <div className="text-sm text-gray-900 truncate">
               {item.slide_caption || <span className="text-gray-400 italic">Untitled Slide</span>}
