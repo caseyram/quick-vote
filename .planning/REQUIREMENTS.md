@@ -31,9 +31,9 @@
 
 ## Session Templates in Supabase
 
-- [ ] **STPL-01**: Admin can save the current session structure (sequence, slides, batches, questions, response template assignments) as a named reusable template in Supabase
-- [ ] **STPL-02**: Admin can load a saved session template into a new session, restoring full structure including image references
-- [ ] **STPL-03**: Admin can list, rename, and delete saved session templates
+- [x] **STPL-01**: Admin can save the current session structure (sequence, slides, batches, questions, response template assignments) as a named reusable template in Supabase
+- [x] **STPL-02**: Admin can load a saved session template into a new session, restoring full structure including image references
+- [x] **STPL-03**: Admin can list, rename, and delete saved session templates
 
 ## Export/Import Extension
 
@@ -92,9 +92,9 @@ Deferred to later milestones.
 | PRES-04 | Phase 19 | QR code expand/collapse overlay control |
 | PRES-05 | Phase 19 | Extended keyboard shortcuts |
 | PRES-06 | Phase 19 | Fullscreen API toggle |
-| STPL-01 | Phase 20 | Save session as template in Supabase |
-| STPL-02 | Phase 20 | Load template into new session |
-| STPL-03 | Phase 20 | Template CRUD (list, rename, delete) |
+| STPL-01 | Phase 20 | ✓ Save session as template in Supabase |
+| STPL-02 | Phase 20 | ✓ Load template into new session |
+| STPL-03 | Phase 20 | ✓ Template CRUD (list, rename, delete) |
 | EXP-01 | Phase 21 | Slides and sequence in JSON export |
 | EXP-02 | Phase 21 | Import restores slides and sequence |
 | EXP-03 | Phase 21 | Session templates in export/import |

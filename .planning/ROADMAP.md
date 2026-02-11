@@ -42,7 +42,7 @@ See `.planning/milestones/` for archived details.
 - [x] **Phase 17: Unified Sequence** - Single ordered list of slides and batches with drag-and-drop
 - [x] **Phase 18: Presentation Controller** - Live session advancing through the sequence with keyboard and buttons
 - [x] **Phase 19: Presenter View** - Separate projection window synced via Realtime with admin controls
-- [ ] **Phase 20: Session Templates** - Save, load, and manage full session blueprints in Supabase
+- [x] **Phase 20: Session Templates** - Save, load, and manage full session blueprints in Supabase
 - [ ] **Phase 21: Export/Import + Polish** - Extended JSON export/import with slides, thumbnails, and QR overlay
 
 ## Phase Details
@@ -118,8 +118,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 20-01-PLAN.md -- Database migration, TypeScript types, session-template-api CRUD + serialization, Zustand store
-- [ ] 20-02-PLAN.md -- SessionTemplatePanel UI with save, load, rename, delete, AdminSession integration
+- [x] 20-01-PLAN.md -- Database migration, TypeScript types, session-template-api CRUD + serialization, Zustand store
+- [x] 20-02-PLAN.md -- SessionTemplatePanel UI with save, load, rename, delete, AdminSession integration
 
 ### Phase 21: Export/Import + Polish
 **Goal**: JSON export/import captures the complete session including slides and sequence, with visual polish for the sequence editor and presentation view
@@ -148,7 +148,7 @@ Phases execute in numeric order: 16 → 17 → 18 → 19 → 20 → 21
 | 17. Unified Sequence | v1.3 | 2/2 | ✓ Complete | 2026-02-11 |
 | 18. Presentation Controller | v1.3 | 2/2 | ✓ Complete | 2026-02-11 |
 | 19. Presenter View | v1.3 | 2/2 | ✓ Complete | 2026-02-11 |
-| 20. Session Templates | v1.3 | 0/2 | Not started | - |
+| 20. Session Templates | v1.3 | 2/2 | ✓ Complete | 2026-02-11 |
 | 21. Export/Import + Polish | v1.3 | 0/2 | Not started | - |
 
 ---
