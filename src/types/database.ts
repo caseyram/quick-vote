@@ -60,3 +60,16 @@ export interface Vote {
   created_at: string;
   updated_at: string;
 }
+
+export type SessionItemType = 'batch' | 'slide';
+
+export interface SessionItem {
+  id: string;
+  session_id: string;
+  item_type: SessionItemType;
+  position: number;
+  batch_id: string | null;
+  slide_image_path: string | null;
+  slide_caption: string | null;
+  created_at: string;
+}
