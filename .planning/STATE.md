@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 ## Current Position
 
 **Milestone:** v1.3 Presentation Mode
-**Phase:** 18 of 21 (Presentation Controller) -- 6 phases, 12 plans
-**Plan:** 2 of 2 complete (Phase 18 COMPLETE)
-**Status:** Phase 18 complete, ready for Phase 19 (Presenter View)
-**Last activity:** 2026-02-11 -- Completed 18-02-PLAN.md (slide display and animations)
+**Phase:** 19 of 21 (Presenter View) -- 6 phases, 12 plans
+**Plan:** 1 of 3 complete
+**Status:** In progress
+**Last activity:** 2026-02-11 -- Completed 19-01-PLAN.md (presenter view foundation)
 
-Progress: [███████░░░░░░░░░░░░░] 39%
+Progress: [████████░░░░░░░░░░░░] 41%
 
-**Current Focus:** Phase 18 COMPLETE -- Presentation Controller delivered
+**Current Focus:** Phase 19 Plan 01 complete -- Two-window presenter architecture delivered
 
-**Next Action:** `/gsd:discuss-phase 19`
+**Next Action:** `/gsd:execute-phase 19-02`
 
 ## Milestone History
 
@@ -74,6 +74,8 @@ See PROJECT.md for full decision log.
 | 18-02 | Horizontal spring animation for slide-to-slide, crossfade for batch transitions | Distinguishes content types, spring matches arrow key mental model | Smooth tactile navigation |
 | 18-02 | Slide projection fills entire admin projection area with dark letterbox background | Professional presentation aesthetic, avoids harsh white edges | Dark letterbox on #1a1a1a |
 | 18-02 | Participants see 'Waiting for next question...' during slides (no slide image visibility) | Keeps focus on presenter control, slide content is presenter-owned | Consistent waiting state |
+| 19-01 | PresentationView requires no authentication (read-only projection content) | Enables cross-device projection on TVs/projectors without auth flow | Anyone with URL can view, acceptable for controlled-access presentations |
+| 19-01 | Presentation mode as layout toggle in AdminSession, not separate route | Simpler auth flow, easier channel sharing, natural exit UX | Single page with mode switching |
 
 ### Research Highlights (v1.3)
 
@@ -93,11 +95,11 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-02-11 -- Plan 18-02 executed successfully
-**Stopped at:** Completed 18-02-PLAN.md (slide display and animations) -- PHASE 18 COMPLETE
-**Next action:** `/gsd:discuss-phase 19`
+**Last session:** 2026-02-11 -- Plan 19-01 executed successfully
+**Stopped at:** Completed 19-01-PLAN.md (presenter view foundation)
+**Next action:** `/gsd:execute-phase 19-02`
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-11 -- Phase 18 complete (Presentation Controller), 8/22 requirements delivered*
+*Updated: 2026-02-11 -- Phase 19 Plan 01 complete (Presenter View foundation), 9/22 requirements delivered*
