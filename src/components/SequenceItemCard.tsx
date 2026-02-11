@@ -10,6 +10,8 @@ interface SequenceItemCardProps {
   questionCount?: number;
   onDelete: (item: SessionItem) => void;
   onExpandBatch?: (batchId: string) => void;
+  isActive?: boolean;
+  onClick?: () => void;
 }
 
 export function SequenceItemCard({
@@ -19,6 +21,8 @@ export function SequenceItemCard({
   questionCount,
   onDelete,
   onExpandBatch,
+  isActive = false,
+  onClick,
 }: SequenceItemCardProps) {
   const {
     attributes,
@@ -38,8 +42,10 @@ export function SequenceItemCard({
   const isBatch = item.item_type === 'batch';
   const isSlide = item.item_type === 'slide';
 
-  // Color coding
-  const colorClasses = isBatch
+  // Color coding - active highlight overrides normal colors
+  const colorClasses = isActive
+    ? 'bg-blue-100 border-blue-500'
+    : isBatch
     ? 'bg-blue-50 border-blue-200 hover:border-blue-300'
     : 'bg-purple-50 border-purple-200 hover:border-purple-300';
 
@@ -49,13 +55,15 @@ export function SequenceItemCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-3 p-3 border-2 rounded-lg transition-colors ${colorClasses}`}
+      className={`flex items-center gap-3 p-3 border-2 rounded-lg transition-colors ${colorClasses} ${onClick ? 'cursor-pointer' : ''}`}
+      onClick={onClick ? () => onClick() : undefined}
     >
       {/* Drag handle */}
       <div
         {...attributes}
         {...listeners}
         className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+        onClick={(e) => e.stopPropagation()}
       >
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
           <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm8-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
@@ -86,7 +94,10 @@ export function SequenceItemCard({
       <div className="flex-1 min-w-0">
         {isBatch && batch ? (
           <button
-            onClick={() => onExpandBatch?.(item.batch_id!)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onExpandBatch?.(item.batch_id!);
+            }}
             className="text-left w-full group"
           >
             <div className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
@@ -119,7 +130,10 @@ export function SequenceItemCard({
 
       {/* Delete button */}
       <button
-        onClick={() => onDelete(item)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(item);
+        }}
         className="p-2 text-gray-400 hover:text-red-500 transition-colors shrink-0"
         title="Delete"
       >

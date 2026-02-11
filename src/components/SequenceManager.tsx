@@ -20,6 +20,7 @@ import { SequenceItemCard } from './SequenceItemCard';
 import { useSessionStore } from '../stores/session-store';
 import { reorderSessionItems } from '../lib/sequence-api';
 import { getSlideImageUrl } from '../lib/slide-api';
+import { useSequenceNavigation } from '../hooks/use-sequence-navigation';
 
 interface SequenceManagerProps {
   sessionId: string;
@@ -27,6 +28,9 @@ interface SequenceManagerProps {
   onCreateBatch: () => Promise<string | undefined>;
   onDeleteBatch: (batchId: string) => void;
   onDeleteSlide: (item: SessionItem) => void;
+  isLive?: boolean;
+  activeSessionItemId?: string | null;
+  onActivateItem?: (item: SessionItem, direction: 'forward' | 'backward') => void;
 }
 
 export function SequenceManager({
@@ -35,9 +39,18 @@ export function SequenceManager({
   onCreateBatch,
   onDeleteBatch,
   onDeleteSlide,
+  isLive = false,
+  activeSessionItemId = null,
+  onActivateItem,
 }: SequenceManagerProps) {
   const { sessionItems, batches, questions } = useSessionStore();
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Use navigation hook for keyboard shortcuts and navigation controls
+  const { currentIndex, canGoNext, canGoPrev, goNext, goPrev, jumpTo } = useSequenceNavigation({
+    enabled: isLive && !!onActivateItem,
+    onActivateItem: onActivateItem ?? (() => {}),
+  });
 
   const dndId = useId();
 
@@ -148,14 +161,9 @@ export function SequenceManager({
 
   return (
     <div className="space-y-3">
-      <DndContext
-        id={dndId}
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+      {/* Live mode: read-only list with navigation */}
+      {isLive ? (
+        <>
           <div className="space-y-2">
             {sessionItems.map((item, index) => (
               <SequenceItemCard
@@ -172,46 +180,104 @@ export function SequenceManager({
                     ? batchQuestionCounts[item.batch_id] ?? 0
                     : undefined
                 }
-                onDelete={handleDeleteItem}
-                onExpandBatch={onExpandBatch}
+                onDelete={() => {}}
+                onExpandBatch={undefined}
+                isActive={item.id === activeSessionItemId}
+                onClick={() => jumpTo(item.id)}
               />
             ))}
           </div>
-        </SortableContext>
 
-        <DragOverlay>
-          {activeItem && (
-            <div className="bg-white border-2 border-indigo-400 rounded-lg p-3 shadow-lg opacity-90">
-              <div className="flex items-center gap-2">
-                {activeItem.item_type === 'batch' && activeItem.batch_id ? (
-                  <>
-                    <span className="text-blue-600 font-medium">
-                      {batchMap[activeItem.batch_id]?.name ?? 'Batch'}
-                    </span>
-                    <span className="text-gray-400 text-sm">
-                      {batchQuestionCounts[activeItem.batch_id] ?? 0} questions
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-purple-600 font-medium">
-                    {activeItem.slide_caption || 'Slide'}
-                  </span>
-                )}
+          {/* Navigation controls */}
+          <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+            <button
+              onClick={goPrev}
+              disabled={!canGoPrev}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed text-gray-700 text-sm font-medium rounded-lg transition-colors"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-500">
+              {currentIndex >= 0 ? `${currentIndex + 1} / ${sessionItems.length}` : '--'}
+            </span>
+            <button
+              onClick={goNext}
+              disabled={!canGoNext}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </>
+      ) : (
+        /* Draft mode: DnD reordering enabled */
+        <>
+          <DndContext
+            id={dndId}
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+              <div className="space-y-2">
+                {sessionItems.map((item, index) => (
+                  <SequenceItemCard
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    batch={
+                      item.item_type === 'batch' && item.batch_id
+                        ? batchMap[item.batch_id]
+                        : undefined
+                    }
+                    questionCount={
+                      item.item_type === 'batch' && item.batch_id
+                        ? batchQuestionCounts[item.batch_id] ?? 0
+                        : undefined
+                    }
+                    onDelete={handleDeleteItem}
+                    onExpandBatch={onExpandBatch}
+                  />
+                ))}
               </div>
-            </div>
-          )}
-        </DragOverlay>
-      </DndContext>
+            </SortableContext>
 
-      {/* Bottom action button */}
-      <div className="flex gap-3 mt-3">
-        <button
-          onClick={onCreateBatch}
-          className="px-4 py-2 border border-dashed border-gray-300 hover:border-blue-400 text-gray-500 hover:text-blue-600 rounded-lg transition-colors"
-        >
-          + New Batch
-        </button>
-      </div>
+            <DragOverlay>
+              {activeItem && (
+                <div className="bg-white border-2 border-indigo-400 rounded-lg p-3 shadow-lg opacity-90">
+                  <div className="flex items-center gap-2">
+                    {activeItem.item_type === 'batch' && activeItem.batch_id ? (
+                      <>
+                        <span className="text-blue-600 font-medium">
+                          {batchMap[activeItem.batch_id]?.name ?? 'Batch'}
+                        </span>
+                        <span className="text-gray-400 text-sm">
+                          {batchQuestionCounts[activeItem.batch_id] ?? 0} questions
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-purple-600 font-medium">
+                        {activeItem.slide_caption || 'Slide'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </DragOverlay>
+          </DndContext>
+
+          {/* Bottom action button */}
+          <div className="flex gap-3 mt-3">
+            <button
+              onClick={onCreateBatch}
+              className="px-4 py-2 border border-dashed border-gray-300 hover:border-blue-400 text-gray-500 hover:text-blue-600 rounded-lg transition-colors"
+            >
+              + New Batch
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

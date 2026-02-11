@@ -49,6 +49,7 @@ export default function AdminSession() {
     reset,
     activeBatchId,
     setActiveBatchId,
+    activeSessionItemId,
   } = useSessionStore();
   const { templates } = useTemplateStore();
   const [copied, setCopied] = useState(false);
@@ -556,6 +557,12 @@ export default function AdminSession() {
         event: 'session_active',
         payload: {},
       });
+
+      // Auto-activate first sequence item if any exist
+      const sessionItems = useSessionStore.getState().sessionItems;
+      if (sessionItems.length > 0) {
+        await handleActivateSequenceItem(sessionItems[0], 'forward');
+      }
     }
     setTransitioning(false);
   }
@@ -857,6 +864,43 @@ export default function AdminSession() {
         type: 'broadcast',
         event: 'batch_closed',
         payload: { batchId },
+      });
+    }
+  }
+
+  async function handleActivateSequenceItem(item: SessionItem, direction: 'forward' | 'backward') {
+    // Set active item and direction in store
+    useSessionStore.getState().setActiveSessionItemId(item.id);
+    useSessionStore.getState().setNavigationDirection(direction);
+
+    if (item.item_type === 'batch' && item.batch_id) {
+      // Activate batch (no timer for sequence navigation)
+      await handleActivateBatch(item.batch_id, null);
+    } else if (item.item_type === 'slide') {
+      // Clear any active batch first
+      if (activeBatchId) {
+        await handleCloseBatch(activeBatchId);
+      }
+
+      // Close any active individual question
+      await supabase
+        .from('questions')
+        .update({ status: 'closed' as const })
+        .eq('session_id', session!.session_id)
+        .eq('status', 'active');
+
+      for (const q of questions) {
+        if (q.status === 'active') {
+          updateQuestion(q.id, { status: 'closed' });
+        }
+      }
+      stopCountdown();
+
+      // Broadcast slide activation to participants
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'slide_activated',
+        payload: { itemId: item.id },
       });
     }
   }
@@ -1229,60 +1273,81 @@ export default function AdminSession() {
 
       {/* Active View: hero question + results for projection */}
       {isActive && (
-        <div className="bg-white">
-          {/* Top header bar */}
-          <div className="border-b border-gray-200 px-6 py-3 flex items-center justify-between h-14 shrink-0">
-            <h1 className="text-2xl font-bold text-gray-900">{session.title}</h1>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={handleToggleSessionReasons}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
-                  session.reasons_enabled
-                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                }`}
-                title={session.reasons_enabled ? 'Reasons enabled - click to disable' : 'Reasons disabled - click to enable'}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                </svg>
-                {session.reasons_enabled ? 'Reasons On' : 'Reasons Off'}
-              </button>
-              <ParticipantCount count={participantCount} size="default" />
+        <div className="bg-white flex">
+          {/* Left sidebar with SequenceManager */}
+          <div className="w-80 shrink-0 border-r border-gray-200 bg-gray-50 overflow-y-auto" style={{ height: '100dvh' }}>
+            <div className="p-4 border-b border-gray-200 bg-white">
+              <h2 className="text-lg font-semibold text-gray-900">{session.title}</h2>
+            </div>
+            <div className="p-4">
+              <SequenceManager
+                sessionId={session.session_id}
+                onExpandBatch={() => {}}
+                onCreateBatch={async () => undefined}
+                onDeleteBatch={() => {}}
+                onDeleteSlide={() => {}}
+                isLive={true}
+                activeSessionItemId={activeSessionItemId}
+                onActivateItem={handleActivateSequenceItem}
+              />
             </div>
           </div>
 
-          {/* Progress Dashboard - only during active batch voting */}
-          {showProgressDashboard && (
-            <ProgressDashboard
-              questionIds={activeBatchQuestionIds}
-              participantCount={participantCount}
-              voteCounts={questionVoteCounts}
-              countdownRemaining={countdownRemaining}
-              countdownRunning={countdownRunning}
-            />
-          )}
-
-          {/* Timer bar for single question voting (not batch) */}
-          {!showProgressDashboard && activeQuestion && countdownRunning && (
-            <div className="border-b border-gray-200 px-6 py-3 flex justify-center">
-              <CountdownTimer
-                remainingSeconds={Math.ceil(countdownRemaining / 1000)}
-                isRunning={countdownRunning}
-                size="hero"
-                theme="light"
-              />
+          {/* Right main area */}
+          <div className="flex-1 flex flex-col">
+            {/* Top header bar */}
+            <div className="border-b border-gray-200 px-6 py-3 flex items-center justify-between h-14 shrink-0">
+              <h1 className="text-2xl font-bold text-gray-900">{session.title}</h1>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleToggleSessionReasons}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                    session.reasons_enabled
+                      ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  }`}
+                  title={session.reasons_enabled ? 'Reasons enabled - click to disable' : 'Reasons disabled - click to enable'}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                  </svg>
+                  {session.reasons_enabled ? 'Reasons On' : 'Reasons Off'}
+                </button>
+                <ParticipantCount count={participantCount} size="default" />
+              </div>
             </div>
-          )}
 
-          {/* Hero fills viewport minus header (56px), control bar (56px), and optional dashboard/timer bar */}
-          <div className="max-w-6xl mx-auto px-6 overflow-y-auto" style={{
-            height: showProgressDashboard
-              ? 'calc(100dvh - 12rem)'
-              : (activeQuestion && countdownRunning)
-                ? 'calc(100dvh - 10rem)'
-                : 'calc(100dvh - 7rem)'
-          }}>
+            {/* Progress Dashboard - only during active batch voting */}
+            {showProgressDashboard && (
+              <ProgressDashboard
+                questionIds={activeBatchQuestionIds}
+                participantCount={participantCount}
+                voteCounts={questionVoteCounts}
+                countdownRemaining={countdownRemaining}
+                countdownRunning={countdownRunning}
+              />
+            )}
+
+            {/* Timer bar for single question voting (not batch) */}
+            {!showProgressDashboard && activeQuestion && countdownRunning && (
+              <div className="border-b border-gray-200 px-6 py-3 flex justify-center">
+                <CountdownTimer
+                  remainingSeconds={Math.ceil(countdownRemaining / 1000)}
+                  isRunning={countdownRunning}
+                  size="hero"
+                  theme="light"
+                />
+              </div>
+            )}
+
+            {/* Hero fills viewport minus header (56px), control bar (56px), and optional dashboard/timer bar */}
+            <div className="max-w-6xl mx-auto px-6 overflow-y-auto" style={{
+              height: showProgressDashboard
+                ? 'calc(100dvh - 12rem)'
+                : (activeQuestion && countdownRunning)
+                  ? 'calc(100dvh - 10rem)'
+                  : 'calc(100dvh - 7rem)'
+            }}>
             {/* Active batch summary */}
             {showProgressDashboard ? (
               (() => {
@@ -1388,62 +1453,63 @@ export default function AdminSession() {
             )}
           </div>
 
-          {/* Previous results grid — only shown when no active voting */}
-          {!activeQuestion && !showProgressDashboard && closedQuestions.length > 0 && (
-            <div className="max-w-5xl mx-auto px-6 py-8 pb-20">
-              <h2 className="text-lg font-semibold text-gray-700 mb-4">
-                Previous Results
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {closedQuestions.map((q) => {
-                  const votes = sessionVotes[q.id] ?? [];
-                  const aggregated = aggregateVotes(votes);
-                  const template = q.template_id ? templates.find(t => t.id === q.template_id) : null;
-                  const ordered = buildConsistentBarData(q, aggregated, template?.options);
-                  const barData = ordered.map((vc, index) => {
-                    let color: string;
-                    if (q.type === 'agree_disagree') {
-                      const key = vc.value.toLowerCase() as 'agree' | 'disagree' | 'sometimes';
-                      color =
-                        AGREE_DISAGREE_COLORS[key] ??
-                        MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
-                    } else {
-                      color = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
-                    }
-                    return {
-                      label: vc.value,
-                      count: vc.count,
-                      percentage: vc.percentage,
-                      color,
-                    };
-                  });
+            {/* Previous results grid — only shown when no active voting */}
+            {!activeQuestion && !showProgressDashboard && closedQuestions.length > 0 && (
+              <div className="max-w-5xl mx-auto px-6 py-8 pb-20">
+                <h2 className="text-lg font-semibold text-gray-700 mb-4">
+                  Previous Results
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {closedQuestions.map((q) => {
+                    const votes = sessionVotes[q.id] ?? [];
+                    const aggregated = aggregateVotes(votes);
+                    const template = q.template_id ? templates.find(t => t.id === q.template_id) : null;
+                    const ordered = buildConsistentBarData(q, aggregated, template?.options);
+                    const barData = ordered.map((vc, index) => {
+                      let color: string;
+                      if (q.type === 'agree_disagree') {
+                        const key = vc.value.toLowerCase() as 'agree' | 'disagree' | 'sometimes';
+                        color =
+                          AGREE_DISAGREE_COLORS[key] ??
+                          MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
+                      } else {
+                        color = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
+                      }
+                      return {
+                        label: vc.value,
+                        count: vc.count,
+                        percentage: vc.percentage,
+                        color,
+                      };
+                    });
 
-                  const qIndex = questions.findIndex((qn) => qn.id === q.id);
+                    const qIndex = questions.findIndex((qn) => qn.id === q.id);
 
-                  return (
-                    <div
-                      key={q.id}
-                      className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2"
-                    >
-                      <p className="text-sm text-gray-500">Q{qIndex + 1}</p>
-                      <p className="text-sm font-medium text-gray-800 truncate">
-                        {q.text}
-                      </p>
-                      {aggregated.length > 0 ? (
-                        <BarChart
-                          data={barData}
-                          totalVotes={votes.length}
-                          theme="light"
-                        />
-                      ) : (
-                        <p className="text-xs text-gray-400">No votes</p>
-                      )}
-                    </div>
-                  );
-                })}
+                    return (
+                      <div
+                        key={q.id}
+                        className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2"
+                      >
+                        <p className="text-sm text-gray-500">Q{qIndex + 1}</p>
+                        <p className="text-sm font-medium text-gray-800 truncate">
+                          {q.text}
+                        </p>
+                        {aggregated.length > 0 ? (
+                          <BarChart
+                            data={barData}
+                            totalVotes={votes.length}
+                            theme="light"
+                          />
+                        ) : (
+                          <p className="text-xs text-gray-400">No votes</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
