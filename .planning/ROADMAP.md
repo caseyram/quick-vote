@@ -41,7 +41,7 @@ See `.planning/milestones/` for archived details.
 - [x] **Phase 16: Image Slides** - DB schema, Storage bucket, image upload pipeline, and slide CRUD
 - [x] **Phase 17: Unified Sequence** - Single ordered list of slides and batches with drag-and-drop
 - [x] **Phase 18: Presentation Controller** - Live session advancing through the sequence with keyboard and buttons
-- [ ] **Phase 19: Presenter View** - Separate projection window synced via Realtime with admin controls
+- [x] **Phase 19: Presenter View** - Separate projection window synced via Realtime with admin controls
 - [ ] **Phase 20: Session Templates** - Save, load, and manage full session blueprints in Supabase
 - [ ] **Phase 21: Export/Import + Polish** - Extended JSON export/import with slides, thumbnails, and QR overlay
 
@@ -104,8 +104,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 19-01-PLAN.md -- Presentation window route + PresentationView page, admin PresentationControls layout, mode switch in AdminSession
-- [ ] 19-02-PLAN.md -- QR overlay, black screen, keyboard shortcuts, fullscreen API, admin-controlled batch result reveal with reason highlighting
+- [x] 19-01-PLAN.md -- Presentation window route + PresentationView page, admin PresentationControls layout, mode switch in AdminSession
+- [x] 19-02-PLAN.md -- QR overlay, black screen, keyboard shortcuts, fullscreen API, admin-controlled batch result reveal with reason highlighting
 
 ### Phase 20: Session Templates
 **Goal**: Admin can save a complete session structure as a reusable template in Supabase and load it into new sessions
@@ -147,7 +147,7 @@ Phases execute in numeric order: 16 → 17 → 18 → 19 → 20 → 21
 | 16. Image Slides | v1.3 | 2/2 | ✓ Complete | 2026-02-10 |
 | 17. Unified Sequence | v1.3 | 2/2 | ✓ Complete | 2026-02-11 |
 | 18. Presentation Controller | v1.3 | 2/2 | ✓ Complete | 2026-02-11 |
-| 19. Presenter View | v1.3 | 0/2 | Not started | - |
+| 19. Presenter View | v1.3 | 2/2 | ✓ Complete | 2026-02-11 |
 | 20. Session Templates | v1.3 | 0/2 | Not started | - |
 | 21. Export/Import + Polish | v1.3 | 0/2 | Not started | - |
 

@@ -22,12 +22,12 @@
 
 ## Presenter View
 
-- [ ] **PRES-01**: Admin can open a separate presentation window via an "Open Presentation" button that displays the clean projected view (full-screen current item, no controls)
-- [ ] **PRES-02**: Admin control view shows sequence list, next/previous controls, preview of upcoming item, and QR toggle
-- [ ] **PRES-03**: Presentation window syncs with admin control view via Supabase Realtime (supports cross-device operation)
-- [ ] **PRES-04**: Admin can trigger QR code expand/collapse overlay on the presentation view from the control view
-- [ ] **PRES-05**: Extended keyboard shortcuts in admin control view: Space (advance), Escape (exit presentation), B (black screen)
-- [ ] **PRES-06**: Fullscreen API toggle in presentation view for one-click browser fullscreen
+- [x] **PRES-01**: Admin can open a separate presentation window via an "Open Presentation" button that displays the clean projected view (full-screen current item, no controls)
+- [x] **PRES-02**: Admin control view shows sequence list, next/previous controls, preview of upcoming item, and QR toggle
+- [x] **PRES-03**: Presentation window syncs with admin control view via Supabase Realtime (supports cross-device operation)
+- [x] **PRES-04**: Admin can trigger QR code expand/collapse overlay on the presentation view from the control view
+- [x] **PRES-05**: Extended keyboard shortcuts in admin control view: Space (advance), Escape (exit presentation), B (black screen)
+- [x] **PRES-06**: Fullscreen API toggle in presentation view for one-click browser fullscreen
 
 ## Session Templates in Supabase
 
