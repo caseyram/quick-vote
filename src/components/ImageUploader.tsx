@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import imageCompression from 'browser-image-compression';
 import { uploadSlideImage } from '../lib/slide-api';
-import { Upload } from 'lucide-react';
 
 interface ImageUploaderProps {
   sessionId: string;
@@ -165,7 +164,7 @@ export function ImageUploader({ sessionId, onUploaded, disabled = false }: Image
         disabled={disabled || isLoading}
         className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 hover:border-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        <Upload className="w-4 h-4" />
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>
         {isLoading ? getStatusText() : 'Upload Image'}
       </button>
 

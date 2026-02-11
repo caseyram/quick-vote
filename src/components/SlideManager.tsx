@@ -8,7 +8,6 @@ import {
   getSlideImageUrl,
 } from '../lib/slide-api';
 import type { SessionItem } from '../types/database';
-import { Image as ImageIcon, X, Eye, Trash2 } from 'lucide-react';
 
 interface SlideManagerProps {
   sessionId: string;
@@ -119,7 +118,7 @@ export function SlideManager({ sessionId }: SlideManagerProps) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex items-center gap-2 mb-4">
-          <ImageIcon className="w-5 h-5 text-gray-700" />
+          <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={2}/><circle cx="8.5" cy="8.5" r="1.5" strokeWidth={2}/><path d="M21 15l-5-5L5 21" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>
           <h2 className="text-lg font-semibold text-gray-900">Image Slides</h2>
         </div>
         <p className="text-gray-600">Loading slides...</p>
@@ -131,7 +130,7 @@ export function SlideManager({ sessionId }: SlideManagerProps) {
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
-        <ImageIcon className="w-5 h-5 text-gray-700" />
+        <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={2}/><circle cx="8.5" cy="8.5" r="1.5" strokeWidth={2}/><path d="M21 15l-5-5L5 21" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>
         <h2 className="text-lg font-semibold text-gray-900">Image Slides</h2>
         <span className="ml-auto text-sm font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded">
           {slides.length}
@@ -153,7 +152,7 @@ export function SlideManager({ sessionId }: SlideManagerProps) {
       {/* Slide list */}
       {slides.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
-          <ImageIcon className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+          <svg className="w-12 h-12 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={2}/><circle cx="8.5" cy="8.5" r="1.5" strokeWidth={2}/><path d="M21 15l-5-5L5 21" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>
           <p>No slides yet. Upload an image to get started.</p>
         </div>
       ) : (
@@ -207,14 +206,14 @@ export function SlideManager({ sessionId }: SlideManagerProps) {
                   className="p-2 text-gray-600 hover:text-blue-600 hover:bg-white rounded transition-colors"
                   title="Preview"
                 >
-                  <Eye className="w-4 h-4" />
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="3" strokeWidth={2}/></svg>
                 </button>
                 <button
                   onClick={() => handleDelete(slide)}
                   className="p-2 text-gray-600 hover:text-red-600 hover:bg-white rounded transition-colors"
                   title="Delete"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </button>
               </div>
             </div>
@@ -234,7 +233,7 @@ export function SlideManager({ sessionId }: SlideManagerProps) {
             className="absolute top-4 right-4 p-2 text-white hover:bg-white/10 rounded-full transition-colors"
             title="Close (Esc)"
           >
-            <X className="w-6 h-6" />
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
 
           {/* Image */}
