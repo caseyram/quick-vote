@@ -20,19 +20,32 @@ const QuestionImportSchema = z.object({
   votes: z.array(z.any()).optional(),
 });
 
-// Schema for batch import
+// Schema for slide import
+const SlideImportSchema = z.object({
+  type: z.literal('slide'),
+  position: z.number(),
+  image_path: z.string(),
+  caption: z.string().nullable(),
+});
+
+// Schema for batch import (type field optional for backward compat with v1.2)
 const BatchImportSchema = z.object({
+  type: z.literal('batch').optional(),
   name: z.string().min(1, 'Batch name is required'),
   position: z.number(),
   questions: z.array(QuestionImportSchema).min(1, 'Each batch must have at least one question'),
 });
 
+// Union type for batch/slide entries
+const BatchOrSlideSchema = z.union([BatchImportSchema, SlideImportSchema]);
+
 // Top-level import schema
 export const ImportSchema = z.object({
   session_name: z.string().optional(),
   created_at: z.string().optional(),
-  batches: z.array(BatchImportSchema).min(1, 'At least one batch is required'),
+  batches: z.array(BatchOrSlideSchema).min(1, 'At least one batch or slide is required'),
   templates: z.array(TemplateImportSchema).optional(),
+  session_template_name: z.string().nullable().optional(),
 });
 
 export type ImportData = z.infer<typeof ImportSchema>;
@@ -254,6 +267,45 @@ export async function validateImportFile(file: File): Promise<ValidationResult> 
 }
 
 /**
+ * Validates that slide image paths exist in Supabase Storage.
+ * Returns list of missing paths.
+ */
+async function validateSlideImages(
+  sessionId: string,
+  slidePaths: string[]
+): Promise<string[]> {
+  if (slidePaths.length === 0) return [];
+
+  const missing: string[] = [];
+
+  for (const path of slidePaths) {
+    // List files in storage to check if path exists
+    const { data, error } = await supabase
+      .storage
+      .from('slides')
+      .list(sessionId, {
+        limit: 1000,
+        search: path.split('/').pop(), // Get filename
+      });
+
+    if (error || !data) {
+      missing.push(path);
+      continue;
+    }
+
+    // Check if exact file exists in the list
+    const filename = path.split('/').pop();
+    const exists = data.some(file => file.name === filename);
+
+    if (!exists) {
+      missing.push(path);
+    }
+  }
+
+  return missing;
+}
+
+/**
  * Upserts templates during import with name-based deduplication.
  *
  * For each template:
@@ -333,7 +385,8 @@ async function upsertTemplates(
 
 /**
  * Imports validated session data into the database.
- * Creates batches and questions, preserving batch groupings.
+ * Creates batches, questions, and session_items (for both batches and slides).
+ * Handles slides with Storage validation.
  * Votes in import data are ignored (structure-only import).
  *
  * Note: Import is NOT transactional at database level.
@@ -341,168 +394,192 @@ async function upsertTemplates(
  */
 export async function importSessionData(
   sessionId: string,
-  data: ImportData
-): Promise<{ batchCount: number; questionCount: number; templateCount: number }> {
+  data: ImportData,
+  onMissingSlides?: (missingPaths: string[]) => Promise<boolean>
+): Promise<{ batchCount: number; questionCount: number; templateCount: number; slideCount: number; missingSlideCount: number }> {
   // Import templates FIRST (before questions, due to FK constraint)
   const templateMap = await upsertTemplates(data.templates ?? []);
 
-  // Get existing batch positions to append after
-  const { data: existingBatches } = await supabase
-    .from('batches')
-    .select('position')
-    .eq('session_id', sessionId)
-    .order('position', { ascending: false })
-    .limit(1);
+  // Separate slides and batches
+  const slideEntries = data.batches.filter((entry): entry is z.infer<typeof SlideImportSchema> =>
+    'type' in entry && entry.type === 'slide'
+  );
+  const batchEntries = data.batches.filter((entry): entry is z.infer<typeof BatchImportSchema> =>
+    !('type' in entry && entry.type === 'slide')
+  );
 
-  // Get existing question positions to append after
-  const { data: existingQuestions } = await supabase
-    .from('questions')
-    .select('position')
-    .eq('session_id', sessionId)
-    .order('position', { ascending: false })
-    .limit(1);
+  // Validate slide images if any exist
+  const slidePaths = slideEntries.map(s => s.image_path);
+  let missingSlides: string[] = [];
+  let slideCount = 0;
 
-  const batchStartPos = (existingBatches?.[0]?.position ?? -1) + 1;
-  const questionStartPos = (existingQuestions?.[0]?.position ?? -1) + 1;
+  if (slidePaths.length > 0) {
+    missingSlides = await validateSlideImages(sessionId, slidePaths);
 
-  let totalQuestions = 0;
-
-  // Separate real batches from _unbatched pseudo-batch
-  const batchesToInsert = data.batches.filter(b => b.name !== '_unbatched');
-  const unbatchedBatch = data.batches.find(b => b.name === '_unbatched');
-
-  // Build ordered question list FIRST by interleaving batches and unbatched questions
-  // Strategy: Sort batches by position, then interleave unbatched questions
-  // based on their position values (which indicate where they slot in relative to batches)
-
-  const sortedBatches = [...batchesToInsert].sort((a, b) => a.position - b.position);
-  const unbatchedQuestions = (unbatchedBatch?.questions ?? []).map((q, idx) => ({
-    question: q,
-    position: q.position ?? (10000 + idx), // Fallback to end if no position
-  }));
-
-  // Build the final ordered list
-  // Unbatched question position N means it comes AFTER the batch at position N-1
-  // So position 1 = after batch 0, position 4 = after batch 3, etc.
-  const allQuestions: Array<{
-    originalBatchPosition: number | null; // null for unbatched, used to map to batch
-    question: typeof data.batches[0]['questions'][0];
-  }> = [];
-
-  let unbatchedIdx = 0;
-  // Sort unbatched by position
-  unbatchedQuestions.sort((a, b) => a.position - b.position);
-
-  for (let batchIdx = 0; batchIdx < sortedBatches.length; batchIdx++) {
-    const batch = sortedBatches[batchIdx];
-    const nextBatchPos = sortedBatches[batchIdx + 1]?.position ?? Infinity;
-
-    // Add all questions from this batch (sorted by their relative position)
-    const sortedQuestions = [...batch.questions].sort(
-      (a, b) => (a.position ?? 0) - (b.position ?? 0)
-    );
-    for (const question of sortedQuestions) {
-      allQuestions.push({ originalBatchPosition: batch.position, question });
+    if (missingSlides.length > 0) {
+      // Prompt user confirmation
+      if (onMissingSlides) {
+        const confirmed = await onMissingSlides(missingSlides);
+        if (!confirmed) {
+          throw new Error('Import cancelled: some slide images are missing');
+        }
+      } else {
+        // No callback provided - fail
+        throw new Error(`Import failed: ${missingSlides.length} slide image(s) not found in Storage`);
+      }
     }
+  }
 
-    // Add any unbatched questions that come between this batch and the next
-    // Unbatched position X means it comes after batch at position X-1
-    // So if current batch is at position 0 and next is at position 2,
-    // unbatched questions with positions 1 would go here
-    while (
-      unbatchedIdx < unbatchedQuestions.length &&
-      unbatchedQuestions[unbatchedIdx].position < nextBatchPos
-    ) {
-      allQuestions.push({
-        originalBatchPosition: null,
-        question: unbatchedQuestions[unbatchedIdx].question,
+  // Get existing session_items position to append after
+  const { data: existingItems } = await supabase
+    .from('session_items')
+    .select('position')
+    .eq('session_id', sessionId)
+    .order('position', { ascending: false })
+    .limit(1);
+
+  const itemStartPos = (existingItems?.[0]?.position ?? -1) + 1;
+
+  // Filter out _unbatched pseudo-batch
+  const realBatches = batchEntries.filter(b => b.name !== '_unbatched');
+  const unbatchedBatch = batchEntries.find(b => b.name === '_unbatched');
+
+  // Sort all entries by position to maintain import order
+  const sortedEntries = [...data.batches].sort((a, b) => a.position - b.position);
+
+  // Track inserted batches with their original positions
+  const insertedBatches: Array<{ id: string; name: string; originalPosition: number }> = [];
+  const insertedSessionItems: Array<{ item_type: 'batch' | 'slide'; position: number; batch_id?: string; slide_image_path?: string; slide_caption?: string | null }> = [];
+
+  let currentItemPosition = itemStartPos;
+
+  // Process entries in position order
+  for (const entry of sortedEntries) {
+    if ('type' in entry && entry.type === 'slide') {
+      // Skip slides with missing images
+      if (missingSlides.includes(entry.image_path)) {
+        continue;
+      }
+
+      // Create session_item for slide
+      insertedSessionItems.push({
+        item_type: 'slide',
+        position: currentItemPosition++,
+        slide_image_path: entry.image_path,
+        slide_caption: entry.caption,
       });
-      unbatchedIdx++;
+      slideCount++;
+    } else if ('questions' in entry && entry.name !== '_unbatched') {
+      // Insert batch first to get ID
+      const { data: batch, error: batchError } = await supabase
+        .from('batches')
+        .insert({
+          session_id: sessionId,
+          name: entry.name,
+          position: currentItemPosition, // Batch position matches session_item position
+          status: 'pending' as const,
+        })
+        .select('id, name')
+        .single();
+
+      if (batchError) {
+        throw new Error(`Failed to import batch "${entry.name}": ${batchError.message}`);
+      }
+
+      insertedBatches.push({
+        id: batch.id,
+        name: batch.name,
+        originalPosition: entry.position,
+      });
+
+      // Create session_item for batch
+      insertedSessionItems.push({
+        item_type: 'batch',
+        position: currentItemPosition++,
+        batch_id: batch.id,
+      });
+
+      // Insert questions for this batch
+      const questionInserts = entry.questions.map((q, idx) => ({
+        session_id: sessionId,
+        batch_id: batch.id,
+        text: q.text,
+        type: q.type,
+        options: q.options,
+        anonymous: q.anonymous,
+        position: idx,
+        status: 'pending' as const,
+        template_id: q.template_id ? (templateMap.get(q.template_id) ?? null) : null,
+      }));
+
+      const { error: qError } = await supabase
+        .from('questions')
+        .insert(questionInserts);
+
+      if (qError) {
+        throw new Error(`Failed to import questions for batch "${entry.name}": ${qError.message}`);
+      }
     }
   }
 
-  // Add any remaining unbatched questions at the end
-  while (unbatchedIdx < unbatchedQuestions.length) {
-    allQuestions.push({
-      originalBatchPosition: null,
-      question: unbatchedQuestions[unbatchedIdx].question,
-    });
-    unbatchedIdx++;
-  }
-
-  // Calculate correct batch positions based on where their first question appears
-  // in the interleaved list (this ensures batch position matches question positions)
-  const batchNewPositions = new Map<number, number>(); // originalBatchPosition -> newPosition
-  for (let i = 0; i < allQuestions.length; i++) {
-    const origPos = allQuestions[i].originalBatchPosition;
-    if (origPos !== null && !batchNewPositions.has(origPos)) {
-      // First question of this batch - batch position = this question's position
-      batchNewPositions.set(origPos, questionStartPos + i);
-    }
-  }
-
-  // Insert batches with corrected positions
-  let insertedBatches: Array<{ id: string; name: string; position: number }> = [];
-  if (batchesToInsert.length > 0) {
-    const batchInserts = batchesToInsert.map((batch) => ({
+  // Handle unbatched questions (create questions without batch, no session_item)
+  let unbatchedQuestionCount = 0;
+  if (unbatchedBatch) {
+    const unbatchedInserts = unbatchedBatch.questions.map((q, idx) => ({
       session_id: sessionId,
-      name: batch.name,
-      position: batchNewPositions.get(batch.position) ?? (batchStartPos + batch.position),
+      batch_id: null,
+      text: q.text,
+      type: q.type,
+      options: q.options,
+      anonymous: q.anonymous,
+      position: currentItemPosition + idx,
       status: 'pending' as const,
+      template_id: q.template_id ? (templateMap.get(q.template_id) ?? null) : null,
     }));
 
-    const { data: batches, error: batchError } = await supabase
-      .from('batches')
-      .insert(batchInserts)
-      .select('id, name, position');
+    if (unbatchedInserts.length > 0) {
+      const { error: qError } = await supabase
+        .from('questions')
+        .insert(unbatchedInserts);
 
-    if (batchError) {
-      throw new Error(`Failed to import batches: ${batchError.message}`);
-    }
-    insertedBatches = batches ?? [];
-  }
-
-  // Create batch original position to ID map for question association
-  // Using original position as key since batch names can be duplicated
-  const batchIdByOriginalPosition = new Map<number, string>();
-  for (const batch of batchesToInsert) {
-    const insertedBatch = insertedBatches.find(
-      ib => ib.position === batchNewPositions.get(batch.position)
-    );
-    if (insertedBatch) {
-      batchIdByOriginalPosition.set(batch.position, insertedBatch.id);
+      if (qError) {
+        throw new Error(`Failed to import unbatched questions: ${qError.message}`);
+      }
+      unbatchedQuestionCount = unbatchedInserts.length;
     }
   }
 
-  // Insert questions in the computed order
-  const questionInserts = allQuestions.map((item, idx) => ({
-    session_id: sessionId,
-    batch_id: item.originalBatchPosition === null
-      ? null
-      : batchIdByOriginalPosition.get(item.originalBatchPosition) ?? null,
-    text: item.question.text,
-    type: item.question.type,
-    options: item.question.options,
-    anonymous: item.question.anonymous,
-    position: questionStartPos + idx,
-    status: 'pending' as const,
-    template_id: item.question.template_id ? (templateMap.get(item.question.template_id) ?? null) : null,
-  }));
+  // Insert all session_items
+  if (insertedSessionItems.length > 0) {
+    const sessionItemInserts = insertedSessionItems.map(item => ({
+      session_id: sessionId,
+      item_type: item.item_type,
+      position: item.position,
+      batch_id: item.batch_id ?? null,
+      slide_image_path: item.slide_image_path ?? null,
+      slide_caption: item.slide_caption ?? null,
+    }));
 
-  if (questionInserts.length > 0) {
-    const { error: qError } = await supabase
-      .from('questions')
-      .insert(questionInserts);
+    const { error: itemError } = await supabase
+      .from('session_items')
+      .insert(sessionItemInserts);
 
-    if (qError) {
-      throw new Error(`Failed to import questions: ${qError.message}`);
+    if (itemError) {
+      throw new Error(`Failed to create session items: ${itemError.message}`);
     }
-    totalQuestions = questionInserts.length;
   }
+
+  // Calculate total question count
+  const totalQuestions = insertedBatches.reduce((sum, batch) => {
+    const entry = realBatches.find(b => b.name === batch.name);
+    return sum + (entry?.questions.length ?? 0);
+  }, 0) + unbatchedQuestionCount;
 
   return {
     batchCount: insertedBatches.length,
     questionCount: totalQuestions,
     templateCount: templateMap.size,
+    slideCount,
+    missingSlideCount: missingSlides.length,
   };
 }
