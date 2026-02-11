@@ -55,7 +55,7 @@ export function SessionTemplatePanel({ sessionId }: SessionTemplatePanelProps) {
   // Fetch templates on mount
   useEffect(() => {
     fetchSessionTemplates().catch((err) => {
-      console.error('Failed to fetch session templates:', err);
+      console.error('Failed to fetch session templates:', err?.message || err);
     });
   }, []);
 
