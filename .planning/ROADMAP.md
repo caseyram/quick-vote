@@ -101,11 +101,11 @@ Plans:
   3. Presentation window stays in sync with admin control view via Supabase Realtime, including when admin and presentation are on different devices
   4. Admin can expand/collapse a QR code overlay on the presentation window from the control view, for latecomers to join
   5. Admin can use extended keyboard shortcuts (Space to advance, Escape to exit presentation, B for black screen) and toggle browser fullscreen in the presentation window
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 19-01: Presentation window launch, control/projection view split
-- [ ] 19-02: Realtime sync, QR overlay control, keyboard shortcuts, fullscreen API
+- [ ] 19-01-PLAN.md -- Presentation window route + PresentationView page, admin PresentationControls layout, mode switch in AdminSession
+- [ ] 19-02-PLAN.md -- QR overlay, black screen, keyboard shortcuts, fullscreen API, admin-controlled batch result reveal with reason highlighting
 
 ### Phase 20: Session Templates
 **Goal**: Admin can save a complete session structure as a reusable template in Supabase and load it into new sessions
