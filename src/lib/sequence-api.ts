@@ -15,7 +15,12 @@ export async function ensureSessionItems(sessionId: string): Promise<SessionItem
     .eq('session_id', sessionId)
     .order('position', { ascending: true });
 
-  if (fetchError) throw fetchError;
+  if (fetchError) {
+    // SELECT may fail if table doesn't exist yet or RLS blocks read.
+    // Return empty and let the caller handle gracefully.
+    console.warn('session_items fetch failed:', fetchError.message);
+    return [];
+  }
 
   const items = existingItems ?? [];
 
@@ -58,7 +63,22 @@ export async function ensureSessionItems(sessionId: string): Promise<SessionItem
     .insert(newBatchItems)
     .select();
 
-  if (insertError) throw insertError;
+  if (insertError) {
+    // INSERT may fail if user's anonymous auth identity changed (RLS 403).
+    // Fall back to virtual items from batches so the UI still renders.
+    console.warn('session_items backfill failed (likely RLS), using client-side items:', insertError.message);
+    const virtualItems: SessionItem[] = batches.map((batch, index) => ({
+      id: batch.id,
+      session_id: sessionId,
+      item_type: 'batch' as SessionItem['item_type'],
+      position: index,
+      batch_id: batch.id,
+      slide_image_path: null,
+      slide_caption: null,
+      created_at: new Date().toISOString(),
+    }));
+    return [...virtualItems, ...items].sort((a, b) => a.position - b.position);
+  }
 
   // Return ALL session_items (newly created batch items + existing slide items)
   const allItems = [...(insertedItems ?? []), ...items].sort(

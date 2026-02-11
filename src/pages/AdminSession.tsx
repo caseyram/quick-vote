@@ -133,8 +133,12 @@ export default function AdminSession() {
       }
 
       // Backfill and load session items (unified sequence)
-      const sessionItemsData = await ensureSessionItems(sessionData.session_id);
-      useSessionStore.getState().setSessionItems(sessionItemsData);
+      try {
+        const sessionItemsData = await ensureSessionItems(sessionData.session_id);
+        useSessionStore.getState().setSessionItems(sessionItemsData);
+      } catch (err) {
+        console.warn('Failed to load session items:', err);
+      }
 
       // Fetch existing votes for all questions in this session
       if (sessionData.status === 'active' || sessionData.status === 'ended') {
