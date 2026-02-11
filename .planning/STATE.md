@@ -12,16 +12,16 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 ## Current Position
 
 **Milestone:** v1.3 Presentation Mode
-**Phase:** 19 of 21 (Presenter View) -- 6 phases, 12 plans
-**Plan:** 2 of 2 complete (Phase 19 COMPLETE)
-**Status:** Phase 19 complete, ready for Phase 20 (Session Templates)
-**Last activity:** 2026-02-11 -- Completed 19-02-PLAN.md (presenter view interactions)
+**Phase:** 20 of 21 (Session Templates) -- 6 phases, 12 plans
+**Plan:** 1 of 2 complete
+**Status:** In progress - Phase 20
+**Last activity:** 2026-02-11 -- Completed 20-01-PLAN.md (session templates foundation)
 
 Progress: [██████████░░░░░░░░░░] 50%
 
-**Current Focus:** Phase 19 COMPLETE -- Presenter View delivered
+**Current Focus:** Phase 20 Plan 01 COMPLETE -- Session templates data layer delivered
 
-**Next Action:** `/gsd:discuss-phase 20`
+**Next Action:** Execute 20-02-PLAN.md (template UI)
 
 ## Milestone History
 
@@ -79,6 +79,10 @@ See PROJECT.md for full decision log.
 | 19-02 | F key only works in same window (Fullscreen API browser security) | Browser prevents cross-window fullscreen control | Users press F in presentation window |
 | 19-02 | PresentationView does NOT broadcast B key to avoid echo loops | Only control view broadcasts black screen state | B key in presentation window only affects local state |
 | 19-02 | All batch results hidden by default when batch activates | Admin explicitly reveals each question for audience | Gives admin time to review before projecting |
+| 20-01 | Templates sorted by updated_at DESC | Most recently used templates appear first in picker UI | Better UX for frequent template users |
+| 20-01 | serializeSession is pure function | No DB calls enables unit testing, faster execution | Pure function takes state params, returns blueprint synchronously |
+| 20-01 | Response template validation in loadTemplateIntoSession | Prevents broken template_id references | Returns missingTemplateCount for UI warnings |
+| 20-01 | structuredClone prevents blueprint mutation | Prevents accidental modification during deserialization | Safe to modify cloned blueprint during processing |
 
 ### Research Highlights (v1.3)
 
@@ -91,6 +95,7 @@ See PROJECT.md for full decision log.
 ### Known Issues
 
 - **PostgREST schema cache:** claim_session RPC returns 404 until PostgREST cache refreshes. Project restart needed. Call is wrapped in try-catch so it doesn't block loading.
+- **Migration pending:** session_templates migration (20250211_050_session_templates.sql) must be applied manually via Supabase Dashboard SQL Editor before template UI can function.
 
 ### Blockers
 
@@ -98,11 +103,11 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-02-11 -- Phase 19 executed successfully
-**Stopped at:** Completed Phase 19 (Presenter View) -- PHASE 19 COMPLETE
-**Next action:** `/gsd:discuss-phase 20`
+**Last session:** 2026-02-11 18:51:49Z -- Phase 20 Plan 01 executed successfully
+**Stopped at:** Completed 20-01-PLAN.md (session templates foundation)
+**Next action:** Execute 20-02-PLAN.md (template UI)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-11 -- Phase 19 complete (Presenter View), 14/22 requirements delivered*
+*Updated: 2026-02-11 -- Phase 20 Plan 01 complete (session templates foundation)*
