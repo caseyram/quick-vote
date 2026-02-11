@@ -8,6 +8,9 @@ import { useCountdown } from '../hooks/use-countdown';
 import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation';
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../components/BarChart';
 import { BatchList } from '../components/BatchList';
+import { BatchCard } from '../components/BatchCard';
+import { SequenceManager } from '../components/SequenceManager';
+import { ImageUploader } from '../components/ImageUploader';
 import { SessionQRCode } from '../components/QRCode';
 import SessionResults from '../components/SessionResults';
 import { ConnectionBanner } from '../components/ConnectionBanner';
@@ -25,7 +28,8 @@ import { TemplateSelector } from '../components/TemplateSelector';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { checkQuestionVotes, fetchTemplates } from '../lib/template-api';
 import { ensureSessionItems, createBatchSessionItem } from '../lib/sequence-api';
-import type { Question, Vote, Batch } from '../types/database';
+import { createSlide, deleteSlide } from '../lib/slide-api';
+import type { Question, Vote, Batch, SessionItem } from '../types/database';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export default function AdminSession() {
@@ -59,6 +63,8 @@ export default function AdminSession() {
   const [resultsViewIndex, setResultsViewIndex] = useState(0);
   const [bulkApplyConfirm, setBulkApplyConfirm] = useState<{ templateId: string; questionCount: number; skippedCount: number } | null>(null);
   const [bulkApplying, setBulkApplying] = useState(false);
+  const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
+  const [addingToBatchId, setAddingToBatchId] = useState<string | null>(null);
 
   // Track session ID in a ref for the channel setup callback
   const sessionIdRef = useRef<string | null>(null);
@@ -695,6 +701,26 @@ export default function AdminSession() {
     });
   }
 
+  async function handleDeleteSlide(item: SessionItem) {
+    if (!window.confirm('Delete this slide? The image will be permanently removed.')) return;
+    try {
+      await deleteSlide(item.id, item.slide_image_path!);
+      useSessionStore.getState().removeSessionItem(item.id);
+    } catch (err) {
+      console.error('Failed to delete slide:', err);
+    }
+  }
+
+  async function handleSlideUploaded(imagePath: string) {
+    if (!session) return;
+    try {
+      const newSlide = await createSlide(session.session_id, imagePath, null);
+      useSessionStore.getState().addSessionItem(newSlide);
+    } catch (err) {
+      console.error('Failed to create slide:', err);
+    }
+  }
+
   async function handleMoveQuestionToBatch(questionId: string, batchId: string | null) {
     // Update question's batch_id in database
     const { error } = await supabase
@@ -1057,36 +1083,67 @@ export default function AdminSession() {
               </div>
             </div>
 
-            {/* Question list with edit/delete/reorder */}
+            {/* Session Sequence - unified list of batches and slides */}
             <div className="bg-white rounded-lg p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Questions & Batches</h2>
-              <BatchList
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Session Sequence</h2>
+              <SequenceManager
                 sessionId={session.session_id}
-                batches={batches}
-                questions={questions}
-                activeBatchId={activeBatchId}
-                activeQuestionId={activeQuestion?.id ?? null}
-                editingQuestion={editingQuestion}
-                showActivateButton={false}
-                onEditQuestion={setEditingQuestion}
-                onCancelEdit={handleCancelEdit}
-                onDeleteQuestion={handleDelete}
-                onBatchNameChange={handleBatchNameChange}
-                onQuestionReorder={handleQuestionReorder}
-                onAddQuestionToBatch={(batchId) => _setAddingQuestionToBatchId(batchId)}
+                onExpandBatch={(batchId) => setExpandedBatchId(batchId)}
                 onCreateBatch={handleCreateBatch}
                 onDeleteBatch={handleDeleteBatch}
-                onActivateBatch={handleActivateBatch}
-                onCloseBatch={handleCloseBatch}
-                onMoveQuestionToBatch={handleMoveQuestionToBatch}
-                onReorderItems={handleReorderItems}
+                onDeleteSlide={handleDeleteSlide}
               />
+
+              {/* Expanded batch detail panel */}
+              {expandedBatchId && (() => {
+                const batch = batches.find(b => b.id === expandedBatchId);
+                if (!batch) return null;
+                return (
+                  <div className="bg-white rounded-lg p-4 border border-blue-200 mt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-medium text-gray-500">Editing Batch</h3>
+                      <button onClick={() => setExpandedBatchId(null)} className="text-gray-400 hover:text-gray-600 text-sm">
+                        Close
+                      </button>
+                    </div>
+                    <BatchCard
+                      sessionId={session.session_id}
+                      batch={batch}
+                      questions={questions.filter(q => q.batch_id === batch.id)}
+                      isExpanded={true}
+                      isAddingQuestion={addingToBatchId === batch.id}
+                      isActive={false}
+                      canActivate={false}
+                      showActivateButton={false}
+                      onToggle={() => setExpandedBatchId(null)}
+                      onNameChange={(name) => handleBatchNameChange(batch.id, name)}
+                      onQuestionReorder={(ids) => handleQuestionReorder(batch.id, ids)}
+                      onEditQuestion={setEditingQuestion}
+                      onDeleteQuestion={handleDelete}
+                      onAddQuestion={() => setAddingToBatchId(batch.id)}
+                      onAddQuestionDone={() => setAddingToBatchId(null)}
+                      onDeleteBatch={() => handleDeleteBatch(batch.id)}
+                      onActivate={handleActivateBatch}
+                      onClose={handleCloseBatch}
+                      editingQuestion={editingQuestion}
+                      onCancelEdit={handleCancelEdit}
+                    />
+                  </div>
+                );
+              })()}
+
+              {/* Image uploader */}
+              <div className="pt-4 border-t border-gray-200">
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Add Slide</h3>
+                <ImageUploader sessionId={session.session_id} onUploaded={handleSlideUploaded} />
+              </div>
+
               <div className="pt-4 border-t border-gray-200">
                 <SessionImportExport
                   sessionId={session.session_id}
                   sessionName={session.title}
                   onImportComplete={async () => {
-                    // Refetch questions and batches after import
+                    // Refetch questions, batches, and session items after import
                     const { data: questionsData } = await supabase
                       .from('questions')
                       .select('*')
@@ -1099,8 +1156,15 @@ export default function AdminSession() {
                       .eq('session_id', session.session_id)
                       .order('position');
 
+                    const { data: itemsData } = await supabase
+                      .from('session_items')
+                      .select('*')
+                      .eq('session_id', session.session_id)
+                      .order('position');
+
                     if (questionsData) useSessionStore.getState().setQuestions(questionsData);
                     if (batchesData) useSessionStore.getState().setBatches(batchesData);
+                    if (itemsData) useSessionStore.getState().setSessionItems(itemsData);
                   }}
                 />
               </div>
@@ -1109,9 +1173,6 @@ export default function AdminSession() {
             {/* Templates */}
             <ResponseTemplatePanel />
             <TemplatePanel sessionId={session.session_id} />
-
-            {/* Image Slides */}
-            <SlideManager sessionId={session.session_id} />
           </div>
         </div>
       )}
