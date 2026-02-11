@@ -7,6 +7,8 @@ import { useRealtimeChannel } from '../hooks/use-realtime-channel';
 import type { ConnectionStatus } from '../hooks/use-realtime-channel';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { SlideDisplay } from '../components/SlideDisplay';
+import { QROverlay, type QRMode } from '../components/QROverlay';
+import { KeyboardShortcutHelp } from '../components/KeyboardShortcutHelp';
 
 export default function PresentationView() {
   const { sessionId } = useParams();
@@ -23,6 +25,9 @@ export default function PresentationView() {
   } = useSessionStore();
 
   const [showFullscreenHint, setShowFullscreenHint] = useState(true);
+  const [qrMode, setQrMode] = useState<QRMode>('hidden');
+  const [blackScreenActive, setBlackScreenActive] = useState(false);
+  const [showShortcutHelp, setShowShortcutHelp] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const prevConnectionStatus = useRef<ConnectionStatus>('connecting');
 
@@ -132,6 +137,16 @@ export default function PresentationView() {
       }
     });
 
+    // Listen for QR overlay toggle
+    channel.on('broadcast', { event: 'presentation_qr_toggle' }, ({ payload }: any) => {
+      setQrMode(payload.mode);
+    });
+
+    // Listen for black screen toggle
+    channel.on('broadcast', { event: 'black_screen_toggle' }, ({ payload }: any) => {
+      setBlackScreenActive(payload.active);
+    });
+
     channelRef.current = channel;
   }, []);
 
@@ -177,12 +192,23 @@ export default function PresentationView() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Keyboard shortcuts for fullscreen
+  // Keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.repeat) return;
 
+      // Skip if user is typing in an input field
+      const target = event.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT'
+      ) {
+        return;
+      }
+
       if (event.key === 'f' || event.key === 'F') {
+        // Toggle fullscreen
         if (!document.fullscreenElement) {
           document.documentElement.requestFullscreen().catch((err) => {
             console.error('Fullscreen request failed:', err);
@@ -190,14 +216,25 @@ export default function PresentationView() {
         } else {
           document.exitFullscreen();
         }
-      } else if (event.key === 'Escape' && document.fullscreenElement) {
-        document.exitFullscreen();
+      } else if (event.key === 'Escape') {
+        // Exit fullscreen or close shortcut help
+        if (showShortcutHelp) {
+          setShowShortcutHelp(false);
+        } else if (document.fullscreenElement) {
+          document.exitFullscreen();
+        }
+      } else if (event.key === 'b' || event.key === 'B') {
+        // Toggle black screen locally (do NOT broadcast - control view broadcasts)
+        setBlackScreenActive((prev) => !prev);
+      } else if (event.key === '?') {
+        // Toggle keyboard shortcut help
+        setShowShortcutHelp((prev) => !prev);
       }
     }
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [showShortcutHelp]);
 
   // Find current active item
   const currentItem = activeSessionItemId
@@ -225,15 +262,10 @@ export default function PresentationView() {
 
   const isSlideActive = currentItem?.item_type === 'slide';
 
+  const sessionUrl = sessionId ? `${window.location.origin}/session/${sessionId}` : '';
+
   return (
     <div className="fixed inset-0 bg-[#1a1a1a] flex items-center justify-center overflow-hidden">
-      {/* Reconnecting indicator */}
-      {connectionStatus === 'reconnecting' && (
-        <div className="fixed top-4 right-4 bg-orange-500 text-white px-3 py-1 rounded-full text-sm animate-pulse z-50">
-          Reconnecting...
-        </div>
-      )}
-
       {/* Main projection content */}
       <AnimatePresence mode="wait" custom={navigationDirection}>
         <motion.div
@@ -281,6 +313,35 @@ export default function PresentationView() {
           )}
         </motion.div>
       </AnimatePresence>
+
+      {/* QR overlay */}
+      <QROverlay mode={qrMode} sessionUrl={sessionUrl} />
+
+      {/* Black screen overlay */}
+      <AnimatePresence>
+        {blackScreenActive && (
+          <motion.div
+            className="fixed inset-0 bg-black z-[200]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: 'easeInOut' }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Keyboard shortcut help overlay */}
+      <KeyboardShortcutHelp
+        visible={showShortcutHelp}
+        onClose={() => setShowShortcutHelp(false)}
+      />
+
+      {/* Reconnecting indicator */}
+      {connectionStatus === 'reconnecting' && (
+        <div className="fixed top-4 right-4 bg-orange-500 text-white px-3 py-1 rounded-full text-sm animate-pulse z-50">
+          Reconnecting...
+        </div>
+      )}
 
       {/* First-time fullscreen hint */}
       <AnimatePresence>

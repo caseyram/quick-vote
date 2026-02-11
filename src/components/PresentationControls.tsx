@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { ConnectionStatus } from '../hooks/use-realtime-channel';
 import type { SessionItem, Vote } from '../types/database';
@@ -7,6 +7,8 @@ import { useSequenceNavigation } from '../hooks/use-sequence-navigation';
 import { SequenceManager } from './SequenceManager';
 import { SlideDisplay } from './SlideDisplay';
 import { ParticipantCount } from './ParticipantCount';
+import { KeyboardShortcutHelp } from './KeyboardShortcutHelp';
+import type { QRMode } from './QROverlay';
 
 interface PresentationControlsProps {
   sessionId: string;
@@ -39,6 +41,10 @@ export function PresentationControls({
     navigationDirection,
   } = useSessionStore();
 
+  const [qrMode, setQrMode] = useState<QRMode>('hidden');
+  const [blackScreenActive, setBlackScreenActive] = useState(false);
+  const [showShortcutHelp, setShowShortcutHelp] = useState(false);
+
   // Use navigation hook for keyboard shortcuts
   const { currentIndex, canGoNext, canGoPrev, goNext, goPrev } = useSequenceNavigation({
     enabled: true,
@@ -59,21 +65,57 @@ export function PresentationControls({
     );
   }
 
-  // Placeholder handlers for Plan 19-02 features
-  function handleQrToggle(mode: 'hidden' | 'corner' | 'fullscreen') {
-    console.log('QR toggle:', mode);
-    // Plan 19-02: Will broadcast qr_toggle event
+  function handleQrToggle(mode: QRMode) {
+    setQrMode(mode);
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'presentation_qr_toggle',
+      payload: { mode },
+    });
   }
 
   function handleBlackScreenToggle() {
-    console.log('Black screen toggle');
-    // Plan 19-02: Will broadcast black_screen_toggle event
+    const newState = !blackScreenActive;
+    setBlackScreenActive(newState);
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'black_screen_toggle',
+      payload: { active: newState },
+    });
   }
 
   function handleShowShortcuts() {
-    console.log('Show keyboard shortcuts');
-    // Plan 19-02: Will show keyboard shortcut overlay
+    setShowShortcutHelp(true);
   }
+
+  // Keyboard shortcuts in control view
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.repeat) return;
+
+      // Skip if user is typing in an input field
+      const target = event.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT'
+      ) {
+        return;
+      }
+
+      if (event.key === 'b' || event.key === 'B') {
+        handleBlackScreenToggle();
+      } else if (event.key === '?') {
+        setShowShortcutHelp((prev) => !prev);
+      } else if (event.key === 'Escape' && showShortcutHelp) {
+        setShowShortcutHelp(false);
+      }
+      // Space, ArrowRight, ArrowLeft are already handled by useSequenceNavigation hook
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [blackScreenActive, showShortcutHelp]);
 
   return (
     <div className="flex h-screen bg-white">
@@ -177,19 +219,31 @@ export function PresentationControls({
           <div className="space-y-2">
             <button
               onClick={() => handleQrToggle('hidden')}
-              className="w-full px-3 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm transition-colors"
+              className={`w-full px-3 py-2 rounded text-sm transition-colors ${
+                qrMode === 'hidden'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
               Hidden
             </button>
             <button
               onClick={() => handleQrToggle('corner')}
-              className="w-full px-3 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm transition-colors"
+              className={`w-full px-3 py-2 rounded text-sm transition-colors ${
+                qrMode === 'corner'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
               Corner
             </button>
             <button
               onClick={() => handleQrToggle('fullscreen')}
-              className="w-full px-3 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm transition-colors"
+              className={`w-full px-3 py-2 rounded text-sm transition-colors ${
+                qrMode === 'fullscreen'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
               Full Screen
             </button>
@@ -201,9 +255,13 @@ export function PresentationControls({
           <h3 className="text-sm font-semibold text-gray-700 mb-2">Presentation</h3>
           <button
             onClick={handleBlackScreenToggle}
-            className="w-full px-3 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm transition-colors"
+            className={`w-full px-3 py-2 rounded text-sm transition-colors ${
+              blackScreenActive
+                ? 'bg-gray-800 text-white hover:bg-gray-900'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
           >
-            Black Screen
+            {blackScreenActive ? 'Show Content' : 'Black Screen'}
           </button>
         </div>
 
@@ -222,6 +280,12 @@ export function PresentationControls({
           </button>
         </div>
       </div>
+
+      {/* Keyboard shortcut help overlay */}
+      <KeyboardShortcutHelp
+        visible={showShortcutHelp}
+        onClose={() => setShowShortcutHelp(false)}
+      />
     </div>
   );
 }
