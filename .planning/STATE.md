@@ -13,13 +13,13 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Milestone:** v1.3 Presentation Mode
 **Phase:** 21 of 21 (Export/Import Polish) -- IN PROGRESS
-**Plan:** 1 of 2 complete (21-02 complete)
+**Plan:** 1 of 2 complete (21-01 complete)
 **Status:** Phase 21 in progress
-**Last activity:** 2026-02-11 -- Completed 21-02-PLAN.md (slide thumbnails and QR overlay polish)
+**Last activity:** 2026-02-11 -- Completed 21-01-PLAN.md (export/import schema extension)
 
 Progress: [███████████████████░░] 100%
 
-**Current Focus:** Phase 21 in progress -- Slide thumbnails enlarged, QR overlay polished
+**Current Focus:** Phase 21 in progress -- Export/import with slides, Storage validation, template provenance
 
 **Next Action:** Continue Phase 21 remaining plans
 
@@ -89,9 +89,15 @@ See PROJECT.md for full decision log.
 | 20-02 | Relative date formatting in template list | Shows "2 hours ago", "Yesterday" instead of absolute timestamps | Better UX for frequently accessed templates |
 | 20-02 | Replace mode deletes all content before loading | Ensures truly clean slate, no position conflicts | Predictable behavior for destructive action |
 | 20-02 | Append mode offsets positions by max existing position | Prevents position collisions when adding templates to existing session | Maintains item order consistency |
-| 21-02 | w-16 h-12 thumbnail size for slides in sequence editor | Provides better visual recognition without dominating card layout | Improved slide identification at a glance |
-| 21-02 | bg-white/90 semi-transparent QR overlay | Ensures QR codes remain scannable against dark slide backgrounds | QR codes work on any slide content |
-| 21-02 | bg-gray-100 thumbnail container for light theme consistency | Aligns with admin light theme instead of dark backgrounds | Consistent admin UI aesthetic |
+| 20-02 | w-16 h-12 thumbnail size for slides in sequence editor | Provides better visual recognition without dominating card layout | Improved slide identification at a glance |
+| 20-02 | bg-white/90 semi-transparent QR overlay | Ensures QR codes remain scannable against dark slide backgrounds | QR codes work on any slide content |
+| 20-02 | bg-gray-100 thumbnail container for light theme consistency | Aligns with admin light theme instead of dark backgrounds | Consistent admin UI aesthetic |
+| 21-01 | Use discriminated union for export schema | Preserves import order of slides and batches in single array | Single batches field maintains backward compatibility while supporting mixed content |
+| 21-01 | Relative Storage paths in export (not URLs) | URLs change across environments, paths are portable | Export files work across dev/prod environments |
+| 21-01 | .passthrough() on ImportSchema | Allows unknown fields for forward compatibility | v1.2 importers ignore new fields instead of failing validation |
+| 21-01 | Optional type field on BatchImportSchema | v1.2 exports lack type field | Backward compatibility with existing exports |
+| 21-01 | Storage validation before import | Prevents broken slide refs in database | User prompted for missing images, can cancel or skip |
+| 21-01 | Create session_items during import | Maintains slide/batch interleaving from export | Position order preserved through export/import cycle |
 
 ### Research Highlights (v1.3)
 
@@ -112,11 +118,11 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-02-11 23:29:17Z -- Phase 21 Plan 02 executed successfully
-**Stopped at:** Completed 21-02-PLAN.md (slide thumbnails and QR overlay polish)
+**Last session:** 2026-02-11 23:36:01Z -- Phase 21 Plan 01 executed successfully
+**Stopped at:** Completed 21-01-PLAN.md (export/import schema extension)
 **Next action:** Continue Phase 21 remaining plans
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-11 -- Phase 21 Plan 02 complete (slide thumbnails and QR overlay polish)*
+*Updated: 2026-02-11 -- Phase 21 Plan 01 complete (export/import with slides, Storage validation, template provenance)*
