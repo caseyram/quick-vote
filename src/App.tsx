@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import SessionReview from './pages/SessionReview';
 import AdminSession from './pages/AdminSession';
 import ParticipantSession from './pages/ParticipantSession';
+import PresentationView from './pages/PresentationView';
 
 function App() {
   const { ready } = useAuth();
@@ -23,6 +24,7 @@ function App() {
         <Route path="/admin" element={<Navigate to="/" replace />} />
         <Route path="/admin/review/:sessionId" element={<SessionReview />} />
         <Route path="/admin/:adminToken" element={<AdminSession />} />
+        <Route path="/presentation/:sessionId" element={<PresentationView />} />
         <Route path="/session/:sessionId" element={<ParticipantSession />} />
       </Routes>
     </BrowserRouter>
