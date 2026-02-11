@@ -54,12 +54,15 @@ export interface ValidationResult {
 /**
  * Exports session questions and batches to the import format.
  * Unbatched questions are grouped under a special '_unbatched' batch.
+ * If sessionItems provided, interleaves slides with batches in position order.
  */
 export function exportSessionData(
   questions: Question[],
   batches: Batch[],
   sessionName?: string,
-  templates?: Array<{ id: string; name: string; options: string[] }>
+  templates?: Array<{ id: string; name: string; options: string[] }>,
+  sessionItems?: Array<{ id: string; session_id: string; item_type: 'batch' | 'slide'; position: number; batch_id: string | null; slide_image_path: string | null; slide_caption: string | null }>,
+  sessionTemplateName?: string | null
 ): string {
   // Build ID-to-name map for templates
   const idToNameMap = new Map<string, string>();
@@ -79,10 +82,11 @@ export function exportSessionData(
   }
 
   // Build export data
-  const exportBatches: Array<{
-    name: string;
+  const exportEntries: Array<{
+    type?: 'batch' | 'slide';
+    name?: string;
     position: number;
-    questions: Array<{
+    questions?: Array<{
       text: string;
       type: string;
       options: string[] | null;
@@ -90,45 +94,83 @@ export function exportSessionData(
       position: number;
       template_id: string | null;
     }>;
+    image_path?: string;
+    caption?: string | null;
   }> = [];
 
-  // Add actual batches with their questions
-  const sortedBatches = [...batches].sort((a, b) => a.position - b.position);
-  for (const batch of sortedBatches) {
-    const batchQuestions = batchedQuestions.get(batch.id) ?? [];
-    const sortedQuestions = [...batchQuestions].sort((a, b) => a.position - b.position);
+  // If session_items provided, use them to interleave batches and slides
+  if (sessionItems && sessionItems.length > 0) {
+    for (const item of sessionItems) {
+      if (item.item_type === 'batch' && item.batch_id) {
+        const batch = batches.find(b => b.id === item.batch_id);
+        if (batch) {
+          const batchQuestions = batchedQuestions.get(batch.id) ?? [];
+          const sortedQuestions = [...batchQuestions].sort((a, b) => a.position - b.position);
 
-    exportBatches.push({
-      name: batch.name,
-      position: batch.position,
-      questions: sortedQuestions.map(q => ({
-        text: q.text,
-        type: q.type,
-        options: q.options,
-        anonymous: q.anonymous,
-        position: q.position,
-        template_id: q.template_id ? (idToNameMap.get(q.template_id) ?? null) : null,
-      })),
-    });
-  }
+          exportEntries.push({
+            type: 'batch',
+            name: batch.name,
+            position: item.position,
+            questions: sortedQuestions.map(q => ({
+              text: q.text,
+              type: q.type,
+              options: q.options,
+              anonymous: q.anonymous,
+              position: q.position,
+              template_id: q.template_id ? (idToNameMap.get(q.template_id) ?? null) : null,
+            })),
+          });
+        }
+      } else if (item.item_type === 'slide' && item.slide_image_path) {
+        exportEntries.push({
+          type: 'slide',
+          position: item.position,
+          image_path: item.slide_image_path,
+          caption: item.slide_caption,
+        });
+      }
+    }
+  } else {
+    // Legacy export without session_items - batch-only export
+    const sortedBatches = [...batches].sort((a, b) => a.position - b.position);
+    for (const batch of sortedBatches) {
+      const batchQuestions = batchedQuestions.get(batch.id) ?? [];
+      const sortedQuestions = [...batchQuestions].sort((a, b) => a.position - b.position);
 
-  // Add unbatched questions under special '_unbatched' pseudo-batch
-  // Position is -1 to indicate this is not a real batch (filtered out during import)
-  const unbatched = batchedQuestions.get(null) ?? [];
-  if (unbatched.length > 0) {
-    const sortedUnbatched = [...unbatched].sort((a, b) => a.position - b.position);
-    exportBatches.push({
-      name: '_unbatched',
-      position: -1,
-      questions: sortedUnbatched.map(q => ({
-        text: q.text,
-        type: q.type,
-        options: q.options,
-        anonymous: q.anonymous,
-        position: q.position,
-        template_id: q.template_id ? (idToNameMap.get(q.template_id) ?? null) : null,
-      })),
-    });
+      exportEntries.push({
+        type: 'batch',
+        name: batch.name,
+        position: batch.position,
+        questions: sortedQuestions.map(q => ({
+          text: q.text,
+          type: q.type,
+          options: q.options,
+          anonymous: q.anonymous,
+          position: q.position,
+          template_id: q.template_id ? (idToNameMap.get(q.template_id) ?? null) : null,
+        })),
+      });
+    }
+
+    // Add unbatched questions under special '_unbatched' pseudo-batch
+    // Position is -1 to indicate this is not a real batch (filtered out during import)
+    const unbatched = batchedQuestions.get(null) ?? [];
+    if (unbatched.length > 0) {
+      const sortedUnbatched = [...unbatched].sort((a, b) => a.position - b.position);
+      exportEntries.push({
+        type: 'batch',
+        name: '_unbatched',
+        position: -1,
+        questions: sortedUnbatched.map(q => ({
+          text: q.text,
+          type: q.type,
+          options: q.options,
+          anonymous: q.anonymous,
+          position: q.position,
+          template_id: q.template_id ? (idToNameMap.get(q.template_id) ?? null) : null,
+        })),
+      });
+    }
   }
 
   // Collect unique template IDs referenced by questions
@@ -147,8 +189,9 @@ export function exportSessionData(
   const exportData = {
     session_name: sessionName,
     created_at: new Date().toISOString(),
-    batches: exportBatches,
+    batches: exportEntries,
     templates: exportTemplates,
+    session_template_name: sessionTemplateName ?? null,
   };
 
   return JSON.stringify(exportData, null, 2);
