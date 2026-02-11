@@ -90,7 +90,8 @@ export default function AdminSession() {
       // Reclaim session ownership for current anonymous identity.
       // If browser data was cleared, auth.uid() changes but admin_token
       // still proves ownership. This updates created_by so RLS passes.
-      await supabase.rpc('claim_session', { p_admin_token: adminToken });
+      // Ignore errors (404 if PostgREST cache is stale, etc.)
+      try { await supabase.rpc('claim_session', { p_admin_token: adminToken }); } catch { /* ignore */ }
 
       const { data: sessionData, error: sessionError } = await supabase
         .from('sessions')
