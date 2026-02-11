@@ -1,0 +1,217 @@
+import { useState, useMemo, useId } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  type DragStartEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import type { SessionItem } from '../types/database';
+import { SequenceItemCard } from './SequenceItemCard';
+import { useSessionStore } from '../stores/session-store';
+import { reorderSessionItems } from '../lib/sequence-api';
+import { getSlideImageUrl } from '../lib/slide-api';
+
+interface SequenceManagerProps {
+  sessionId: string;
+  onExpandBatch: (batchId: string) => void;
+  onCreateBatch: () => Promise<string | undefined>;
+  onDeleteBatch: (batchId: string) => void;
+  onDeleteSlide: (item: SessionItem) => void;
+}
+
+export function SequenceManager({
+  sessionId,
+  onExpandBatch,
+  onCreateBatch,
+  onDeleteBatch,
+  onDeleteSlide,
+}: SequenceManagerProps) {
+  const { sessionItems, batches, questions } = useSessionStore();
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const dndId = useId();
+
+  // Batch question counts lookup
+  const batchQuestionCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const question of questions) {
+      if (question.batch_id) {
+        counts[question.batch_id] = (counts[question.batch_id] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [questions]);
+
+  // Batch objects lookup
+  const batchMap = useMemo(() => {
+    const map: Record<string, any> = {};
+    for (const batch of batches) {
+      map[batch.id] = batch;
+    }
+    return map;
+  }, [batches]);
+
+  // Sortable IDs
+  const sortableIds = useMemo(() => sessionItems.map((item) => item.id), [sessionItems]);
+
+  // Sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(event.active.id as string);
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    setActiveId(null);
+
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = sortableIds.indexOf(active.id as string);
+    const newIndex = sortableIds.indexOf(over.id as string);
+
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Compute new order
+    const newOrder = [...sortableIds];
+    newOrder.splice(oldIndex, 1);
+    newOrder.splice(newIndex, 0, active.id as string);
+
+    // Optimistic update
+    const updates = newOrder.map((id, idx) => ({ id, position: idx }));
+    useSessionStore.getState().updateSessionItemPositions(updates);
+
+    // Persist to database
+    try {
+      await reorderSessionItems(updates);
+    } catch (err) {
+      console.error('Failed to reorder session items:', err);
+      // Revert on error
+      const revert = sortableIds.map((id, idx) => ({ id, position: idx }));
+      useSessionStore.getState().updateSessionItemPositions(revert);
+    }
+  }
+
+  function handleDeleteItem(item: SessionItem) {
+    if (item.item_type === 'batch' && item.batch_id) {
+      onDeleteBatch(item.batch_id);
+    } else {
+      onDeleteSlide(item);
+    }
+  }
+
+  // Find active item for drag overlay
+  const activeItem = activeId
+    ? sessionItems.find((item) => item.id === activeId)
+    : null;
+
+  // Empty state
+  if (sessionItems.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-8">
+          <p className="text-gray-500 mb-4">
+            No items yet. Add a batch or slide to get started.
+          </p>
+        </div>
+        <div className="flex gap-3 justify-center">
+          <button
+            onClick={onCreateBatch}
+            className="px-4 py-2 border border-dashed border-gray-300 hover:border-blue-400 text-gray-500 hover:text-blue-600 rounded-lg transition-colors"
+          >
+            + New Batch
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <DndContext
+        id={dndId}
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2">
+            {sessionItems.map((item, index) => (
+              <SequenceItemCard
+                key={item.id}
+                item={item}
+                index={index}
+                batch={
+                  item.item_type === 'batch' && item.batch_id
+                    ? batchMap[item.batch_id]
+                    : undefined
+                }
+                questionCount={
+                  item.item_type === 'batch' && item.batch_id
+                    ? batchQuestionCounts[item.batch_id] ?? 0
+                    : undefined
+                }
+                onDelete={handleDeleteItem}
+                onExpandBatch={onExpandBatch}
+              />
+            ))}
+          </div>
+        </SortableContext>
+
+        <DragOverlay>
+          {activeItem && (
+            <div className="bg-white border-2 border-indigo-400 rounded-lg p-3 shadow-lg opacity-90">
+              <div className="flex items-center gap-2">
+                {activeItem.item_type === 'batch' && activeItem.batch_id ? (
+                  <>
+                    <span className="text-blue-600 font-medium">
+                      {batchMap[activeItem.batch_id]?.name ?? 'Batch'}
+                    </span>
+                    <span className="text-gray-400 text-sm">
+                      {batchQuestionCounts[activeItem.batch_id] ?? 0} questions
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-purple-600 font-medium">
+                    {activeItem.slide_caption || 'Slide'}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
+
+      {/* Bottom action button */}
+      <div className="flex gap-3 mt-3">
+        <button
+          onClick={onCreateBatch}
+          className="px-4 py-2 border border-dashed border-gray-300 hover:border-blue-400 text-gray-500 hover:text-blue-600 rounded-lg transition-colors"
+        >
+          + New Batch
+        </button>
+      </div>
+    </div>
+  );
+}
