@@ -85,11 +85,11 @@ Plans:
   2. When the active sequence item is a slide, the admin projection area displays the image full-screen; when it is a batch, voting activates normally
   3. Participants see a "Waiting for next question..." state when the admin is on a content slide (no image pushed to participant devices)
   4. Smooth fade/slide transition animations play when advancing between sequence items
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 18-01: Presentation state machine and admin navigation controls
-- [ ] 18-02: SlideDisplay projection, participant waiting state, transition animations
+- [ ] 18-01-PLAN.md -- Presentation state machine, session store extension, keyboard navigation hook, SequenceManager live mode with controls
+- [ ] 18-02-PLAN.md -- SlideDisplay projection component, animated transitions, participant slide_activated broadcast handler
 
 ### Phase 19: Presenter View
 **Goal**: Admin can operate the session from a control view while a separate presentation window shows the clean projected output, synced across devices via Realtime
