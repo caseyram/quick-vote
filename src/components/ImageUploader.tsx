@@ -18,10 +18,12 @@ export function ImageUploader({ sessionId, onUploaded, disabled = false }: Image
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewUrlRef = useRef<string | null>(null);
 
   const cleanupPreview = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
       setPreviewUrl(null);
     }
   };
@@ -75,6 +77,7 @@ export function ImageUploader({ sessionId, onUploaded, disabled = false }: Image
 
     // Show preview
     const previewObjectUrl = URL.createObjectURL(file);
+    previewUrlRef.current = previewObjectUrl;
     setPreviewUrl(previewObjectUrl);
 
     // Validate
