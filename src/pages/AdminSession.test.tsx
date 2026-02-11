@@ -132,6 +132,26 @@ vi.mock('../lib/supabase', () => ({
   },
 }));
 
+// -- Sequence API mock --
+const mockEnsureSessionItems = vi.fn().mockResolvedValue([]);
+const mockCreateBatchSessionItem = vi.fn().mockResolvedValue({
+  id: 'item-1',
+  session_id: 'sess-1',
+  item_type: 'batch',
+  position: 0,
+  batch_id: 'batch-1',
+  slide_image_path: null,
+  slide_caption: null,
+  created_at: '2025-01-01T00:00:00Z',
+});
+
+vi.mock('../lib/sequence-api', () => ({
+  ensureSessionItems: (...args: unknown[]) => mockEnsureSessionItems(...args),
+  createBatchSessionItem: (...args: unknown[]) => mockCreateBatchSessionItem(...args),
+  reorderSessionItems: vi.fn().mockResolvedValue(undefined),
+  fetchSessionItems: vi.fn().mockResolvedValue([]),
+}));
+
 // -- Session store mock --
 // Mutable state object so tests can set different store states.
 const mockSetSession = vi.fn();
@@ -147,6 +167,10 @@ const mockUpdateBatch = vi.fn();
 const mockRemoveBatch = vi.fn();
 const mockSetActiveBatchId = vi.fn();
 const mockSetBatchQuestions = vi.fn();
+const mockSetSessionItems = vi.fn();
+const mockAddSessionItem = vi.fn();
+const mockRemoveSessionItem = vi.fn();
+const mockUpdateSessionItemPositions = vi.fn();
 
 let mockStoreState: any = {};
 
@@ -155,6 +179,7 @@ function defaultStoreState(overrides: Record<string, any> = {}) {
     session: null,
     questions: [],
     batches: [],
+    sessionItems: [],
     loading: true,
     error: null,
     setSession: mockSetSession,
@@ -168,6 +193,10 @@ function defaultStoreState(overrides: Record<string, any> = {}) {
     addBatch: mockAddBatch,
     updateBatch: mockUpdateBatch,
     removeBatch: mockRemoveBatch,
+    setSessionItems: mockSetSessionItems,
+    addSessionItem: mockAddSessionItem,
+    removeSessionItem: mockRemoveSessionItem,
+    updateSessionItemPositions: mockUpdateSessionItemPositions,
     activeBatchId: null,
     setActiveBatchId: mockSetActiveBatchId,
     batchQuestions: [],

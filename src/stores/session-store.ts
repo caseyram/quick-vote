@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Session, Question, Vote, Batch } from '../types/database';
+import type { Session, Question, Vote, Batch, SessionItem } from '../types/database';
 import type { ConnectionStatus } from '../hooks/use-realtime-channel';
 import { supabase } from '../lib/supabase';
 
@@ -7,6 +7,7 @@ interface SessionState {
   session: Session | null;
   questions: Question[];
   batches: Batch[];
+  sessionItems: SessionItem[];
   loading: boolean;
   error: string | null;
 
@@ -20,6 +21,10 @@ interface SessionState {
   addBatch: (batch: Batch) => void;
   updateBatch: (id: string, updates: Partial<Batch>) => void;
   removeBatch: (id: string) => void;
+  setSessionItems: (items: SessionItem[]) => void;
+  addSessionItem: (item: SessionItem) => void;
+  removeSessionItem: (id: string) => void;
+  updateSessionItemPositions: (updates: { id: string; position: number }[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   reset: () => void;
@@ -54,6 +59,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   session: null,
   questions: [],
   batches: [],
+  sessionItems: [],
   loading: false,
   error: null,
 
@@ -99,6 +105,25 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     set((state) => ({
       batches: state.batches.filter((b) => b.id !== id),
     })),
+  setSessionItems: (items) =>
+    set({ sessionItems: [...items].sort((a, b) => a.position - b.position) }),
+  addSessionItem: (item) =>
+    set((state) => ({
+      sessionItems: [...state.sessionItems, item].sort((a, b) => a.position - b.position),
+    })),
+  removeSessionItem: (id) =>
+    set((state) => ({
+      sessionItems: state.sessionItems.filter((item) => item.id !== id),
+    })),
+  updateSessionItemPositions: (updates) =>
+    set((state) => ({
+      sessionItems: state.sessionItems
+        .map((item) => {
+          const update = updates.find((u) => u.id === item.id);
+          return update ? { ...item, position: update.position } : item;
+        })
+        .sort((a, b) => a.position - b.position),
+    })),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   reset: () =>
@@ -106,6 +131,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
       session: null,
       questions: [],
       batches: [],
+      sessionItems: [],
       loading: false,
       error: null,
       currentVote: null,

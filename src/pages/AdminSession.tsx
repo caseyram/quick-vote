@@ -24,6 +24,7 @@ import { DevTestFab } from '../components/DevTestFab';
 import { TemplateSelector } from '../components/TemplateSelector';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { checkQuestionVotes, fetchTemplates } from '../lib/template-api';
+import { ensureSessionItems, createBatchSessionItem } from '../lib/sequence-api';
 import type { Question, Vote, Batch } from '../types/database';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -124,6 +125,10 @@ export default function AdminSession() {
       if (!batchesError && batchesData) {
         setBatches(batchesData);
       }
+
+      // Backfill and load session items (unified sequence)
+      const sessionItemsData = await ensureSessionItems(sessionData.session_id);
+      useSessionStore.getState().setSessionItems(sessionItemsData);
 
       // Fetch existing votes for all questions in this session
       if (sessionData.status === 'active' || sessionData.status === 'ended') {
@@ -626,6 +631,9 @@ export default function AdminSession() {
 
     if (!err && data) {
       useSessionStore.getState().addBatch(data);
+      // Create corresponding session_item for the new batch
+      const sessionItem = await createBatchSessionItem(session.session_id, data.id);
+      useSessionStore.getState().addSessionItem(sessionItem);
       return data.id;
     }
   }
@@ -661,6 +669,15 @@ export default function AdminSession() {
         .order('position', { ascending: true });
       if (questionsData) {
         useSessionStore.getState().setQuestions(questionsData);
+      }
+      // Re-fetch session items to reflect cascade deletion
+      const { data: refreshedItems } = await supabase
+        .from('session_items')
+        .select('*')
+        .eq('session_id', session.session_id)
+        .order('position', { ascending: true });
+      if (refreshedItems) {
+        useSessionStore.getState().setSessionItems(refreshedItems);
       }
     }
   }
