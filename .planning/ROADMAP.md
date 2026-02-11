@@ -56,11 +56,11 @@ See `.planning/milestones/` for archived details.
   2. Admin can view an uploaded image displayed full-screen on the admin projection area with correct aspect ratio (no cropping, no distortion)
   3. Admin can create a slide, view it in a list, and delete it with the underlying Storage file automatically removed
   4. Admin can add and edit an optional title/label on each slide that appears in the admin management UI (not on projected display)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 16-01: Database schema, Storage bucket, RLS policies, TypeScript types
-- [ ] 16-02: Image upload pipeline with client-side compression and slide CRUD
+- [ ] 16-01-PLAN.md -- Database schema, Storage bucket, RLS policies, TypeScript types, slide-api module
+- [ ] 16-02-PLAN.md -- Image upload pipeline with client-side compression and slide CRUD UI
 
 ### Phase 17: Unified Sequence
 **Goal**: Admin can arrange slides and batches in a single ordered list that defines the session flow
