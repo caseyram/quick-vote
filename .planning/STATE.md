@@ -13,15 +13,15 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Milestone:** v1.3 Presentation Mode
 **Phase:** 18 of 21 (Presentation Controller) -- 6 phases, 12 plans
-**Plan:** 1 of ~2 complete
-**Status:** In progress
-**Last activity:** 2026-02-11 -- Completed 18-01-PLAN.md (presentation navigation)
+**Plan:** 2 of 2 complete (Phase 18 COMPLETE)
+**Status:** Phase 18 complete, ready for Phase 19 (Session Templates)
+**Last activity:** 2026-02-11 -- Completed 18-02-PLAN.md (slide display and animations)
 
-Progress: [██████░░░░░░░░░░░░░░] 34%
+Progress: [███████░░░░░░░░░░░░░] 39%
 
-**Current Focus:** Phase 18 -- Presentation Controller (live session advancing through sequence)
+**Current Focus:** Phase 18 COMPLETE -- Presentation Controller delivered
 
-**Next Action:** Plan 18-02 (slide projection and animations)
+**Next Action:** Phase 19 planning (Session Templates)
 
 ## Milestone History
 
@@ -71,6 +71,9 @@ See PROJECT.md for full decision log.
 | 18-01 | Keyboard navigation uses event.repeat check to prevent key-hold rapid fire | Prevents accidental rapid navigation from held keys, better UX | Clean navigation without throttling complexity |
 | 18-01 | SequenceManager has two modes: draft (DnD reordering) and live (read-only navigation) | Separates editing from presentation concerns, prevents accidental changes during live session | Clear mental model for draft vs. live sessions |
 | 18-01 | Auto-activate first sequence item when session transitions to active | Provides smooth start to presentation, no manual first-item click | Better presentation flow |
+| 18-02 | Horizontal spring animation for slide-to-slide, crossfade for batch transitions | Distinguishes content types, spring matches arrow key mental model | Smooth tactile navigation |
+| 18-02 | Slide projection fills entire admin projection area with dark letterbox background | Professional presentation aesthetic, avoids harsh white edges | Dark letterbox on #1a1a1a |
+| 18-02 | Participants see 'Waiting for next question...' during slides (no slide image visibility) | Keeps focus on presenter control, slide content is presenter-owned | Consistent waiting state |
 
 ### Research Highlights (v1.3)
 
@@ -90,11 +93,11 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-02-11 -- Plan 18-01 executed successfully
-**Stopped at:** Completed 18-01-PLAN.md (presentation navigation)
-**Next action:** Plan 18-02 (slide projection and animations)
+**Last session:** 2026-02-11 -- Plan 18-02 executed successfully
+**Stopped at:** Completed 18-02-PLAN.md (slide display and animations) -- PHASE 18 COMPLETE
+**Next action:** Phase 19 planning (Session Templates)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-11 -- Plan 18-01 complete, 6/22 requirements delivered*
+*Updated: 2026-02-11 -- Phase 18 complete (Presentation Controller), 8/22 requirements delivered*
