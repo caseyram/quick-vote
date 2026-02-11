@@ -39,7 +39,7 @@ See `.planning/milestones/` for archived details.
 - Decimal phases (17.1, 17.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 16: Image Slides** - DB schema, Storage bucket, image upload pipeline, and slide CRUD
-- [ ] **Phase 17: Unified Sequence** - Single ordered list of slides and batches with drag-and-drop
+- [x] **Phase 17: Unified Sequence** - Single ordered list of slides and batches with drag-and-drop
 - [ ] **Phase 18: Presentation Controller** - Live session advancing through the sequence with keyboard and buttons
 - [ ] **Phase 19: Presenter View** - Separate projection window synced via Realtime with admin controls
 - [ ] **Phase 20: Session Templates** - Save, load, and manage full session blueprints in Supabase
@@ -73,8 +73,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 17-01-PLAN.md -- sequence-api CRUD + backfill, session store extension, AdminSession load wiring
-- [ ] 17-02-PLAN.md -- SequenceManager UI with drag-and-drop reordering, AdminSession integration
+- [x] 17-01-PLAN.md -- sequence-api CRUD + backfill, session store extension, AdminSession load wiring
+- [x] 17-02-PLAN.md -- SequenceManager UI with drag-and-drop reordering, AdminSession integration
 
 ### Phase 18: Presentation Controller
 **Goal**: Admin can advance through the unified sequence during a live session, projecting slides and activating batches in order
@@ -145,7 +145,7 @@ Phases execute in numeric order: 16 → 17 → 18 → 19 → 20 → 21
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 16. Image Slides | v1.3 | 2/2 | ✓ Complete | 2026-02-10 |
-| 17. Unified Sequence | v1.3 | 0/2 | Not started | - |
+| 17. Unified Sequence | v1.3 | 2/2 | ✓ Complete | 2026-02-11 |
 | 18. Presentation Controller | v1.3 | 0/2 | Not started | - |
 | 19. Presenter View | v1.3 | 0/2 | Not started | - |
 | 20. Session Templates | v1.3 | 0/2 | Not started | - |
