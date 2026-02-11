@@ -206,12 +206,12 @@ export default function PresentationView() {
     prevConnectionStatus.current = connectionStatus;
   }, [connectionStatus, sessionId, setSession]);
 
+  // Subscribe to session status from store for vote polling dependency
+  const sessionStatus = useSessionStore((s) => s.session?.status);
+
   // Poll votes every 3 seconds when session is active
   useEffect(() => {
-    if (!sessionId) return;
-
-    const session = useSessionStore.getState().session;
-    if (!session || session.status !== 'active') return;
+    if (!sessionId || sessionStatus !== 'active') return;
 
     async function pollVotes() {
       const { data } = await supabase
@@ -238,7 +238,7 @@ export default function PresentationView() {
     const interval = setInterval(pollVotes, 3000);
 
     return () => clearInterval(interval);
-  }, [sessionId]);
+  }, [sessionId, sessionStatus]);
 
   // Set page title
   useEffect(() => {

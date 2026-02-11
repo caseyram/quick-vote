@@ -8,7 +8,6 @@ import { useRealtimeChannel } from '../hooks/use-realtime-channel';
 import { useCountdown } from '../hooks/use-countdown';
 import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation';
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../components/BarChart';
-import { BatchList } from '../components/BatchList';
 import { BatchCard } from '../components/BatchCard';
 import { SequenceManager } from '../components/SequenceManager';
 import { ImageUploader } from '../components/ImageUploader';
@@ -22,7 +21,6 @@ import { AdminPasswordGate } from '../components/AdminPasswordGate';
 import { SessionImportExport } from '../components/SessionImportExport';
 import { ResponseTemplatePanel } from '../components/ResponseTemplatePanel';
 import { TemplatePanel } from '../components/TemplatePanel';
-import { SlideManager } from '../components/SlideManager';
 import { SlideDisplay } from '../components/SlideDisplay';
 import { ProgressDashboard } from '../components/ProgressDashboard';
 import { DevTestFab } from '../components/DevTestFab';
@@ -278,7 +276,6 @@ export default function AdminSession() {
     ? sessionItems.find(item => item.id === activeSessionItemId)
     : null;
   const isSlideActive = activeItem?.item_type === 'slide';
-  const isBatchActive = activeItem?.item_type === 'batch';
 
   // Animation variants for projection area transitions
   const slideVariants = {
@@ -767,37 +764,6 @@ export default function AdminSession() {
       useSessionStore.getState().addSessionItem(newSlide);
     } catch (err) {
       console.error('Failed to create slide:', err);
-    }
-  }
-
-  async function handleMoveQuestionToBatch(questionId: string, batchId: string | null) {
-    // Update question's batch_id in database
-    const { error } = await supabase
-      .from('questions')
-      .update({ batch_id: batchId })
-      .eq('id', questionId);
-
-    if (!error) {
-      // Optimistic update in store
-      updateQuestion(questionId, { batch_id: batchId });
-    }
-  }
-
-  async function handleReorderItems(itemIds: string[]) {
-    if (!session) return;
-
-    // Update positions sequentially to avoid type issues with PostgrestFilterBuilder
-    for (let index = 0; index < itemIds.length; index++) {
-      const itemId = itemIds[index];
-      if (itemId.startsWith('batch-')) {
-        const batchId = itemId.replace('batch-', '');
-        await supabase.from('batches').update({ position: index }).eq('id', batchId);
-        useSessionStore.getState().updateBatch(batchId, { position: index });
-      } else if (itemId.startsWith('question-')) {
-        const questionId = itemId.replace('question-', '');
-        await supabase.from('questions').update({ position: index }).eq('id', questionId);
-        updateQuestion(questionId, { position: index });
-      }
     }
   }
 

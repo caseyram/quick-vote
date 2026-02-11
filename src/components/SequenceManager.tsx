@@ -19,7 +19,6 @@ import type { SessionItem } from '../types/database';
 import { SequenceItemCard } from './SequenceItemCard';
 import { useSessionStore } from '../stores/session-store';
 import { reorderSessionItems } from '../lib/sequence-api';
-import { getSlideImageUrl } from '../lib/slide-api';
 import { useSequenceNavigation } from '../hooks/use-sequence-navigation';
 
 interface SequenceManagerProps {
@@ -34,7 +33,6 @@ interface SequenceManagerProps {
 }
 
 export function SequenceManager({
-  sessionId,
   onExpandBatch,
   onCreateBatch,
   onDeleteBatch,

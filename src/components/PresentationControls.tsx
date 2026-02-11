@@ -28,7 +28,6 @@ export function PresentationControls({
   sessionId,
   sessionTitle,
   participantCount,
-  connectionStatus,
   channelRef,
   sessionVotes,
   onActivateSequenceItem,
@@ -38,9 +37,7 @@ export function PresentationControls({
   const {
     sessionItems,
     activeSessionItemId,
-    batches,
     questions,
-    navigationDirection,
   } = useSessionStore();
 
   const [qrMode, setQrMode] = useState<QRMode>('hidden');
@@ -207,7 +204,7 @@ export function PresentationControls({
       </div>
 
       {/* Center area: Current + Next preview OR Batch controls */}
-      <div className="flex-1 flex flex-col p-6">
+      <div className="flex-1 flex flex-col p-6 min-h-0">
         {currentItem?.item_type === 'batch' && currentItem.batch_id ? (
           <BatchControlPanel
             batchId={currentItem.batch_id}
