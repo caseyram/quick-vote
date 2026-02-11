@@ -13,15 +13,15 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Milestone:** v1.3 Presentation Mode
 **Phase:** 18 of 21 (Presentation Controller) -- 6 phases, 12 plans
-**Plan:** Not started
-**Status:** Ready to plan
-**Last activity:** 2026-02-11 -- Phase 17 (Unified Sequence) complete
+**Plan:** 1 of ~2 complete
+**Status:** In progress
+**Last activity:** 2026-02-11 -- Completed 18-01-PLAN.md (presentation navigation)
 
-Progress: [██████░░░░░░░░░░░░░░] 33%
+Progress: [██████░░░░░░░░░░░░░░] 34%
 
 **Current Focus:** Phase 18 -- Presentation Controller (live session advancing through sequence)
 
-**Next Action:** `/gsd:plan-phase 18`
+**Next Action:** Plan 18-02 (slide projection and animations)
 
 ## Milestone History
 
@@ -68,6 +68,9 @@ See PROJECT.md for full decision log.
 | 17-01 | Sequential position updates in reorderSessionItems | Proven pattern from AdminSession, avoids PostgrestFilterBuilder type issues | Reliable position updates without race conditions |
 | 17-02 | claim_session SECURITY DEFINER function for anonymous auth recovery | admin_token proves ownership, updates created_by to current auth.uid() | Handles identity loss across browser sessions |
 | 17-02 | Graceful RLS fallback with client-side virtual items | UI still renders even when INSERT fails due to identity mismatch | Degraded-but-functional experience instead of crash |
+| 18-01 | Keyboard navigation uses event.repeat check to prevent key-hold rapid fire | Prevents accidental rapid navigation from held keys, better UX | Clean navigation without throttling complexity |
+| 18-01 | SequenceManager has two modes: draft (DnD reordering) and live (read-only navigation) | Separates editing from presentation concerns, prevents accidental changes during live session | Clear mental model for draft vs. live sessions |
+| 18-01 | Auto-activate first sequence item when session transitions to active | Provides smooth start to presentation, no manual first-item click | Better presentation flow |
 
 ### Research Highlights (v1.3)
 
@@ -87,11 +90,11 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-02-11 -- Phase 17 executed and verified
-**Stopped at:** Phase 17 complete, ready for Phase 18
-**Next action:** `/gsd:plan-phase 18`
+**Last session:** 2026-02-11 -- Plan 18-01 executed successfully
+**Stopped at:** Completed 18-01-PLAN.md (presentation navigation)
+**Next action:** Plan 18-02 (slide projection and animations)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-11 -- Phase 17 complete, 5/22 requirements delivered*
+*Updated: 2026-02-11 -- Plan 18-01 complete, 6/22 requirements delivered*
