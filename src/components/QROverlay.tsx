@@ -14,7 +14,7 @@ export function QROverlay({ mode, sessionUrl }: QROverlayProps) {
 
   if (mode === 'corner') {
     return (
-      <div className="fixed bottom-4 right-4 z-50 bg-white rounded-xl shadow-lg p-3">
+      <div className="fixed bottom-4 right-4 z-50 bg-white/90 rounded-xl shadow-lg p-3">
         <QRCodeSVG
           value={sessionUrl}
           size={120}
