@@ -46,6 +46,8 @@ interface SessionState {
   timerEndTime: number | null;
   activeBatchId: string | null;
   batchQuestions: Question[];
+  activeSessionItemId: string | null;
+  navigationDirection: 'forward' | 'backward' | null;
 
   setParticipantCount: (count: number) => void;
   setConnectionStatus: (status: ConnectionStatus) => void;
@@ -53,6 +55,8 @@ interface SessionState {
   setTimerEndTime: (endTime: number | null) => void;
   setActiveBatchId: (id: string | null) => void;
   setBatchQuestions: (questions: Question[]) => void;
+  setActiveSessionItemId: (id: string | null) => void;
+  setNavigationDirection: (dir: 'forward' | 'backward' | null) => void;
 }
 
 export const useSessionStore = create<SessionState>()((set, get) => ({
@@ -143,6 +147,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
       timerEndTime: null,
       activeBatchId: null,
       batchQuestions: [],
+      activeSessionItemId: null,
+      navigationDirection: null,
     }),
 
   // Voting state
@@ -161,6 +167,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   timerEndTime: null,
   activeBatchId: null,
   batchQuestions: [],
+  activeSessionItemId: null,
+  navigationDirection: null,
 
   setParticipantCount: (count) => set({ participantCount: count }),
   setConnectionStatus: (status) => set({ connectionStatus: status }),
@@ -168,6 +176,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   setTimerEndTime: (endTime) => set({ timerEndTime: endTime }),
   setActiveBatchId: (id) => set({ activeBatchId: id }),
   setBatchQuestions: (questions) => set({ batchQuestions: questions }),
+  setActiveSessionItemId: (id) => set({ activeSessionItemId: id }),
+  setNavigationDirection: (dir) => set({ navigationDirection: dir }),
 
   setSessionDefaultTemplate: async (templateId) => {
     const session = get().session;
