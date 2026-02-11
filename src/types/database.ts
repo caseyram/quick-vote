@@ -73,3 +73,39 @@ export interface SessionItem {
   slide_caption: string | null;
   created_at: string;
 }
+
+export interface SessionTemplate {
+  id: string;
+  name: string;
+  blueprint: SessionBlueprint;
+  item_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SessionBlueprint {
+  version: 1;
+  sessionItems: SessionBlueprintItem[];
+}
+
+export interface SessionBlueprintItem {
+  item_type: 'batch' | 'slide';
+  position: number;
+  batch?: {
+    name: string;
+    questions: QuestionBlueprint[];
+  };
+  slide?: {
+    image_path: string;
+    caption: string | null;
+  };
+}
+
+export interface QuestionBlueprint {
+  text: string;
+  type: VoteType;
+  options: string[] | null;
+  anonymous: boolean;
+  position: number;
+  template_id: string | null;
+}
