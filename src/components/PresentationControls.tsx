@@ -8,6 +8,8 @@ import { SequenceManager } from './SequenceManager';
 import { SlideDisplay } from './SlideDisplay';
 import { ParticipantCount } from './ParticipantCount';
 import { KeyboardShortcutHelp } from './KeyboardShortcutHelp';
+import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from './BarChart';
+import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation';
 import type { QRMode } from './QROverlay';
 
 interface PresentationControlsProps {
@@ -44,6 +46,9 @@ export function PresentationControls({
   const [qrMode, setQrMode] = useState<QRMode>('hidden');
   const [blackScreenActive, setBlackScreenActive] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
+  const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(new Set());
+  const [highlightedReasonId, setHighlightedReasonId] = useState<string | null>(null);
+  const [currentBatchQuestionIndex, setCurrentBatchQuestionIndex] = useState(0);
 
   // Use navigation hook for keyboard shortcuts
   const { currentIndex, canGoNext, canGoPrev, goNext, goPrev } = useSequenceNavigation({
@@ -87,6 +92,46 @@ export function PresentationControls({
   function handleShowShortcuts() {
     setShowShortcutHelp(true);
   }
+
+  function handleRevealQuestion(questionId: string) {
+    const isRevealed = revealedQuestions.has(questionId);
+    setRevealedQuestions((prev) => {
+      const next = new Set(prev);
+      if (isRevealed) {
+        next.delete(questionId);
+      } else {
+        next.add(questionId);
+      }
+      return next;
+    });
+
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'result_reveal',
+      payload: { questionId, revealed: !isRevealed },
+    });
+  }
+
+  function handleHighlightReason(questionId: string, reasonId: string) {
+    const isSameReason = highlightedReasonId === reasonId;
+    const newReasonId = isSameReason ? null : reasonId;
+    setHighlightedReasonId(newReasonId);
+
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'reason_highlight',
+      payload: { questionId, reasonId: newReasonId },
+    });
+  }
+
+  // Reset reveal state when navigating away from a batch
+  useEffect(() => {
+    if (!currentItem || currentItem.item_type !== 'batch') {
+      setRevealedQuestions(new Set());
+      setHighlightedReasonId(null);
+      setCurrentBatchQuestionIndex(0);
+    }
+  }, [activeSessionItemId, currentItem]);
 
   // Keyboard shortcuts in control view
   useEffect(() => {
@@ -161,33 +206,47 @@ export function PresentationControls({
         </div>
       </div>
 
-      {/* Center area: Current + Next preview */}
+      {/* Center area: Current + Next preview OR Batch controls */}
       <div className="flex-1 flex flex-col p-6">
-        <div className="flex gap-6 mb-6 flex-1 min-h-0">
-          {/* Current (live mirror) */}
-          <div className="flex-1 flex flex-col min-w-0">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Current (Live)</h2>
-            <div className="flex-1 bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center">
-              {currentItem ? (
-                <ProjectionPreview item={currentItem} />
-              ) : (
-                <p className="text-gray-500 text-sm">No active item</p>
-              )}
+        {currentItem?.item_type === 'batch' && currentItem.batch_id ? (
+          <BatchControlPanel
+            batchId={currentItem.batch_id}
+            questions={questions}
+            sessionVotes={sessionVotes}
+            revealedQuestions={revealedQuestions}
+            highlightedReasonId={highlightedReasonId}
+            currentBatchQuestionIndex={currentBatchQuestionIndex}
+            onSetCurrentBatchQuestionIndex={setCurrentBatchQuestionIndex}
+            onRevealQuestion={handleRevealQuestion}
+            onHighlightReason={handleHighlightReason}
+          />
+        ) : (
+          <div className="flex gap-6 mb-6 flex-1 min-h-0">
+            {/* Current (live mirror) */}
+            <div className="flex-1 flex flex-col min-w-0">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Current (Live)</h2>
+              <div className="flex-1 bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center">
+                {currentItem ? (
+                  <ProjectionPreview item={currentItem} />
+                ) : (
+                  <p className="text-gray-500 text-sm">No active item</p>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Next (preview) */}
-          <div className="flex-1 flex flex-col min-w-0">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Next</h2>
-            <div className="flex-1 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-              {nextItem ? (
-                <ProjectionPreview item={nextItem} />
-              ) : (
-                <p className="text-gray-400 text-sm">End of sequence</p>
-              )}
+            {/* Next (preview) */}
+            <div className="flex-1 flex flex-col min-w-0">
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Next</h2>
+              <div className="flex-1 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                {nextItem ? (
+                  <ProjectionPreview item={nextItem} />
+                ) : (
+                  <p className="text-gray-400 text-sm">End of sequence</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Navigation controls */}
         <div className="flex items-center justify-between pt-4 border-t border-gray-200">
@@ -286,6 +345,187 @@ export function PresentationControls({
         visible={showShortcutHelp}
         onClose={() => setShowShortcutHelp(false)}
       />
+    </div>
+  );
+}
+
+// Batch control panel component
+function BatchControlPanel({
+  batchId,
+  questions,
+  sessionVotes,
+  revealedQuestions,
+  highlightedReasonId,
+  currentBatchQuestionIndex,
+  onSetCurrentBatchQuestionIndex,
+  onRevealQuestion,
+  onHighlightReason,
+}: {
+  batchId: string;
+  questions: any[];
+  sessionVotes: Record<string, Vote[]>;
+  revealedQuestions: Set<string>;
+  highlightedReasonId: string | null;
+  currentBatchQuestionIndex: number;
+  onSetCurrentBatchQuestionIndex: (index: number) => void;
+  onRevealQuestion: (questionId: string) => void;
+  onHighlightReason: (questionId: string, reasonId: string) => void;
+}) {
+  const batchQuestions = questions
+    .filter((q) => q.batch_id === batchId)
+    .sort((a, b) => a.position - b.position);
+
+  if (batchQuestions.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-500 text-sm">No questions in this batch</p>
+      </div>
+    );
+  }
+
+  const currentQuestion = batchQuestions[currentBatchQuestionIndex] || batchQuestions[0];
+  const questionVotes = sessionVotes[currentQuestion.id] || [];
+  const aggregated = aggregateVotes(questionVotes);
+  const barData = buildConsistentBarData(currentQuestion, aggregated);
+
+  // Map bar data to BarChart format with colors
+  const chartData = barData.map((item, index) => {
+    let color: string;
+    if (currentQuestion.type === 'agree_disagree') {
+      const colorMap: Record<string, string> = {
+        Agree: AGREE_DISAGREE_COLORS.agree,
+        Sometimes: AGREE_DISAGREE_COLORS.sometimes,
+        Disagree: AGREE_DISAGREE_COLORS.disagree,
+      };
+      color = colorMap[item.value] || MULTI_CHOICE_COLORS[0];
+    } else {
+      color = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
+    }
+
+    return {
+      label: item.value,
+      count: item.count,
+      percentage: item.percentage,
+      color,
+    };
+  });
+
+  // Get reason color
+  const getReasonColor = (voteValue: string): string => {
+    if (currentQuestion.type === 'agree_disagree') {
+      const colorMap: Record<string, string> = {
+        Agree: AGREE_DISAGREE_COLORS.agree,
+        Sometimes: AGREE_DISAGREE_COLORS.sometimes,
+        Disagree: AGREE_DISAGREE_COLORS.disagree,
+      };
+      return colorMap[voteValue] || MULTI_CHOICE_COLORS[0];
+    } else {
+      const optionIndex = currentQuestion.options?.indexOf(voteValue) ?? -1;
+      return MULTI_CHOICE_COLORS[optionIndex % MULTI_CHOICE_COLORS.length];
+    }
+  };
+
+  // Group reasons by vote option
+  const reasonsByOption: Record<string, Vote[]> = {};
+  questionVotes.forEach((vote) => {
+    if (vote.reason && vote.reason.trim()) {
+      if (!reasonsByOption[vote.value]) {
+        reasonsByOption[vote.value] = [];
+      }
+      reasonsByOption[vote.value].push(vote);
+    }
+  });
+
+  const isRevealed = revealedQuestions.has(currentQuestion.id);
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0">
+      {/* Question tabs/stepper */}
+      <div className="flex gap-2 mb-4 overflow-x-auto">
+        {batchQuestions.map((q, idx) => (
+          <button
+            key={q.id}
+            onClick={() => onSetCurrentBatchQuestionIndex(idx)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              idx === currentBatchQuestionIndex
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Q{idx + 1}
+          </button>
+        ))}
+      </div>
+
+      {/* Scrollable question content */}
+      <div className="flex-1 overflow-y-auto border rounded-lg bg-white p-4 space-y-4 min-h-0">
+        {/* Question text */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{currentQuestion.text}</h3>
+          <button
+            onClick={() => onRevealQuestion(currentQuestion.id)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              isRevealed
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            {isRevealed ? 'Revealed to Audience' : 'Reveal to Audience'}
+          </button>
+        </div>
+
+        {/* Chart */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <BarChart
+            data={chartData}
+            totalVotes={questionVotes.length}
+            size="default"
+            theme="light"
+          />
+        </div>
+
+        {/* Reasons grouped by option */}
+        {Object.keys(reasonsByOption).length > 0 && (
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold text-gray-700">Reasons</h4>
+            {Object.entries(reasonsByOption).map(([option, votes]) => (
+              <div key={option}>
+                <div
+                  className="text-xs font-semibold text-gray-600 mb-2 px-2 py-1 rounded inline-block"
+                  style={{
+                    backgroundColor: getReasonColor(option) + '20',
+                    borderLeft: `3px solid ${getReasonColor(option)}`,
+                  }}
+                >
+                  {option}
+                </div>
+                <div className="space-y-2">
+                  {votes.map((vote) => (
+                    <button
+                      key={vote.id}
+                      onClick={() => onHighlightReason(currentQuestion.id, vote.id)}
+                      className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                        highlightedReasonId === vote.id
+                          ? 'border-indigo-600 bg-indigo-50'
+                          : 'border-transparent bg-gray-50 hover:bg-gray-100'
+                      }`}
+                      style={{
+                        borderLeftWidth: '4px',
+                        borderLeftColor: getReasonColor(vote.value),
+                      }}
+                    >
+                      <p className="text-sm text-gray-800">{vote.reason}</p>
+                      {vote.display_name && (
+                        <p className="text-xs text-gray-500 mt-1">— {vote.display_name}</p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

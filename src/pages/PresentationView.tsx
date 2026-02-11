@@ -6,9 +6,11 @@ import { useSessionStore } from '../stores/session-store';
 import { useRealtimeChannel } from '../hooks/use-realtime-channel';
 import type { ConnectionStatus } from '../hooks/use-realtime-channel';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { Vote } from '../types/database';
 import { SlideDisplay } from '../components/SlideDisplay';
 import { QROverlay, type QRMode } from '../components/QROverlay';
 import { KeyboardShortcutHelp } from '../components/KeyboardShortcutHelp';
+import { BatchResultsProjection } from '../components/BatchResultsProjection';
 
 export default function PresentationView() {
   const { sessionId } = useParams();
@@ -28,6 +30,9 @@ export default function PresentationView() {
   const [qrMode, setQrMode] = useState<QRMode>('hidden');
   const [blackScreenActive, setBlackScreenActive] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
+  const [sessionVotes, setSessionVotes] = useState<Record<string, Vote[]>>({});
+  const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(new Set());
+  const [highlightedReason, setHighlightedReason] = useState<{ questionId: string; reasonId: string } | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const prevConnectionStatus = useRef<ConnectionStatus>('connecting');
 
@@ -109,8 +114,11 @@ export default function PresentationView() {
       useSessionStore.getState().setNavigationDirection(payload.direction ?? 'forward');
     });
 
-    // Listen for batch activations
+    // Listen for batch activations - also reset reveal state
     channel.on('broadcast', { event: 'batch_activated' }, ({ payload }: any) => {
+      setRevealedQuestions(new Set());
+      setHighlightedReason(null);
+
       useSessionStore.getState().setActiveBatchId(payload.batchId);
       // Find the corresponding session_item for this batch
       const items = useSessionStore.getState().sessionItems;
@@ -147,6 +155,26 @@ export default function PresentationView() {
       setBlackScreenActive(payload.active);
     });
 
+    // Listen for result reveal
+    channel.on('broadcast', { event: 'result_reveal' }, ({ payload }: any) => {
+      setRevealedQuestions((prev) => {
+        const next = new Set(prev);
+        if (payload.revealed) {
+          next.add(payload.questionId);
+        } else {
+          next.delete(payload.questionId);
+        }
+        return next;
+      });
+    });
+
+    // Listen for reason highlight
+    channel.on('broadcast', { event: 'reason_highlight' }, ({ payload }: any) => {
+      setHighlightedReason(
+        payload.reasonId ? { questionId: payload.questionId, reasonId: payload.reasonId } : null
+      );
+    });
+
     channelRef.current = channel;
   }, []);
 
@@ -177,6 +205,40 @@ export default function PresentationView() {
     }
     prevConnectionStatus.current = connectionStatus;
   }, [connectionStatus, sessionId, setSession]);
+
+  // Poll votes every 3 seconds when session is active
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const session = useSessionStore.getState().session;
+    if (!session || session.status !== 'active') return;
+
+    async function pollVotes() {
+      const { data } = await supabase
+        .from('votes')
+        .select('*')
+        .eq('session_id', sessionId);
+
+      if (data) {
+        const votesByQuestion: Record<string, Vote[]> = {};
+        data.forEach((vote) => {
+          if (!votesByQuestion[vote.question_id]) {
+            votesByQuestion[vote.question_id] = [];
+          }
+          votesByQuestion[vote.question_id].push(vote);
+        });
+        setSessionVotes(votesByQuestion);
+      }
+    }
+
+    // Initial poll
+    pollVotes();
+
+    // Poll every 3 seconds
+    const interval = setInterval(pollVotes, 3000);
+
+    return () => clearInterval(interval);
+  }, [sessionId]);
 
   // Set page title
   useEffect(() => {
@@ -288,24 +350,14 @@ export default function PresentationView() {
               caption={currentItem.slide_caption}
             />
           ) : currentItem?.item_type === 'batch' && currentItem.batch_id ? (
-            (() => {
-              const batch = batches.find((b) => b.id === currentItem.batch_id);
-              const questions = useSessionStore.getState().questions;
-              const questionCount = questions.filter((q) => q.batch_id === currentItem.batch_id)
-                .length;
-
-              return (
-                <div className="flex flex-col items-center justify-center h-full text-center px-8">
-                  <p className="text-2xl text-gray-400 mb-4">Batch Voting</p>
-                  <h2 className="text-5xl font-bold text-white leading-tight">
-                    {batch?.name ?? 'Untitled Batch'}
-                  </h2>
-                  <p className="text-2xl text-gray-400 mt-4">
-                    {questionCount} Question{questionCount !== 1 ? 's' : ''}
-                  </p>
-                </div>
-              );
-            })()
+            <BatchResultsProjection
+              batchId={currentItem.batch_id}
+              batchName={batches.find((b) => b.id === currentItem.batch_id)?.name ?? 'Untitled Batch'}
+              questions={useSessionStore.getState().questions}
+              sessionVotes={sessionVotes}
+              revealedQuestions={revealedQuestions}
+              highlightedReason={highlightedReason}
+            />
           ) : (
             <div className="flex items-center justify-center h-full">
               <p className="text-2xl text-gray-500">Waiting for presentation to start...</p>
