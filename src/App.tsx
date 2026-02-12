@@ -5,6 +5,7 @@ import SessionReview from './pages/SessionReview';
 import AdminSession from './pages/AdminSession';
 import ParticipantSession from './pages/ParticipantSession';
 import PresentationView from './pages/PresentationView';
+import TemplateEditorPage from './pages/TemplateEditorPage';
 
 function App() {
   const { ready } = useAuth();
@@ -26,6 +27,8 @@ function App() {
         <Route path="/admin/:adminToken" element={<AdminSession />} />
         <Route path="/presentation/:sessionId" element={<PresentationView />} />
         <Route path="/session/:sessionId" element={<ParticipantSession />} />
+        <Route path="/templates/new" element={<TemplateEditorPage />} />
+        <Route path="/templates/:id/edit" element={<TemplateEditorPage />} />
       </Routes>
     </BrowserRouter>
   );
