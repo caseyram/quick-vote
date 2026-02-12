@@ -1,585 +1,423 @@
-# Pitfalls: Presentation Mode, Image Storage, and Session Templates for QuickVote v1.3
+# Pitfalls Research
 
-**Domain:** Adding image uploads/storage, unified session sequencing, and template persistence to an existing real-time voting app
-**Stack:** Vite + React 19 (TypeScript), Supabase (PostgreSQL + Realtime + Storage), Zustand, dnd-kit
-**Researched:** 2026-02-10
-**Overall confidence:** MEDIUM-HIGH (Supabase Storage pitfalls verified with official docs; sequencing pitfalls informed by codebase analysis; template migration pitfalls informed by existing localStorage code)
-
----
-
-## Context
-
-QuickVote v1.2 has a working real-time voting system with batches, drag-and-drop reordering, response templates (in Supabase), and session templates (in localStorage). v1.3 adds:
-
-1. **Image slides** -- Upload images to Supabase Storage for full-screen admin projection between voting batches
-2. **Unified session sequence** -- A single ordered list mixing slides and batches, drag-and-drop reorder
-3. **Manual advance** -- Admin controls presentation flow through slides and batches
-4. **Session templates in Supabase** -- Upgrade `TemplatePanel` from localStorage to database, save/load full session blueprints including slides and images
-5. **JSON export with image URLs** -- Export includes image URLs (not binary); results data excludes images
-
-This document covers pitfalls specific to ADDING these features to the existing system.
-
----
+**Domain:** Template authoring workflow, team-based voting, presentation polish (subsequent milestone features)
+**Researched:** 2026-02-12
+**Confidence:** HIGH
 
 ## Critical Pitfalls
 
-Mistakes that cause rewrites, data corruption, or fundamental feature failure.
+### Pitfall 1: Template Preview Diverges from Live Behavior
 
----
+**What goes wrong:**
+Templates saved in the editor render differently when activated in a live session. Vote components behave inconsistently, slides display incorrectly, or timers fail to start. Users lose trust in the template system because "what you see is not what you get."
 
-### Pitfall 1: Orphaned Images Accumulate in Supabase Storage With No Cleanup Path
+**Why it happens:**
+Preview and production components don't share the same rendering path. Preview components mock runtime state (activeQuestion, realtime channel, participant presence) instead of using the actual production components in a read-only mode. Differences in props, context providers, or feature flags cause divergence over time.
 
-**Severity:** CRITICAL
-
-**What goes wrong:** Admin uploads images for a session, then deletes images from slides, deletes entire slides, or deletes the session itself. The images remain in Supabase Storage because the application only deleted the database row (from `session_items` or wherever the image reference lives), not the Storage object. Over time, orphaned images consume storage quota and incur billing.
-
-**Why it happens:** Supabase Storage objects exist independently from database rows. Deleting a row from `storage.objects` via SQL does NOT delete the actual file from S3 -- you must use the Storage API (`supabase.storage.from('bucket').remove([path])`). This is explicitly called out in [Supabase's discussions](https://github.com/orgs/supabase/discussions/34254): deleting via SQL leaves orphaned S3 objects that continue consuming storage and billing.
-
-The existing codebase uses `ON DELETE CASCADE` for questions and batches (see `20250101_001_schema.sql`), so deleting a session cascades to its children. But no equivalent cascade exists for Storage objects -- there is no built-in mechanism to automatically delete Storage files when a database row is removed.
-
-**Consequences:**
-- Storage quota consumed by files no one can see
-- Billing increases over time with no visible benefit
-- No way to identify which files are orphaned without cross-referencing database
-- Admin confusion when storage dashboard shows more usage than expected
-
-**Warning signs (how to detect early):**
-- Supabase Storage dashboard shows growing file count that does not match active session image count
-- After deleting sessions, storage usage does not decrease
-- Storage listing shows files in paths for sessions that no longer exist
-
-**Prevention:**
-1. **Delete Storage objects BEFORE or alongside database rows:** When deleting a slide, call `supabase.storage.from('slides').remove([imagePath])` before or in the same operation as deleting the database row. If the Storage delete fails, either retry or log for manual cleanup -- do not silently proceed.
-2. **Session-scoped storage paths:** Store images at paths like `{session_id}/{uuid}.{ext}`. When an entire session is deleted, list all objects under `{session_id}/` and batch-delete them. This makes cleanup a single `list()` + `remove()` operation.
-3. **Application-level cascade on session delete:** The existing session delete flow (in `AdminList.tsx` or wherever sessions are deleted) must be extended to include a Storage cleanup step. Consider a helper function: `deleteSessionWithImages(sessionId)`.
-4. **Never use SQL DELETE on `storage.objects`:** Always route through the Storage API. This is a hard rule from Supabase's architecture.
-5. **Periodic cleanup job (defense in depth):** A scheduled function or manual admin action that lists all Storage paths, cross-references with the database, and removes orphans. Not essential for v1.3 launch but valuable for long-term hygiene.
-
-**Phase to address:** Image upload phase (the very first phase that introduces Storage). Must be designed into the upload/delete flow from day one, not retrofitted.
-
-**Confidence:** HIGH -- verified with [Supabase Storage deletion docs](https://supabase.com/docs/guides/storage/management/delete-objects) and [orphaned files discussion](https://github.com/orgs/supabase/discussions/34254).
-
----
-
-### Pitfall 2: Storage RLS Policies Block Uploads With Cryptic Errors
-
-**Severity:** CRITICAL
-
-**What goes wrong:** Admin attempts to upload an image and gets a generic error (often a 403 or "new row violates row-level security policy"). The upload form appears to work but the image never appears. Developers spend hours debugging client code when the issue is a missing or misconfigured RLS policy on `storage.objects`.
-
-**Why it happens:** Supabase Storage enforces RLS on the `storage.objects` table. By default, Storage does not allow any uploads without explicit RLS policies. The existing codebase uses anonymous auth (`supabase.auth.signInAnonymously()` implied by the anon key pattern in `supabase.ts`), so the uploading user is "authenticated" but anonymous. RLS policies must grant INSERT permission to `authenticated` role on the correct bucket.
-
-The existing RLS patterns in the codebase (see `20250101_001_schema.sql`) grant broad access to `authenticated` users. But Storage RLS is a separate concern -- policies on `sessions`, `questions`, etc. do NOT apply to `storage.objects`. You need dedicated Storage policies.
-
-Additionally, the Supabase SQL Editor runs as the `postgres` role, bypassing RLS entirely. So testing uploads from the SQL Editor or dashboard may succeed while client uploads fail.
-
-**Consequences:**
-- Upload feature appears broken in production but works in development (if using service role key)
-- Error messages are unhelpful ("RLS policy violation" with no detail about which policy)
-- Time wasted debugging client code when the fix is a single SQL policy
+**How to avoid:**
+- **Share components, not duplicate them.** Render `VoteAgreeDisagree`, `VoteMultipleChoice`, `SlideDisplay` in both preview and live modes with a `previewMode` prop that disables submission/interaction.
+- **Preview must use the same Zustand store structure.** Don't mock state with local useState - use a separate preview store instance with the same selectors.
+- **Visual regression testing.** Screenshot tests comparing template preview renders to live session renders for the same template data.
+- **Regular cross-checks.** Every release, load a template in preview, activate it live, and verify visual parity.
 
 **Warning signs:**
-- Uploads work in Supabase dashboard but fail from the app
-- 403 errors or "row-level security" errors in browser console during upload
-- Upload succeeds with service role key but fails with anon key
+- Developers say "preview is broken again" after unrelated feature changes.
+- User reports: "timer showed 30s in template but didn't start in session."
+- CSS classes differ between preview and live DOM inspection.
+- Preview rendering requires separate component files (`PreviewVote.tsx` vs `VoteAgreeDisagree.tsx`).
 
-**Prevention:**
-1. **Create explicit Storage RLS policies in the migration:** Do not rely on manual dashboard configuration. Include policies in the same migration that creates the bucket:
-   ```sql
-   -- Allow authenticated users to upload to slides bucket
-   CREATE POLICY "Authenticated users can upload slides"
-     ON storage.objects FOR INSERT TO authenticated
-     WITH CHECK (bucket_id = 'slides');
-
-   -- Allow anyone to read public slides
-   CREATE POLICY "Public read access for slides"
-     ON storage.objects FOR SELECT TO authenticated
-     USING (bucket_id = 'slides');
-
-   -- Allow authenticated users to delete their uploads
-   CREATE POLICY "Authenticated users can delete slides"
-     ON storage.objects FOR DELETE TO authenticated
-     USING (bucket_id = 'slides');
-   ```
-2. **Test with the anon key, not service role:** Always test uploads from the client SDK using the same auth flow the app uses. Never test with the service role key or SQL Editor for RLS validation.
-3. **Use a public bucket for slides** (since images are displayed on projection and in exports): This avoids signed URL complexity. Public buckets still enforce RLS for uploads/deletes but allow unauthenticated reads.
-4. **Remember: bucket-level settings AND RLS both apply.** Even with permissive RLS, the bucket configuration itself can block operations. Verify both.
-5. **Note from MEMORY.md:** Migrations must be applied manually via Supabase Dashboard SQL Editor because `supabase db push` fails on this instance. Ensure the Storage policy migration is tested in the same manual workflow.
-
-**Phase to address:** Image upload phase. RLS policies must be the first thing configured before any client-side upload code is written.
-
-**Confidence:** HIGH -- verified with [Supabase Storage Access Control docs](https://supabase.com/docs/guides/storage/security/access-control) and [multiple community reports](https://github.com/orgs/supabase/discussions/38700).
+**Phase to address:**
+Phase 22 (Template Preview) - Establish shared component architecture from day one. Phase 23 (Template Editor UI) - Validate preview parity before shipping editor.
 
 ---
 
-### Pitfall 3: Unified Sequence Table Creates Position Conflicts With Existing Batch/Question Positions
+### Pitfall 2: Session Template Migration Timing Failure
 
-**Severity:** CRITICAL
+**What goes wrong:**
+User loads the template editor UI, but the `session_templates` table doesn't exist yet. Application crashes with "relation 'session_templates' does not exist" errors. PostgREST returns 404 for template RPC calls until schema cache refreshes (known issue already documented).
 
-**What goes wrong:** v1.3 introduces a `session_items` table (or similar) to unify slides and batches into a single ordered sequence. But the existing system already uses `position` columns on both `batches` and `questions` tables for ordering. If the new unified position system conflicts with or duplicates the existing position semantics, drag-and-drop reorder breaks, items appear in wrong order, or the BatchList component (which relies on `batch.position` and `question.position` interleaving) renders incorrectly.
+**Why it happens:**
+Migration `20250211_050_session_templates.sql` exists but must be applied manually. Developers test locally with migrated database but production/staging environments lack the table. PostgREST caches schema metadata for 10-60 seconds, causing RPC 404s even after migration runs.
 
-**Why it happens:** The existing `BatchList.tsx` component (line 289-316) builds an interleaved list by combining `batches` (with their `position` values) and unbatched `questions` (with their `position` values) and sorting by position. The `reorderQuestions` function in `session-store.ts` (line 77-85) and the `onReorderItems` callback in `BatchList` both assume positions are integers in a shared space.
-
-Introducing a new `session_items` table with its own `position` column creates ambiguity: Does `batch.position` still matter? Do you write to both? What happens when a drag-and-drop in the unified sequence needs to update positions in `session_items` AND `batches`?
-
-**Consequences:**
-- Batches appear in different order in the new sequence view vs the existing BatchList
-- Drag-and-drop reorder updates one position column but not the other
-- Import/export uses batch position values that no longer correspond to display order
-- Existing tests (BatchList.test.tsx, AdminSession.test.tsx) fail because position semantics changed
+**How to avoid:**
+- **Fail gracefully on missing table.** Wrap all `session_templates` queries in try-catch. If error code is `42P01` (undefined table), show user-friendly message: "Template feature requires database migration."
+- **Schema validation on app load.** Query `information_schema.tables` for `session_templates` existence. If missing, disable template UI and log warning.
+- **PostgREST cache workaround.** After migration, call `/rpc/claim_session` (or any RPC) with retry logic. Wait for non-404 response before enabling template features.
+- **Migration checklist in deployment docs.** Explicit step: "Run migration 050 before deploying template features."
 
 **Warning signs:**
-- Items appear in different order after adding unified sequencing
-- Reordering in the sequence view does not persist after page refresh
-- Existing batch reorder tests fail
-- Import creates batches with positions that conflict with session_items positions
+- Console errors: `relation "session_templates" does not exist`.
+- PostgREST 404 on `/rest/v1/rpc/save_template` immediately after migration.
+- Template panel shows spinner indefinitely or crashes app.
+- Works in dev, fails in production (migration state mismatch).
 
-**Prevention:**
-1. **session_items as the single source of truth for ordering:** The `session_items` table should be the authoritative position source for display order. The `position` column on `batches` should be derived from or replaced by `session_items.position`. Do NOT maintain two independent position systems.
-2. **Migration strategy for existing data:** When adding `session_items`, backfill it from existing `batches` (and unbatched questions if they remain). This is a data migration, not just a schema migration.
-3. **Update BatchList to read from session_items:** The interleaving logic in `BatchList.tsx` (line 289-316) currently builds its list from `batches` and `questions`. This must be updated to read from the unified sequence. Consider whether `BatchList` should be replaced entirely by a new `SequenceList` component.
-4. **Deprecate or derive batch.position:** Either remove `batch.position` (breaking change) or make it a derived value that is kept in sync. The latter is more complex and error-prone -- prefer the former.
-5. **Keep question.position scoped to within-batch ordering:** Questions within a batch still need relative ordering, but the batch's position in the overall session sequence should come from `session_items`. This is a clear separation: `session_items.position` = global sequence, `question.position` = within-batch order.
-
-**Phase to address:** Schema design phase, before any UI work on the unified sequence. This is an architectural decision that affects every downstream component.
-
-**Confidence:** HIGH -- based on direct codebase analysis of `BatchList.tsx`, `session-store.ts`, and the existing migration schemas.
+**Phase to address:**
+Phase 20 (Session Templates) - Add error handling and schema validation. Phase 21 (Template UI Integration) - Verify migration prerequisite in deployment checklist.
 
 ---
 
-### Pitfall 4: CDN Cache Serves Stale or Deleted Images After Updates
+### Pitfall 3: Team Assignment Data Model Error
 
-**Severity:** CRITICAL
+**What goes wrong:**
+Team assignments are stored with question_id foreign key, but questions can be deleted or moved between batches. Team assignments become orphaned, causing vote aggregation to fail. Results show "Team A: 0 votes" when members did vote, because votes aren't linked to team assignments anymore.
 
-**What goes wrong:** Admin uploads an image to a slide, previews it (works), then replaces it with a different image at the same path. The old image continues to display for up to 60 seconds (or longer, depending on browser cache). Worse: admin deletes a slide image, but the public URL still serves the old image from CDN cache. On the projection screen during a live presentation, the wrong image appears.
+**Why it happens:**
+Premature normalization. Storing team assignments as separate rows (`team_assignments` table with `question_id`, `team_name`, `participant_ids[]`) creates foreign key dependencies that break when questions are edited. QuickVote's existing architecture doesn't have question deletion (questions persist even when sessions end), but template editing introduces question deletion/reordering.
 
-**Why it happens:** All Supabase Storage assets are served through a CDN. When a file is updated or deleted, the CDN cache takes up to 60 seconds to propagate globally. Additionally, browsers cache images aggressively based on URL. If you upload to the same path (e.g., `session123/slide1.jpg`), both CDN and browser may serve the stale version.
-
-This is explicitly documented: [Supabase warns against overwriting files](https://supabase.com/docs/guides/storage/uploads/standard-uploads) because the CDN takes time to propagate changes. The [Smart CDN discussion](https://github.com/orgs/supabase/discussions/5737) confirms this is a known pain point.
-
-**Consequences:**
-- During a live presentation, replaced images show the old version
-- Deleted images still appear on projection for up to a minute
-- Admin sees correct image on upload but stale image when revisiting the page
-- Difficult to debug because behavior is intermittent (depends on CDN propagation timing)
+**How to avoid:**
+- **Denormalize team assignment into session-level metadata.** Store team roster in `sessions` table JSONB column: `{ "teams": [{"name": "Red", "members": ["user1", "user2"]}] }`.
+- **Don't FK team assignments to questions.** Questions reference team mode (`team_voting_enabled: boolean`), but team-to-participant mapping is session-wide.
+- **Vote table already has participant_id.** Join votes to session team roster at query time, not via static assignment rows.
+- **Schema design review.** Before adding `team_assignments` table, validate it against template edit workflows (question deletion, batch reordering, session cloning).
 
 **Warning signs:**
-- Image appears correct immediately after upload but wrong after page refresh
-- Deleted images still load from their public URL
-- Different users see different versions of the same image
-- Admin reports "wrong image showing" during presentation
+- Orphaned assignment rows in database after question deletion.
+- Vote aggregation queries have complex LEFT JOINs to reconstruct team membership.
+- "Team not found" errors when loading results for questions that were edited.
+- Team member list differs between template preview and activated session.
 
-**Prevention:**
-1. **Use unique file paths for every upload -- never reuse paths:** Generate a unique filename per upload: `{session_id}/{uuid}.{ext}`. When replacing an image, upload to a NEW path and delete the old one. This ensures the CDN URL is always fresh.
-2. **Cache-busting query parameter as fallback:** When displaying images, append a timestamp or version: `imageUrl + '?t=' + updatedAt`. This forces browsers to bypass their cache even if the CDN path is the same.
-3. **Set short browser cache duration on uploads:** Use the `cacheControl` option when uploading: `{ cacheControl: '300' }` (5 minutes) rather than the default (which can be much longer). This limits how long browsers hold stale versions.
-4. **Preload images before projection:** When admin advances to a slide, preload the image with a cache-bust parameter. Show a brief loading state rather than risking a stale image on the projection screen.
-5. **Design the UI to show upload timestamp:** Display when the image was last uploaded so admin can verify they are seeing the latest version.
-
-**Phase to address:** Image upload phase. The filename strategy (unique paths vs reusable paths) must be decided before building the upload UI.
-
-**Confidence:** HIGH -- verified with [Supabase CDN docs](https://supabase.com/docs/guides/storage/cdn/fundamentals) and [Smart CDN docs](https://supabase.com/docs/guides/storage/cdn/smart-cdn).
+**Phase to address:**
+Phase 24 (Team Data Model) - Design team storage as session-level JSONB, not question-level FK. Phase 25 (Team Voting Results) - Validate aggregation queries handle session cloning and question edits.
 
 ---
 
-## Moderate Pitfalls
+### Pitfall 4: Result Aggregation Performance Collapse Under Team Voting
 
-Mistakes that cause significant delays, poor UX, or technical debt.
+**What goes wrong:**
+When team voting is enabled with 10 teams and 50 questions, the results page takes 30+ seconds to load or times out. Database query executes thousands of row scans. Admin abandons the feature because it's unusable at scale.
 
----
+**Why it happens:**
+Naive aggregation: `GROUP BY team_name, question_id` without indexes. QuickVote's existing client-side aggregation (Phase 4 research) works for 100 users, but team-based aggregation introduces cross-product explosion. 10 teams × 50 questions × 100 participants = 50,000 vote rows to scan per aggregation.
 
-### Pitfall 5: File Upload Accepts Anything -- No Client-Side or Server-Side Validation
-
-**Severity:** MODERATE
-
-**What goes wrong:** Admin selects a non-image file (PDF, .exe, HTML with embedded scripts), an oversized image (20MB raw camera photo), or a corrupt file. The upload either fails with a cryptic error, succeeds but displays as a broken image on projection, or in the worst case, stores potentially malicious content.
-
-**Why it happens:** Supabase Storage's MIME type validation checks the filename extension, NOT the actual file contents. A file named `malware.jpg` with non-image content would pass Supabase's check. The existing codebase's import validation (in `session-import.ts`) is thorough (Zod schemas, size limits, extension checks), but there is no image upload code yet -- this validation must be built from scratch.
-
-**Consequences:**
-- Broken images on projection during a live session (no fallback)
-- Large files consume storage quota unnecessarily
-- Upload latency surprises (5MB over slow connection = long wait with no progress)
-- Potential for stored XSS if SVG files are allowed and served inline
+**How to avoid:**
+- **Materialized aggregation table.** Create `team_vote_aggregates` with triggers that update on vote INSERT/UPDATE. Trade write latency for read speed.
+- **Composite index on (session_id, question_id, participant_id).** Covering index for team aggregation queries.
+- **Server-side aggregation RPC.** Move aggregation from client JavaScript to PostgreSQL RPC function. Use window functions to aggregate votes by team in single query.
+- **Lazy load results per question.** Don't compute aggregates for all 50 questions upfront - fetch only the active question's team results.
+- **Load testing before shipping.** Benchmark with 100 users, 10 teams, 50 questions. If query time >2s, optimize before Phase ships.
 
 **Warning signs:**
-- Admin reports "image doesn't show" after upload
-- Upload takes unexpectedly long (large file, no progress indicator)
-- Storage usage spikes (oversized files accumulating)
-- Supabase reports 413 errors for files exceeding limits
+- `EXPLAIN ANALYZE` shows Seq Scan on votes table for team aggregation.
+- Results API response time >5 seconds in production logs.
+- Database CPU spikes to 100% when admin opens results page.
+- Query timeout errors on sessions with >20 questions or >5 teams.
 
-**Prevention:**
-1. **Client-side validation before upload:**
-   - **File type:** Accept only `image/jpeg`, `image/png`, `image/webp`, `image/gif`. Use `<input accept="image/jpeg,image/png,image/webp,image/gif">` AND validate `file.type` in JavaScript (the `accept` attribute is merely a hint, not enforcement).
-   - **File size:** Reject files over 5MB with a clear message: "Image must be under 5MB. Your file is 12.3MB." The 5MB limit keeps uploads within Supabase's standard upload sweet spot (under 6MB, no resumable upload needed).
-   - **Actual content check:** Load the file into an `Image()` element and verify it renders. If `onload` fires, it is a valid image. If `onerror` fires, reject it. This catches renamed non-image files.
-2. **Bucket-level restrictions:** Configure the Supabase bucket with `allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif']` and `fileSizeLimit: 5242880` (5MB). This provides server-side enforcement even if client validation is bypassed.
-3. **Explicitly exclude SVG:** SVG files can contain embedded JavaScript. Do not include `image/svg+xml` in allowed types.
-4. **Upload progress indicator:** Show upload progress for files over 1MB. Use the `onUploadProgress` callback or a resumable upload with TUS for larger files.
-5. **Fallback for projection:** If an image fails to load on the projection screen, show a branded placeholder (session title, slide number) rather than a broken image icon.
-
-**Phase to address:** Image upload phase. Validation must be implemented alongside the upload UI.
-
-**Confidence:** HIGH -- verified with [Supabase MIME type issue](https://github.com/supabase/storage/issues/639) confirming filename-only validation.
+**Phase to address:**
+Phase 25 (Team Voting Results) - Implement server-side aggregation RPC and composite indexes. Phase 26 (Team Results Polish) - Load test and optimize based on realistic data volumes.
 
 ---
 
-### Pitfall 6: Session Template Migration Loses Existing localStorage Data
+### Pitfall 5: QR Code Regeneration Breaks Active Sessions
 
-**Severity:** MODERATE
+**What goes wrong:**
+Admin regenerates session QR code to invalidate old join links, but active participants are disconnected. They lose their vote history and see "Session not found" errors. Session becomes unusable mid-presentation.
 
-**What goes wrong:** v1.3 upgrades `TemplatePanel` from localStorage to Supabase database. Existing users who have saved session templates in localStorage find them gone after the upgrade. The old templates are not migrated to the database, and the localStorage key (`quickvote_templates`) is either ignored or cleared.
+**Why it happens:**
+Session ID is embedded in QR code URL (`/session/{sessionId}`), and "regenerate QR" changes the session ID to a new UUID. Existing participants' browser URLs now point to old ID. Supabase Realtime channel subscription is tied to old session ID, so Broadcast events don't reach them.
 
-**Why it happens:** The existing `question-templates.ts` reads/writes to `localStorage.getItem('quickvote_templates')`. A database migration creates a new `session_templates` table in Supabase. But no code bridges the two -- the old localStorage data just sits there unread while the new UI reads from an empty database table.
-
-The existing code (lines 99-120 of `question-templates.ts`) already has backwards compatibility handling (adding missing `batches` arrays, default positions), showing that the data format has evolved. A migration to database needs the same level of care.
-
-**Consequences:**
-- Users lose session templates they may have been accumulating since v1.0
-- No error or warning -- templates simply do not appear in the new UI
-- Users may not realize templates are gone until they need one
-- If localStorage is cleared later (browser cleanup), the data is permanently lost
+**How to avoid:**
+- **QR code is generated, not regenerated.** Session ID is immutable. QR codes can be disabled/paused (session status = 'paused'), but never changed.
+- **Access tokens instead of session ID rotation.** If invalidation is needed, use short-lived access tokens in QR code URL parameter (`/session/{sessionId}?token={jwt}`). Rotate token, not session ID.
+- **Warning on QR regeneration.** If regeneration is implemented, show modal: "Regenerating will disconnect all active participants. Continue?"
+- **Graceful session migration.** If session ID must change, Broadcast a `session_migrated` event with new ID. Clients auto-redirect to new URL before disconnect.
 
 **Warning signs:**
-- After deploying v1.3, template list is empty despite user having saved templates
-- User reports "my templates disappeared"
-- localStorage still contains `quickvote_templates` key but the app ignores it
+- User reports: "Everyone got kicked out when I refreshed the QR code."
+- Participants see "reconnecting..." banner permanently after QR regeneration.
+- Session store has orphaned participant presence records for old session ID.
+- Vote counts drop to zero after QR code is "refreshed."
 
-**Prevention:**
-1. **One-time migration on first load:** When the new template system initializes, check if `localStorage.getItem('quickvote_templates')` exists. If it does, parse the templates and upsert them into the database. Mark migration as complete with a flag: `localStorage.setItem('quickvote_templates_migrated', 'true')`.
-2. **Preserve localStorage as backup during transition:** Do not delete the localStorage data during migration. Only clear it after confirming the database write succeeded AND the user has had time to verify. Consider keeping it for one release cycle.
-3. **Handle migration failures gracefully:** If the database write fails (network issue, RLS problem), fall back to showing localStorage templates with a banner: "Templates will sync to cloud when connection is restored."
-4. **Data format transformation:** The localStorage format (`SavedTemplate` with `batchIndex` references) differs from what the database schema will likely use (foreign keys to batches). The migration must transform between formats, not just copy raw JSON.
-5. **Idempotent migration:** The migration function must be safe to run multiple times (e.g., user refreshes during migration). Use upsert semantics (name-based dedup, similar to the existing `upsertTemplates` pattern in `session-import.ts` lines 223-289).
-
-**Phase to address:** Session template phase. The migration must be implemented at the same time as the new database-backed template system, not as an afterthought.
-
-**Confidence:** HIGH -- based on direct analysis of `question-templates.ts` localStorage code.
+**Phase to address:**
+Phase 27 (QR Code Management) - Document that session IDs are immutable. If rotation is required, implement session migration broadcast protocol.
 
 ---
 
-### Pitfall 7: Drag-and-Drop With Mixed Item Types (Slides + Batches) Breaks DnD Context
+### Pitfall 6: Inline Editing Loses Scroll Position
 
-**Severity:** MODERATE
+**What goes wrong:**
+User edits question text in the sequence list, types a few characters, and the entire list scrolls back to top. Cursor jumps to different input. Edits are lost or applied to wrong question. Feature is unusable for sessions with >10 questions.
 
-**What goes wrong:** The unified sequence view mixes two types of draggable items: image slides and voting batches. When the user drags a slide over a batch (or vice versa), the drop target calculation is wrong, items jump to unexpected positions, or the drag overlay shows the wrong content. Worse: the existing nested DnD context pattern (BatchList has its own DndContext for within-batch question reordering) conflicts with the new top-level sequence DndContext.
+**Why it happens:**
+Component re-renders on every keystroke (controlled input), triggering React's reconciliation. If list items don't have stable `key` props, React unmounts/remounts DOM nodes, resetting scroll. Alternatively, focus management calls `scrollIntoView` on the active input, fighting with user's manual scroll.
 
-**Why it happens:** The current `BatchList.tsx` already deals with complex DnD: it uses a top-level `DndContext` with `SortableContext` for reordering batches and unbatched questions, plus each expanded `BatchCard` has its own nested `DndContext` for reordering questions within the batch (line 452-482 shows expanded batches are rendered outside the sortable context to avoid conflicts). Adding image slides as a new item type into this existing system multiplies the complexity.
-
-Specifically:
-- The existing code uses `useId()` to generate unique DnD context IDs (line 275) to prevent conflicts between nested contexts
-- Items are prefixed to avoid ID collisions: `batch-{id}`, `question-{id}`, `batch-item-{id}` (line 347-349)
-- The `handleDragStart` and `handleDragEnd` functions filter by ID prefix to ignore events from nested contexts
-
-Adding `slide-{id}` items to this system requires updating all of these patterns.
-
-**Consequences:**
-- Dragging a slide into a batch position (or vice versa) causes a crash or wrong reorder
-- Nested DnD contexts fire conflicting events
-- Drag overlay shows batch content when dragging a slide
-- Items sometimes "snap" to wrong positions after drop
+**How to avoid:**
+- **Stable keys on list items.** Use `question.id` or `sessionItem.id` as key, never array index.
+- **Debounced state updates.** Local state for input value, debounced sync to Zustand store (300ms). This limits re-renders to every 300ms instead of every keystroke.
+- **Controlled scroll container ref.** Store `scrollTop` in ref before render, restore after render if editing state changes.
+- **Focus trap during edit.** Don't call `scrollIntoView` or `focus()` unless user explicitly clicked the edit button.
+- **Virtual list for >50 items.** Use `react-window` or `@tanstack/react-virtual` if sequence can exceed 50 items.
 
 **Warning signs:**
-- Drag operations feel "jerky" or items teleport
-- Console errors from dnd-kit about conflicting contexts
-- Items reorder correctly when dropping on same-type items but incorrectly on different-type items
-- Expanded batch reorder breaks after adding slides to the sequence
+- User types in question input, list scrolls unexpectedly.
+- Cursor jumps to different question's input mid-edit.
+- React DevTools shows excessive renders (>10/sec) on SequenceManager during typing.
+- Console warnings about non-unique keys in list.
 
-**Prevention:**
-1. **Extend the existing ID prefix pattern:** Add `slide-{id}` as a new prefix. Update `handleDragStart` and `handleDragEnd` to handle all three types. Update the `ListItem` type union (currently `batch` | `question`, add `slide`).
-2. **Validate drop targets by type:** A slide should be droppable between any items in the sequence, but not INTO a batch (which would make no sense). Use dnd-kit's collision detection or `onDragOver` to constrain valid drop zones.
-3. **Test the nested context interaction explicitly:** Add slides to a sequence that has expanded batches (with active inner DnD), and verify that dragging a slide does not trigger the inner batch's DnD handler. The existing `batch-item-` prefix filtering (line 347-349) provides the pattern -- extend it.
-4. **Consider flattening to a single DndContext:** If the complexity of nested contexts becomes unmanageable, consider moving to a single DndContext with droppable zones. This is a larger refactor but eliminates context interaction bugs entirely.
-5. **DragOverlay for each type:** The existing `DragOverlay` (line 548-562) renders different content for batch vs question. Add a slide case that shows a thumbnail.
-
-**Phase to address:** Unified sequence UI phase. Must be prototyped early because DnD complexity is the highest-risk UI work in v1.3.
-
-**Confidence:** HIGH -- based on direct analysis of `BatchList.tsx` DnD implementation.
+**Phase to address:**
+Phase 17 (Unified Sequence) or Phase 23 (Template Editor) - Implement stable keys and debounced editing state. Phase 28 (Inline Edit Polish) - Add scroll position preservation.
 
 ---
 
-### Pitfall 8: Export/Import With Image URLs Breaks Across Supabase Instances
+### Pitfall 7: Multi-Select Drag-and-Drop State Desync
 
-**Severity:** MODERATE
+**What goes wrong:**
+User selects 3 questions, drags one, but all 3 disappear from the list. On drop, only 1 question moves, other 2 are lost. Or all 3 move but appear in wrong order. State becomes corrupted, requiring page refresh.
 
-**What goes wrong:** Admin exports a session that includes slides with image URLs pointing to `https://abcproject.supabase.co/storage/v1/object/public/slides/session123/img.jpg`. A colleague imports this JSON on a different Supabase project (or the same project after the bucket is recreated). The image URLs return 404 because the images do not exist on the target instance's Storage.
+**Why it happens:**
+dnd-kit doesn't natively support multi-select (confirmed by GitHub discussions). Custom implementation stores selected IDs in state, but `onDragEnd` handler receives only the dragged item's ID (not the full selection). Developers try to patch this by moving all selected items in `onDragEnd`, but the optimistic UI update (removing items during drag) conflicts with the re-fetch after drop. Race condition between local state and database state.
 
-The existing export system already handles this kind of portability for templates (using name-based dedup instead of UUIDs -- see `session-export.ts` line 157). But images are fundamentally different from templates: templates are small data that can be embedded in JSON, while images are large binary assets that can only be referenced by URL.
-
-**Consequences:**
-- Imported sessions have broken slide images
-- No error during import (URLs are just strings, validation passes)
-- Admin discovers broken images only when presenting
-- No mechanism to re-upload images for imported sessions
+**How to avoid:**
+- **Don't implement multi-select in v1.** Ship single-item drag-and-drop first. Validate user demand before building complex multi-select.
+- **If multi-select is required, use visual-only selection.** Shift+click to highlight items, then drag ONE item to move ALL highlighted items. Store `selectedIds[]` in Zustand, pass to `onDragEnd`.
+- **Batch database updates transactionally.** Use Supabase RPC function to update sequence_number for all selected items in single transaction.
+- **Optimistic update only after DB success.** Don't remove items from UI during drag - wait for drop and DB confirmation before updating local state.
+- **Comprehensive testing.** Test drag-drop with 1, 2, 5, 10 selected items. Verify order preservation and no data loss.
 
 **Warning signs:**
-- Imported session shows slide placeholders or broken images
-- Image URLs in exported JSON point to a specific Supabase project URL
-- No image files exist in the target instance's Storage
+- GitHub issue search: "dnd-kit multi-select" returns no official examples.
+- Selected items don't move together during drag.
+- Database shows sequence_number gaps or duplicates after multi-select drop.
+- User reports: "I selected 5 questions but only 1 moved."
 
-**Prevention:**
-1. **Document the limitation explicitly:** Image URLs in exports are references, not embedded content. Exports are portable for questions/batches/templates but NOT for images. Make this clear in the export UI: "Note: Image slides reference URLs on this server. Images will need to be re-uploaded after importing on a different instance."
-2. **Graceful fallback for missing images:** When a slide's image URL returns an error (404, network failure), show a placeholder with the slide's title/label and a "Re-upload image" button. Never show a broken image icon on the projection screen.
-3. **Consider optional base64 embedding for small exports:** For sessions with few, small images (under 1MB total), offer an "Include images" checkbox on export that base64-encodes images into the JSON. This trades file size for portability. For larger image sets, this is impractical.
-4. **Image URL validation on import:** When importing a session with image URLs, attempt to fetch each URL (HEAD request). If any fail, warn: "3 of 5 slide images could not be loaded. You may need to re-upload them."
-5. **Relative paths in export, absolute on render:** Store image references as relative paths (`{session_id}/{filename}`) in the export, not full URLs. On render, construct the full URL from the current Supabase project URL. This makes exports instance-agnostic IF the same images are uploaded to the target.
-
-**Phase to address:** Export/import update phase. Must be designed alongside the export schema changes that add slide support.
-
-**Confidence:** MEDIUM -- the tradeoff between portability and practicality is a design decision, not a clear-cut bug to prevent. But broken images during a live presentation is a severe UX failure.
+**Phase to address:**
+Phase 29 (Multi-Select DnD) - Defer to Phase 30+ if not critical for MVP. If shipped, implement as visual selection with single-drag-moves-all pattern.
 
 ---
 
-### Pitfall 9: Image Upload Size Causes Timeout on Slow Connections
+### Pitfall 8: Background Color Contrast Failures
 
-**Severity:** MODERATE
+**What goes wrong:**
+User sets slide background to `#FFD700` (gold), admin adds black text, projects to screen. Text is invisible. Accessibility audit fails WCAG 2.1 AA contrast requirements. Users with low vision cannot read content.
 
-**What goes wrong:** Admin is at a venue with limited wifi (common for conference/meeting presentations). They try to upload a 4MB image and the upload times out or takes 30+ seconds with no progress feedback. The UI appears frozen. Admin clicks "upload" again, creating a duplicate. Or they give up and present without slides.
+**Why it happens:**
+Color picker allows any hex value without validation. No runtime contrast checking against text color. Admin previews on high-contrast monitor, doesn't notice issue until projecting to low-quality screen in conference room.
 
-**Why it happens:** Supabase's standard upload is a single HTTP request. For a 4MB file on a 1Mbps connection, that is 32+ seconds. The existing codebase has no upload progress indicators (there are no file uploads in v1.2). The standard `supabase.storage.upload()` does not provide progress callbacks -- only TUS resumable uploads support progress tracking.
-
-**Consequences:**
-- Uploads fail silently on slow connections
-- No progress feedback creates anxiety and duplicate upload attempts
-- Admin may not prepare slides in advance if upload is unreliable
-- Venue wifi limitations are common and unpredictable
+**How to avoid:**
+- **WCAG contrast validation on save.** Calculate contrast ratio between background and text colors. Require 4.5:1 for normal text, 3:1 for large text (WCAG AA standard).
+- **Live contrast ratio display.** Show "Contrast: 6.2:1 ✓" below color picker. Update in real-time as user adjusts colors.
+- **Preset palette of accessible combinations.** Offer 10 pre-validated background/text pairs (e.g., white/black, navy/white, dark-gray/yellow).
+- **Warning, not blocking.** Allow admin to override ("I know this is low contrast but I need brand colors"), but show warning badge.
+- **Preview on multiple backgrounds.** Template preview should show slide on both white and dark backgrounds to catch edge cases.
 
 **Warning signs:**
-- Upload button stays in "uploading" state for extended periods
-- Network tab shows large pending request
-- Admin clicks upload multiple times (duplicate images)
-- Upload succeeds locally but fails at venue
+- Color picker allows selection without contrast feedback.
+- No warning when user sets yellow background + white text.
+- Accessibility audit report flags contrast violations.
+- Participant feedback: "Couldn't read the text on slide 3."
 
-**Prevention:**
-1. **Client-side image compression before upload:** Use a library like `browser-image-compression` to resize images to projection resolution (1920x1080 max) and compress to JPEG quality 85. A 4MB camera photo becomes 200-400KB. This single optimization eliminates most upload speed issues.
-2. **Progress indicator for uploads:** Even without TUS, show an indeterminate progress bar during upload. If the upload takes more than 3 seconds, show elapsed time.
-3. **Disable upload button during upload:** Prevent duplicate submissions with a loading state.
-4. **Encourage pre-session preparation:** The UI should encourage uploading images before going to the venue. Consider a "Session Preparation" checklist or a clear "offline-ready" indicator once all images are uploaded.
-5. **Retry with exponential backoff:** If upload fails, offer automatic retry (up to 3 times) before showing an error. Many transient network failures resolve on retry.
-6. **Consider TUS resumable upload for files over 2MB:** Supabase supports TUS protocol for resumable uploads. If a large upload is interrupted, it can resume from where it stopped. This is more complex but eliminates the "start over" problem.
-
-**Phase to address:** Image upload phase. Compression should be implemented in the upload flow from the start.
-
-**Confidence:** MEDIUM-HIGH -- upload latency on venue wifi is a real-world constraint for presentation software, though compression largely mitigates it.
+**Phase to address:**
+Phase 30 (Background Color Feature) - Implement WCAG contrast validation before shipping color picker. Phase 31 (Accessibility Polish) - Add preset palette and live ratio display.
 
 ---
 
-### Pitfall 10: Supabase Storage MIME Type Validation Only Checks Filename, Not Content
+### Pitfall 9: Batch Timer in Template Overrides Runtime Timer
 
-**Severity:** MODERATE
+**What goes wrong:**
+Admin saves template with batch timer set to 30 seconds. During live session, admin wants to extend timer to 60 seconds for this run only. Changes timer in UI, but template's 30s value overrides it. Participants still see 30s countdown. Admin frustrated by lack of control.
 
-**What goes wrong:** Supabase's bucket `allowedMimeTypes` configuration and its upload MIME handling rely on the filename extension, not actual file content inspection. A file named `presentation.jpg` that is actually a ZIP file or HTML document would pass Supabase's server-side check. While the bucket restriction helps, it is not a security boundary.
+**Why it happens:**
+Template data has `timerSeconds: 30` in blueprint JSONB. On batch activation, code reads `timerSeconds` from template instead of from current session state. Template becomes the source of truth, shadowing runtime overrides.
 
-**Why it happens:** This is a known behavior documented in [Supabase Storage issue #639](https://github.com/supabase/storage/issues/639). The MIME type is derived from the filename, not from magic bytes or content inspection.
+**How to avoid:**
+- **Template provides defaults, session provides overrides.** On template load, copy `timerSeconds` to session state. All runtime code reads from session state, never from template blueprint.
+- **Clear separation: `templateTimerSeconds` vs `runtimeTimerSeconds`.** Store both in session store. UI shows runtime value, template panel shows template default.
+- **"Revert to template default" button.** Allow admin to reset runtime timer to template value if they want, but make it explicit action.
+- **Template as initialization only.** Template data populates session on creation, then template is read-only reference. Session state is mutable and authoritative during runtime.
 
-**Consequences:**
-- Non-image files could be stored if client-side validation is bypassed
-- SVG files (if allowed) could contain malicious scripts served from your domain
-- False sense of security from bucket-level restrictions
+**Warning signs:**
+- Timer shows template value even after admin changes it in session controls.
+- Session state has `timerSeconds: 60` but Broadcast sends `timerSeconds: 30` (from template).
+- User reports: "I changed the timer but it didn't work."
+- Code reads `template.blueprint.batches[0].timerSeconds` during session runtime.
 
-**Prevention:**
-1. **Client-side content validation:** As described in Pitfall 5, load files into `new Image()` to verify they are actually renderable images before uploading.
-2. **Do not rely solely on bucket `allowedMimeTypes`:** Treat it as defense-in-depth, not primary validation.
-3. **Exclude SVG from allowed types:** SVG can contain `<script>` tags and is a known XSS vector when served from the same origin.
-4. **Set Content-Disposition headers:** For public buckets, ensure files are served with `Content-Disposition: inline` only for verified image types. This is less critical for display-only slides but good practice.
-
-**Phase to address:** Image upload phase, alongside other file validation.
-
-**Confidence:** HIGH -- verified with [Supabase Storage MIME type issue](https://github.com/supabase/storage/issues/639).
-
----
-
-## Minor Pitfalls
-
-Mistakes that cause annoyance or minor rework but are fixable.
+**Phase to address:**
+Phase 20 (Session Templates) - Document that templates initialize session state but don't override runtime. Phase 32 (Template Runtime Separation) - Refactor to ensure session state is authoritative.
 
 ---
 
-### Pitfall 11: Image Aspect Ratios Cause Layout Shifts on Projection Screen
+### Pitfall 10: Image Preloading Causes Layout Shift
 
-**Severity:** MINOR
+**What goes wrong:**
+Admin advances to next slide, participant sees text appear instantly, then 2 seconds later image pops in, pushing text down 300px. CLS (Cumulative Layout Shift) score fails Core Web Vitals. Presentation looks janky.
 
-**What goes wrong:** Admin uploads images with varying aspect ratios (portrait phone photos, ultra-wide screenshots, square social media images). The projection screen layout shifts or crops images unexpectedly. Some images appear stretched, others have large black bars. During a presentation, this looks unprofessional.
+**Why it happens:**
+Slide images aren't preloaded. When `SlideDisplay` renders, `<img src={slideUrl}>` starts fetching. Browser doesn't know image dimensions until download completes, so it reserves 0px height initially. Image load triggers reflow.
 
-**Prevention:**
-1. **Fixed container with `object-contain`:** Display images in a fixed 16:9 container using `object-fit: contain`. Images maintain their aspect ratio with letterboxing. Choose a projection-friendly background color (dark gray or match admin theme).
-2. **Upload preview showing projection appearance:** When uploading, show a preview of how the image will look on the projection screen (at 16:9 aspect ratio). This lets admin crop or replace before the session.
-3. **Consider Supabase Image Transformations:** Supabase offers server-side image resizing (Pro plan). Resizing to fit projection dimensions reduces bandwidth and ensures consistent display. However, this is a paid feature -- verify plan compatibility.
-4. **Recommend dimensions in upload UI:** Display a hint: "Best results with 1920x1080 or 16:9 images."
+**How to avoid:**
+- **Reserve aspect ratio space.** Store image dimensions in `session_items.slide` JSONB (`width`, `height`). Render container with `aspect-ratio: {width}/{height}` CSS before image loads.
+- **Preload next slide image.** When admin is on slide N, prefetch slide N+1 image: `<link rel="prefetch" as="image" href={nextSlideUrl}>`.
+- **Optimize images at upload.** browser-image-compression already in use (Phase 16). Ensure max dimensions (1920x1080) and WebP format.
+- **Suspense boundary with skeleton.** Wrap `<img>` in Suspense, show skeleton with correct aspect ratio while loading.
+- **Test on slow connection.** Throttle network to "Slow 3G" in Chrome DevTools. Verify no layout shift when advancing slides.
 
-**Phase to address:** Image display/projection phase.
+**Warning signs:**
+- Lighthouse reports CLS >0.1.
+- Visual jump when slide image loads.
+- Image dimensions not stored in database (only URL).
+- No `width`/`height` attributes on `<img>` tags in SlideDisplay.
 
-**Confidence:** HIGH -- aspect ratio handling is a standard image display concern.
-
----
-
-### Pitfall 12: Session Template Includes Stale Image URLs That Point to Deleted Files
-
-**Severity:** MINOR
-
-**What goes wrong:** Admin creates a session with slides, saves it as a session template, then deletes the original session (which deletes the images per Pitfall 1's cleanup). Later, they load the template to create a new session -- but the slide image URLs in the template point to files that no longer exist.
-
-**Prevention:**
-1. **Copy images when saving session template:** When saving a session as a template, copy the referenced images to a `templates/` Storage path that is not tied to any session. This ensures template images survive session deletion.
-2. **Alternatively, validate on template load:** When loading a session template, check if referenced images exist (HEAD requests). For any missing images, show "Image not found -- upload a replacement."
-3. **Template image lifecycle:** Template images should have their own lifecycle, independent of session images. Delete template images only when the template itself is deleted.
-
-**Phase to address:** Session template phase, specifically when integrating slides into templates.
-
-**Confidence:** MEDIUM -- depends on whether session templates should be fully self-contained or reference external assets.
+**Phase to address:**
+Phase 16 (Image Slides) - Store dimensions in JSONB during upload. Phase 18 (Presentation Controller) - Implement preload and aspect ratio reservation.
 
 ---
 
-### Pitfall 13: Position Gaps Accumulate After Many Reorder Operations
+## Technical Debt Patterns
 
-**Severity:** MINOR
+Shortcuts that seem reasonable but create long-term problems.
 
-**What goes wrong:** After many drag-and-drop reorder operations in the unified sequence, position values become sparse (e.g., 0, 5, 12, 47, 103) or develop large gaps. While this does not affect correctness (the ORDER BY still works), it makes debugging harder, position-dependent logic fragile, and could theoretically overflow integer limits after extreme use.
-
-**Why it happens:** The existing reorder logic in `session-store.ts` (line 77-85) reassigns positions as sequential integers (0, 1, 2...) on each reorder. But if the database is the source of truth and multiple reorder operations create gaps (e.g., from deletion without re-compacting), positions drift.
-
-**Prevention:**
-1. **Compact positions on reorder:** When saving a reorder, assign positions as sequential integers (0, 1, 2...) rather than inserting between existing values. The existing `reorderQuestions` pattern does this correctly -- extend it to `session_items`.
-2. **Consider fractional indexing for single-item moves:** For frequent single-item drag operations, [fractional indexing](https://yasoob.me/posts/how-to-efficiently-reorder-or-rerank-items-in-database/) allows moving one item without updating all others. For a session with 5-20 items and infrequent reorder, this is overkill -- sequential integers with full rewrite are fine.
-3. **Periodic compaction:** If using fractional indexing, add a compaction step that renumbers all positions to clean integers. Run this on session load or after N reorder operations.
-
-**Phase to address:** Unified sequence phase. For v1.3's scale (5-20 items per session), sequential integer rewrite on every reorder is the simplest and most correct approach.
-
-**Confidence:** HIGH -- the existing codebase already uses the sequential rewrite pattern, so extending it is low-risk.
+| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
+|----------|-------------------|----------------|-----------------|
+| Duplicate preview components instead of sharing | Faster to build preview without props complexity | Every feature change requires updating 2+ components; divergence bugs | Never - pay the upfront cost of shared components |
+| Client-side team aggregation in JavaScript | No database schema changes | Unusable performance with >5 teams or >20 questions; blocks scaling | Only for prototype/demo; refactor before v1 |
+| Skip WCAG contrast validation | Ship color picker faster | Accessibility violations, legal risk (ADA compliance), user complaints | Never - contrast validation is 20 lines of code |
+| Template blueprint stored as unstructured JSONB | Schema flexibility, no migrations | No foreign key constraints, orphaned data, hard to query | Acceptable if Zod validation enforced at application layer |
+| Inline editing without debounce | Immediate visual feedback | Excessive re-renders (>10/sec), poor performance, scroll bugs | Never - debounce is 5 lines, solves multiple issues |
+| Hard-code team names instead of user-defined | No UI for team management | Users can't customize teams for their use case; feature feels incomplete | Only in Phase 1 spike; must allow custom teams in v1 |
+| Store selected items in drag-drop component state | Self-contained component | Selection state lost on unmount; can't share selection across components | Never - use Zustand for any state that affects multiple components |
 
 ---
 
-### Pitfall 14: TemplatePanel localStorage Code Left Behind After Migration
+## Integration Gotchas
 
-**Severity:** MINOR
+Common mistakes when integrating template features with existing systems.
 
-**What goes wrong:** After migrating session templates to Supabase, the old localStorage-based `TemplatePanel.tsx` and `question-templates.ts` code remains in the codebase. It is not actively used but is still imported in `AdminSession.tsx` (line 20). Future developers encounter two template systems and do not know which is canonical.
-
-**Prevention:**
-1. **Remove old code after migration is verified:** Once the database-backed template system is confirmed working and localStorage migration is complete, delete `question-templates.ts` and the old `TemplatePanel.tsx` (not to be confused with `ResponseTemplatePanel.tsx`, which is the v1.2 response template system -- a different concern).
-2. **Remove the import in AdminSession.tsx:** Line 20 imports `TemplatePanel`. Replace with the new database-backed component.
-3. **Clean up localStorage key:** After confirming migration, add code to remove the `quickvote_templates` key from localStorage to prevent confusion.
-4. **Do not leave dead imports:** The existing codebase is clean about this (no unused imports visible), so maintain that standard.
-
-**Phase to address:** Session template phase, as a cleanup step after migration.
-
-**Confidence:** HIGH -- straightforward code hygiene.
+| Integration | Common Mistake | Correct Approach |
+|-------------|----------------|------------------|
+| PostgREST schema cache | Assume RPC available immediately after migration | Wrap RPC calls in try-catch, retry on 404, validate schema before enabling features |
+| Realtime Broadcast + Templates | Send full template blueprint in Broadcast payload | Send template ID only, fetch blueprint from database (Broadcast has 256KB payload limit) |
+| Supabase Storage + Templates | Store absolute Storage URLs in blueprint | Store relative paths (`session_id/slide_id.webp`), construct full URL at display time |
+| Motion animations + Template preview | Animate preview renders on load | Disable Motion animations in preview (`animate={false}` prop) to avoid distracting motion |
+| dnd-kit + Zustand | Read drag state from Zustand in onDragEnd | Store dragged item ID in dnd-kit's active state, only update Zustand on drop success |
+| Zod validation + Template import | Trust imported JSON structure | Validate with `.passthrough()` for forward compatibility; handle missing fields gracefully |
 
 ---
 
-### Pitfall 15: Realtime Subscription Overhead From Adding session_items to Publication
+## Performance Traps
 
-**Severity:** MINOR
+Patterns that work at small scale but fail as usage grows.
 
-**What goes wrong:** If `session_items` is added to `supabase_realtime` publication (as `response_templates` was in `20250209_010_response_templates.sql` line 66), every reorder operation broadcasts position changes to all connected clients. For a session with 20 items, a single drag-and-drop generates 20 UPDATE events on the realtime channel. This creates unnecessary traffic and potential UI flicker.
-
-**Prevention:**
-1. **Do NOT add session_items to realtime publication:** Sequence ordering changes are admin-only and do not affect participants. Participants see the current active slide/batch, not the full sequence. There is no need for realtime position sync.
-2. **Use Broadcast for the advance event:** When the admin advances to the next slide/batch, broadcast the current item ID via the existing Broadcast channel (already used for `setActiveQuestionId`, `setActiveBatchId`). This is a single targeted message, not 20 row-change events.
-3. **Admin-only sequence state:** The sequence order is only relevant in the admin view. Store it in Zustand on the admin client, refreshing from database on load. No realtime subscription needed.
-
-**Phase to address:** Schema design phase, when deciding what tables need realtime publication.
-
-**Confidence:** HIGH -- the existing architecture already uses Broadcast for admin-to-participant state sync (not Postgres Changes for everything).
+| Trap | Symptoms | Prevention | When It Breaks |
+|------|----------|------------|----------------|
+| Client-side team vote aggregation | Results page slow to load | Server-side PostgreSQL RPC with window functions | >5 teams or >20 questions |
+| No index on team assignment lookups | Database CPU spikes when loading results | Composite index on (session_id, participant_id, question_id) | >100 participants with teams |
+| Inline editing re-renders entire sequence | UI freezes during typing | Debounced state updates (300ms), React.memo on list items | >20 items in sequence |
+| Preload all slide images on session start | Slow initial load, wasted bandwidth | Lazy preload (N+1 only), browser-image-compression to <1MB each | >10 slides per session |
+| Real-time vote updates without throttling | React re-renders 50+ times/sec during voting | Zustand subscribeWithSelector, batch updates every 200ms | >50 concurrent voters |
+| Deep JSONB queries on every render | High database latency for template loads | Cache blueprint in Zustand, invalidate on template update | >50 templates or >100 items/template |
 
 ---
 
-## Integration-Specific Pitfalls
+## Security Mistakes
 
-Pitfalls that specifically arise from the interaction between new v1.3 features and the existing v1.2 system.
+Domain-specific security issues beyond general web security.
 
----
-
-### Pitfall 16: Single Multiplexed Channel Becomes Overloaded With Slide Navigation Events
-
-**Severity:** MODERATE
-
-**What goes wrong:** The existing system uses a single Supabase Realtime channel per session (from `use-realtime-channel.ts`) that multiplexes Broadcast, Presence, and Postgres Changes. Adding slide navigation events (advance to next slide, go back, current slide state) to this channel increases message volume. With 50-100 participants each receiving every advance event, plus presence updates, plus vote change events, the channel approaches Supabase's per-channel message limits.
-
-**Prevention:**
-1. **Slide advance is a single Broadcast message:** Advancing to the next item should be a single Broadcast event (e.g., `{ type: 'advance', itemId: '...', itemType: 'slide' | 'batch' }`). This is lightweight and already within the established pattern.
-2. **Do NOT broadcast image data:** Only broadcast the slide/item ID. Participants do not need the image (it is admin-projection only). The only participant-visible effect of a slide is "waiting for host" (unchanged from current behavior between batches).
-3. **Monitor channel message volume:** If adding significant new event types, test with 50+ simulated participants to verify the channel handles the load. The existing system handles batch activation this way -- slide advance should be comparable.
-
-**Phase to address:** Slide navigation/advance phase.
-
-**Confidence:** MEDIUM -- the single-channel architecture has worked for v1.0-v1.2, and slide advance events are low-volume. Risk is low unless the implementation accidentally broadcasts to all clients on every admin preview action (not just advance).
+| Mistake | Risk | Prevention |
+|---------|------|------------|
+| Store participant team assignments in localStorage | User can edit localStorage, join any team, skew results | Store team roster in Supabase sessions table with RLS; participant_id mapped server-side |
+| Allow template import without validation | Malicious JSON could inject scripts or break app | Zod schema validation with `.strict()`, sanitize all text fields before rendering |
+| Session ID in QR code is predictable (sequential) | Attacker can enumerate active sessions, join without permission | Use UUIDs (already implemented in QuickVote) |
+| No rate limiting on template save | User can spam template creation, fill database | Supabase RLS + rate limiting RPC; limit 10 templates/min per user |
+| Template blueprint includes sensitive data | PII leakage if templates are shared | Never store participant names/emails in templates; store question/batch structure only |
 
 ---
 
-### Pitfall 17: Export Schema Breaking Change -- v1.2 Exports Cannot Be Imported After v1.3 Changes
+## UX Pitfalls
 
-**Severity:** MODERATE
+Common user experience mistakes when adding these features.
 
-**What goes wrong:** v1.3 modifies the export schema to include slides and session sequence information. If the import logic is not backwards-compatible, v1.2 exports (which have no `slides` or `session_items` fields) fail to import. Conversely, v1.3 exports imported into a v1.2 instance lose slide information silently.
-
-The existing import code (`session-import.ts`) already handles backwards compatibility: the `templates` field is `z.array(TemplateImportSchema).optional()` (line 36), allowing old exports without templates to import. The same pattern must be followed for slides.
-
-**Prevention:**
-1. **Make new fields optional in the import schema:** `slides: z.array(SlideImportSchema).optional()` and `sequence: z.array(SequenceItemSchema).optional()`. This allows v1.2 exports to import without slides.
-2. **Reconstruct sequence from batches if missing:** If importing a v1.2 export (no `sequence` field), construct the sequence from batches in their position order. This maintains the existing behavior.
-3. **Include schema version in exports:** Add `"version": 2` (or `"format_version": 2`) to v1.3 exports. This allows future import code to detect and handle different schema versions. The current export has no version field -- this is a good time to add it.
-4. **Add round-trip tests:** Automated tests that export from v1.3, import into v1.3, and also import a v1.2 export fixture into v1.3. Verify fidelity in both directions.
-
-**Phase to address:** Export/import update phase.
-
-**Confidence:** HIGH -- the existing codebase already demonstrates the correct pattern (optional fields with Zod). Extending it is straightforward but must be intentional.
+| Pitfall | User Impact | Better Approach |
+|---------|-------------|-----------------|
+| No visual feedback on template save | User clicks Save, nothing happens, clicks 5 more times, creates duplicates | Show spinner, disable button, toast notification "Template saved!" |
+| Template editor doesn't show item count | User doesn't know if template is empty or failed to load | Display "12 items" in template card, "Empty template" if 0 items |
+| Inline edit loses focus on auto-save | User types, input blurs mid-sentence, must re-click | Debounce save, preserve focus, only blur on explicit "done" action |
+| No undo for sequence reorder | User drags question to wrong position, can't revert | Add "Undo" toast after drag-drop, store previous sequence in memory for 10s |
+| QR code too small on mobile | Admin can't scan QR from their own phone to test | Responsive QR size: 256px on desktop, 192px on mobile, fullscreen modal option |
+| Team assignment UI doesn't show current assignments | Admin forgets which participants are in which team | Show team roster with participant names, color-code teams in results |
+| Contrast warning blocks color picker | User can't override warning, stuck with default colors | Show warning + "Use anyway" button; log override for accessibility audit trail |
 
 ---
 
-## Phase-Specific Warnings Summary
+## "Looks Done But Isn't" Checklist
 
-| Phase Topic | Likely Pitfalls | Mitigation |
-|-------------|----------------|------------|
-| Schema design (session_items, Storage bucket) | Pitfall 3 (position conflicts), Pitfall 15 (realtime overhead) | session_items as single position authority; do not add to realtime publication |
-| Image upload & Storage setup | Pitfalls 1 (orphaned images), 2 (RLS blocks uploads), 4 (CDN cache), 5 (no validation), 9 (upload timeout), 10 (MIME bypass) | Unique file paths, explicit RLS policies, client-side compression and validation, session-scoped paths for cleanup |
-| Unified sequence UI | Pitfalls 3 (position conflicts), 7 (DnD with mixed types), 13 (position gaps) | Single position authority, extend existing DnD ID prefix pattern, sequential integer compaction |
-| Session templates (localStorage to DB) | Pitfalls 6 (migration data loss), 12 (stale image URLs in templates), 14 (dead code) | One-time migration with fallback, copy images on template save, clean up old code |
-| Export/import with images | Pitfalls 8 (cross-instance URLs), 17 (schema breaking change) | Graceful fallback for missing images, optional fields in import schema, schema version |
-| Slide navigation/projection | Pitfalls 4 (stale cached images), 11 (aspect ratios), 16 (channel overhead) | Unique paths, cache-bust params, object-contain display, lightweight Broadcast events |
+Things that appear complete but are missing critical pieces.
+
+- [ ] **Template Preview:** Preview components share code with live components - verify both render identically for same data
+- [ ] **Team Voting Results:** Aggregation queries have composite indexes - run EXPLAIN ANALYZE on 100-user dataset
+- [ ] **QR Code Management:** Session IDs are immutable or migration broadcast is implemented - verify active participants aren't disconnected
+- [ ] **Inline Editing:** Scroll position preserved during edit - test with >20 items, type in item #15
+- [ ] **Multi-Select Drag-Drop:** All selected items move together - test with 5 items selected, verify order and no data loss
+- [ ] **Background Color Picker:** WCAG contrast validation implemented - verify 4.5:1 ratio enforced for normal text
+- [ ] **Batch Timer:** Runtime timer overrides template default - verify admin can change timer during live session
+- [ ] **Image Slides:** Dimensions stored in JSONB, aspect ratio reserved - verify no layout shift on slow network
+- [ ] **Template Import:** Zod validation with `.passthrough()` - test import of template from future version (unknown fields)
+- [ ] **PostgREST Schema Cache:** RPC calls wrapped in try-catch with retry - verify template panel doesn't crash on 404
 
 ---
 
-## Checklist for v1.3 Development
+## Recovery Strategies
 
-Before starting each phase, verify:
+When pitfalls occur despite prevention, how to recover.
 
-- [ ] Supabase Storage bucket created with `allowedMimeTypes` and `fileSizeLimit` set
-- [ ] RLS policies on `storage.objects` for the slides bucket tested with anon key
-- [ ] Image upload uses unique file paths (`{session_id}/{uuid}.{ext}`)
-- [ ] Image deletion uses Storage API (not SQL), invoked on slide delete and session delete
-- [ ] `session_items` table is the single source of truth for sequence order (not `batch.position`)
-- [ ] Existing `BatchList` DnD patterns extended (not replaced) for mixed item types
-- [ ] Client-side image validation: type, size, and content check before upload
-- [ ] Client-side image compression before upload (max 1920x1080, JPEG quality 85)
-- [ ] localStorage session templates migrated to database on first load
-- [ ] Old `question-templates.ts` code removed after migration verified
-- [ ] Export schema uses optional fields for slides (backwards compatible with v1.2)
-- [ ] Image URLs in exports validated on import (HEAD request check)
-- [ ] Cache-busting strategy for projection screen images
-- [ ] Slide advance uses Broadcast (not Postgres Changes)
-- [ ] `session_items` NOT added to realtime publication
-- [ ] Round-trip export/import test includes v1.2 fixture
+| Pitfall | Recovery Cost | Recovery Steps |
+|---------|---------------|----------------|
+| Preview divergence shipped to production | HIGH | 1. Screenshot regression suite to detect future divergence 2. Refactor to shared components (2-3 days) 3. Add integration tests |
+| Team aggregation performance collapse | MEDIUM | 1. Add composite index (immediate) 2. Implement server-side RPC (1 day) 3. Materialize aggregates if still slow (2 days) |
+| QR regeneration disconnects participants | MEDIUM | 1. Add migration broadcast protocol (1 day) 2. Document session ID immutability 3. Add UI warning before regeneration |
+| Inline editing scroll bugs | LOW | 1. Add stable keys (immediate) 2. Implement debounce (1 hour) 3. Store scrollTop in ref (1 hour) |
+| Multi-select drag-drop state corruption | HIGH | 1. Roll back multi-select feature 2. Ship single-item drag only 3. Rebuild multi-select with Zustand state management (3 days) |
+| Contrast violations in production | LOW | 1. Add WCAG validation (1 day) 2. Audit existing slides, notify admins of failures 3. Provide preset palette |
+| Template timer conflict | LOW | 1. Document session state is authoritative 2. Add "Revert to template default" button 3. Separate templateTimerSeconds vs runtimeTimerSeconds |
+| Layout shift from images | MEDIUM | 1. Store dimensions during upload (1 day) 2. Add aspect-ratio CSS 3. Implement preload for next slide |
+
+---
+
+## Pitfall-to-Phase Mapping
+
+How roadmap phases should address these pitfalls.
+
+| Pitfall | Prevention Phase | Verification |
+|---------|------------------|--------------|
+| Template Preview Divergence | Phase 22-23 (Template Preview + Editor) | Screenshot regression tests, shared component audit |
+| Session Template Migration Timing | Phase 20 (Session Templates) | Schema validation on load, PostgREST retry logic |
+| Team Assignment Data Model Error | Phase 24 (Team Data Model) | Schema review, validate against template edit workflows |
+| Team Aggregation Performance | Phase 25 (Team Results) | EXPLAIN ANALYZE with 100 users, 10 teams, 50 questions |
+| QR Code Regeneration Breaks Sessions | Phase 27 (QR Code Management) | Test QR regeneration with active participants connected |
+| Inline Editing Scroll Position | Phase 17 or 23 (Sequence/Template Editor) | Scroll preservation test with >20 items |
+| Multi-Select DnD State Desync | Phase 29 (Multi-Select DnD) | Drag 5 selected items, verify order + no data loss |
+| Background Color Contrast | Phase 30 (Background Color) | WCAG validation test, contrast ratio <4.5:1 blocked |
+| Batch Timer Template Override | Phase 20 or 32 (Templates/Runtime) | Change timer during live session, verify participant sees new value |
+| Image Preloading Layout Shift | Phase 16 + 18 (Image Slides + Controller) | Lighthouse CLS <0.1 on slow network |
 
 ---
 
 ## Sources
 
-- [Supabase Storage Access Control](https://supabase.com/docs/guides/storage/security/access-control) -- RLS policies on storage.objects
-- [Supabase Storage Buckets](https://supabase.com/docs/guides/storage/buckets/fundamentals) -- public vs private, configuration
-- [Supabase Standard Uploads](https://supabase.com/docs/guides/storage/uploads/standard-uploads) -- file size limits, upsert behavior, CDN warning
-- [Supabase CDN Fundamentals](https://supabase.com/docs/guides/storage/cdn/fundamentals) -- caching behavior
-- [Supabase Smart CDN](https://supabase.com/docs/guides/storage/cdn/smart-cdn) -- cache invalidation timing
-- [Supabase Storage Delete Objects](https://supabase.com/docs/guides/storage/management/delete-objects) -- proper deletion via API
-- [Orphaned Storage Objects Discussion](https://github.com/orgs/supabase/discussions/34254) -- SQL delete does not remove S3 files
-- [Storage CDN Cache Busting Discussion](https://github.com/orgs/supabase/discussions/5737) -- reused paths serve stale content
-- [MIME Type Validation Issue](https://github.com/supabase/storage/issues/639) -- filename-only check, not content inspection
-- [RLS Error on Storage INSERT Discussion](https://github.com/orgs/supabase/discussions/38700) -- anon role policy issues
-- [Supabase Image Transformations](https://supabase.com/docs/guides/storage/serving/image-transformations) -- server-side resize (Pro plan)
-- [Efficient Database Reordering](https://yasoob.me/posts/how-to-efficiently-reorder-or-rerank-items-in-database/) -- fractional indexing, LexoRank, gap buffer approaches
-- [Basedash: Re-Ordering at Database Level](https://www.basedash.com/blog/implementing-re-ordering-at-the-database-level-our-experience) -- drag-and-drop position pitfalls
-- QuickVote v1.2 codebase analysis: `BatchList.tsx`, `session-store.ts`, `question-templates.ts`, `session-export.ts`, `session-import.ts`, `use-realtime-channel.ts`, `supabase.ts`, migration files
+### Primary (HIGH confidence)
+- [Supabase Row Level Security (RLS): Complete Guide (2026)](https://designrevision.com/blog/supabase-row-level-security) - RLS policy performance patterns
+- [Postgres RLS Implementation Guide - Best Practices, and Common Pitfalls](https://www.permit.io/blog/postgres-rls-implementation-guide) - Performance impact, indexing strategies
+- [Color Contrast for Accessibility: WCAG Guide (2026)](https://www.webability.io/blog/color-contrast-for-accessibility) - WCAG 2.1 contrast ratios, 4.5:1 for normal text
+- [WebAIM: Contrast and Color Accessibility](https://webaim.org/articles/contrast/) - Accessibility violations, testing tools
+- [Support for multi-select and drag? · Issue #120 · clauderic/dnd-kit](https://github.com/clauderic/dnd-kit/issues/120) - dnd-kit multi-select not built-in, custom implementation required
+- [Multiple draggable elements with React dnd-kit? · Discussion #1313](https://github.com/clauderic/dnd-kit/discussions/1313) - State management complexity for multi-select
+- [Optimizing Web Performance: Preventing Layout Shifts with Image Preloading](https://medium.com/@devsolopreneur/optimizing-web-performance-preventing-layout-shifts-with-image-preloading-in-react-and-next-js-8885bb4ebf0a) - Width/height attributes, aspect ratio reservation
+- [QR code trends for 2026: What to expect](https://qrcodekit.com/news/qr-code-trends/) - Dynamic vs static QR security patterns
+- [QR Code Login, Without the Risk: Enterprise Patterns and Quishing Defenses](https://www.wwpass.com/blog/qr-code-login-without-the-risk-enterprise-patterns-quishing-defenses/) - Session ID security, 60-180s TTL patterns
+
+### Secondary (MEDIUM confidence)
+- [Realtime Limits | Supabase Docs](https://supabase.com/docs/guides/realtime/limits) - Broadcast payload 256KB limit, 100 messages/sec
+- [Scalable QR Code Solutions for Enterprises](https://scanova.io/features/enterprise-qr-code-generator/) - Multi-team centralized governance patterns
+- [Sharing State Between Components – React](https://react.dev/learn/sharing-state-between-components) - Component state sharing patterns
+- [Shared State Complexity in React – A Complete Handbook](https://www.freecodecamp.org/news/shared-state-complexity-in-react-handbook/) - State management anti-patterns
+- QuickVote Phase 4 Research (internal) - Client-side aggregation performance limits, Realtime Postgres Changes patterns
+- QuickVote Phase 16 implementation - browser-image-compression, Storage path conventions
+- QuickVote Phase 17 implementation - PostgREST schema cache 404 workaround, claim_session RPC retry
+
+### Tertiary (LOW confidence, project-specific)
+- QuickVote v1.3 milestone known issues - session_templates migration pending, PostgREST cache delay, 16 test failures
+- QuickVote existing architecture - Single Realtime channel per session, Zustand for state, dnd-kit for drag-drop, Motion for animations
+- Internal testing observations - VoteAgreeDisagree batch mode props, CountdownTimer remainingSeconds timing, session template serializeSession implementation
 
 ---
 
-**Note:** Confidence levels reflect synthesis of official Supabase documentation, community discussions, and direct codebase analysis. Pitfalls related to existing patterns (DnD, export/import, position ordering) have HIGH confidence from code review. Supabase Storage pitfalls have HIGH confidence from official docs. Cross-instance portability (Pitfall 8) is MEDIUM because the design tradeoff is contextual.
+*Pitfalls research for: Template authoring workflow, team-based voting, presentation polish*
+*Researched: 2026-02-12*

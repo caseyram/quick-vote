@@ -1,870 +1,995 @@
-# Architecture Patterns
+# Architecture Research
 
-**Domain:** Real-time voting app -- Presentation Mode (v1.3)
-**Researched:** 2026-02-10
-**Confidence:** HIGH (based on full codebase analysis + Supabase official docs)
+**Domain:** Template Authoring, Team-Based Voting, and Presentation Polish
+**Researched:** 2026-02-12
+**Confidence:** HIGH
+
+## Executive Summary
+
+This research addresses architecture patterns for extending QuickVote with template authoring, team-based voting, and presentation polish features. The existing system uses a single-session model with Zustand stores, Supabase Realtime, and dnd-kit for drag-drop sequencing. The new features require:
+
+1. **Mode separation** — Template editing vs live session (discriminated union pattern)
+2. **Preview system** — Simulating presentation/participant views from templates without Realtime
+3. **Team filtering** — Database schema + QR routing + Realtime channel partitioning
+4. **Inline batch editing** — Collapsible nested lists in SequenceManager
+5. **Multi-select DnD** — Custom selection state layered over dnd-kit
+6. **Background color theming** — Context API for global/item-scoped colors
+7. **Batch-slide association** — Foreign key linking batches to cover images
+
+All features integrate with existing architecture without breaking changes to live sessions.
 
 ---
 
-## Existing Architecture Summary
-
-Before defining the v1.3 integration, here is the current system map:
-
-### Current Database Schema
+## System Overview
 
 ```
-sessions (id, session_id, admin_token, title, status, reasons_enabled, test_mode, timer_expires_at, default_template_id, created_by, created_at)
-  |
-  +-- batches (id, session_id FK, name, position, status, created_at)
-  |     |
-  |     +-- questions (batch_id FK nullable -- ON DELETE SET NULL)
-  |
-  +-- questions (id, session_id FK, text, type, options JSONB, position, anonymous, status, template_id FK nullable, batch_id FK nullable, created_at)
-  |     |
-  |     +-- votes (id, question_id FK, session_id FK, participant_id, value, reason, display_name, locked_in, created_at, updated_at)
-  |
-  +-- response_templates (id, name UNIQUE, options JSONB, created_at, updated_at) -- global, not session-scoped
+┌─────────────────────────────────────────────────────────────┐
+│                         ROUTES                               │
+├─────────────────────────────────────────────────────────────┤
+│  /                   /session/:id        /admin/:token       │
+│  /admin/templates    /present/:id        /admin/review/:id   │
+│  /session/:id/:team  (NEW)               /templates/:id (NEW)│
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+┌──────────────────────────┴──────────────────────────────────┐
+│                    COMPONENT LAYER                           │
+├─────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │ AdminSession │  │TemplateEditor│  │ParticipantUI │       │
+│  │ (live mode)  │  │ (edit mode)  │  │ (team filter)│       │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘       │
+│         │                 │                  │                │
+│  ┌──────┴─────────────────┴──────────────────┴───────┐       │
+│  │        SequenceManager (mode-aware)                │       │
+│  │  - Draft: DnD reordering, batch expansion          │       │
+│  │  - Template: DnD + batch editing                   │       │
+│  │  - Live: Read-only navigation                      │       │
+│  └────────────────────────────────────────────────────┘       │
+├─────────────────────────────────────────────────────────────┤
+│                    STATE LAYER (Zustand)                     │
+├─────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │SessionStore  │  │TemplateStore │  │ ThemeStore   │       │
+│  │ (live)       │  │ (templates)  │  │ (NEW)        │       │
+│  └──────────────┘  └──────────────┘  └──────────────┘       │
+├─────────────────────────────────────────────────────────────┤
+│                    REALTIME LAYER                            │
+├─────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────────────────────────────────┐        │
+│  │  Supabase Realtime (single channel per session)  │        │
+│  │  - Broadcast: activation events, QR toggles      │        │
+│  │  - Presence: participant counts (team-filtered)  │        │
+│  │  - Postgres Changes: DISABLED (polling instead)  │        │
+│  └──────────────────────────────────────────────────┘        │
+├─────────────────────────────────────────────────────────────┤
+│                    DATA LAYER (Supabase)                     │
+├─────────────────────────────────────────────────────────────┤
+│  ┌────────────┐  ┌────────────┐  ┌──────────────┐           │
+│  │ sessions   │  │ batches    │  │ session_items│           │
+│  │ + team_id  │  │ + cover_id │  │ + bg_color   │           │
+│  └────────────┘  └────────────┘  └──────────────┘           │
+│                                                               │
+│  ┌─────────────────┐  ┌──────────────────┐                  │
+│  │ session_templates│  │ votes + team_id  │                  │
+│  │ (blueprint JSONB)│  │ (NEW)            │                  │
+│  └─────────────────┘  └──────────────────┘                  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Current Component Tree (admin flow)
+---
 
-```
-AdminSession
-  |-- BatchList (DndContext for interleaved batches + unbatched questions)
-  |     |-- SortableBatchCard -> BatchCard (nested DndContext for intra-batch reorder)
-  |     |-- SortableQuestionCard
-  |     +-- QuestionForm
-  |-- AdminControlBar (fixed bottom bar: status, timer, activate next, quick question, close voting)
-  |-- SessionImportExport -> ImportSessionPanel
-  |-- ResponseTemplatePanel -> TemplateEditor (response template CRUD)
-  |-- TemplatePanel (localStorage question templates -- will be replaced)
-  |-- ProgressDashboard (batch voting progress)
-  |-- SessionResults (ended session results)
-  +-- ActiveQuestionHero (projection-optimized question + chart display)
-```
+## Feature 1: Template Editor Mode vs Live Session Mode
 
-### Current Position/Ordering Model
+### Problem
+Template editing requires full CRUD on sequences without Realtime broadcast. Live sessions need Realtime sync but read-only sequencing. Components must share code but behave differently.
 
-Batches and unbatched questions share a unified `position` space. The `BatchList` component interleaves them:
+### Solution: Discriminated Union Pattern
 
+Use TypeScript discriminated unions to create mode-aware component props.
+
+**Pattern:**
 ```typescript
-// From BatchList.tsx
-type ListItem =
-  | { type: 'batch'; batch: Batch; id: string; position: number }
-  | { type: 'question'; question: Question; id: string; position: number };
+// Component mode discriminated by 'mode' property
+type SequenceManagerProps =
+  | { mode: 'live'; sessionId: string; onActivateItem: (item: SessionItem) => void }
+  | { mode: 'draft'; sessionId: string; onCreateBatch: () => void }
+  | { mode: 'template'; templateId: string; onSaveTemplate: (blueprint: SessionBlueprint) => void };
+
+function SequenceManager(props: SequenceManagerProps) {
+  switch (props.mode) {
+    case 'live':
+      return <LiveSequenceView sessionId={props.sessionId} onActivateItem={props.onActivateItem} />;
+    case 'draft':
+      return <DraftSequenceEditor sessionId={props.sessionId} onCreateBatch={props.onCreateBatch} />;
+    case 'template':
+      return <TemplateSequenceEditor templateId={props.templateId} onSaveTemplate={props.onSaveTemplate} />;
+  }
+}
 ```
 
-The `handleReorderItems` function in AdminSession updates positions sequentially by parsing `batch-{id}` and `question-{id}` prefixed IDs. This is the exact pattern that `session_items` will formalize at the database level.
+**Benefits:**
+- Type-safe mode switching — invalid prop combinations impossible
+- Exhaustive checking — TypeScript enforces all modes handled
+- Clear component intent — mode documented in type signature
 
-### Current Broadcast Events
+**Source:** [TypeScript Discriminated Unions for React Components](https://oneuptime.com/blog/post/2026-01-15-typescript-discriminated-unions-react-props/view)
 
-The realtime channel `session:{sessionId}` multiplexes:
-- `session_lobby`, `session_active`, `session_ended` -- session state transitions
-- `question_activated`, `voting_closed`, `results_revealed` -- single question flow
-- `batch_activated`, `batch_closed` -- batch flow
+### Integration Points
 
-v1.3 does NOT add new broadcast events. Slides are admin-projection-only state (no participant notification needed). When the admin advances past a slide to a batch, the existing `batch_activated` broadcast fires.
+**Existing:**
+- `SequenceManager` currently has `isLive` boolean prop (lines 30-43 in SequenceManager.tsx)
+- DnD enabled only in draft mode (lines 212-276)
+- Live mode shows navigation controls (lines 163-209)
 
----
+**New:**
+- Add `mode: 'template'` variant to `SequenceManagerProps`
+- Template mode enables:
+  - DnD reordering (like draft)
+  - Batch expansion for inline question editing (NEW)
+  - Save to `session_templates.blueprint` instead of `session_items`
+- Route: `/admin/templates/:templateId` uses template mode
 
-## Recommended Architecture for v1.3
-
-### Design Philosophy
-
-The key insight: v1.3 adds a **presentation layer on top of the existing voting layer**. Slides are admin-projection-only; participants see no change. Session templates replace localStorage. The unified sequence formalizes what `BatchList` already does informally.
-
-This means:
-1. **session_items** is a database formalization of the existing `interleavedItems` pattern
-2. **Slides** are a new item type in the sequence (admin-only display)
-3. **Session templates** replace `TemplatePanel` localStorage with Supabase
-4. **PresentationController** replaces `AdminControlBar`'s ad-hoc next-item logic with sequence-aware advancing
-
-### Component Boundaries
-
-| Component | Responsibility | Status | Communicates With |
-|-----------|---------------|--------|-------------------|
-| `AdminSession` | Page-level orchestration, data loading, realtime setup | MODIFY | All children |
-| `SequenceManager` | Drag-and-drop reordering of session_items (replaces BatchList's interleaving) | NEW | AdminSession, session_items table |
-| `SlideEditor` | Create/edit image slides (upload + caption) | NEW | Supabase Storage, session_items table |
-| `ImageUploader` | File picker + upload to Supabase Storage | NEW | Supabase Storage bucket |
-| `PresentationController` | Sequence-aware advance/back controls (enhances AdminControlBar) | NEW (integrated into AdminControlBar) | AdminSession, session_items, broadcast channel |
-| `SlideDisplay` | Full-screen image display for admin projection | NEW | PresentationController |
-| `BatchList` | Batch/question management within a batch | MODIFY (reduced scope) | SequenceManager |
-| `BatchCard` | Individual batch display with questions | KEEP | BatchList |
-| `AdminControlBar` | Status bar + voting controls | MODIFY (delegate sequence navigation to PresentationController) | AdminSession |
-| `SessionTemplatePanel` | Save/load session blueprints from Supabase (replaces TemplatePanel) | NEW (replaces TemplatePanel) | session_templates table |
-| `SessionImportExport` | JSON export/import with image URL support | MODIFY | session-export.ts, session-import.ts |
-| `ParticipantSession` | Participant experience (NO changes for slides) | MINIMAL CHANGE | Broadcast channel |
+**Modified Files:**
+- `src/components/SequenceManager.tsx` — Add mode prop, split render logic
+- `src/pages/TemplateEditor.tsx` — NEW page using mode='template'
+- `src/stores/template-store.ts` — Add blueprint CRUD methods
 
 ---
 
-## Database Schema for New Tables
+## Feature 2: Preview System
 
-### session_items -- Unified Sequence Table
+### Problem
+Template authors need to see how slides/batches render in presentation and participant views without creating a live session or connecting to Realtime.
 
+### Solution: Preview Context Pattern
+
+Use React Context to inject mock data and disable Realtime subscriptions during preview.
+
+**Pattern:**
+```typescript
+// Preview context provides simulated state
+interface PreviewContextValue {
+  isPreview: boolean;
+  mockActiveItemId: string | null;
+  mockParticipantCount: number;
+  mockVotes: Record<string, Vote[]>;
+}
+
+const PreviewContext = createContext<PreviewContextValue>({
+  isPreview: false,
+  mockActiveItemId: null,
+  mockParticipantCount: 0,
+  mockVotes: {}
+});
+
+// Components check preview mode before Realtime subscriptions
+function useRealtimeChannel(channelName: string, setup: Function, enabled: boolean) {
+  const { isPreview } = useContext(PreviewContext);
+  const shouldConnect = enabled && !isPreview; // Disable Realtime in preview
+
+  useEffect(() => {
+    if (!shouldConnect) return;
+    // ... existing Realtime setup
+  }, [shouldConnect]);
+}
+
+// Presentation preview uses mock data from template blueprint
+function PresentationPreview({ templateId }: { templateId: string }) {
+  const template = useTemplateStore(s => s.templates.find(t => t.id === templateId));
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const previewValue: PreviewContextValue = {
+    isPreview: true,
+    mockActiveItemId: template?.blueprint.sessionItems[activeIndex]?.id ?? null,
+    mockParticipantCount: 42, // Static for preview
+    mockVotes: generateMockVotes(template), // Synthetic votes
+  };
+
+  return (
+    <PreviewContext.Provider value={previewValue}>
+      <PresentationView templateMode={true} />
+    </PreviewContext.Provider>
+  );
+}
+```
+
+**Benefits:**
+- Reuses existing presentation/participant components
+- No network calls during preview
+- Template authors see realistic rendering
+
+**Sources:**
+- [Preview.js](https://previewjs.com/) — Component preview with generated props
+- [React Context API](https://legacy.reactjs.org/docs/context.html) — State propagation
+
+### Integration Points
+
+**Existing:**
+- `PresentationView` subscribes to Realtime (lines 110-185 in PresentationView.tsx)
+- `ParticipantSession` subscribes to Realtime (lines 198-325 in ParticipantSession.tsx)
+- Both components fetch session data from Supabase
+
+**New:**
+- Add `PreviewContext` in `src/contexts/preview-context.tsx`
+- Modify `useRealtimeChannel` to respect `isPreview` flag
+- Add preview routes:
+  - `/templates/:id/preview/presentation` — Shows PresentationView with mock data
+  - `/templates/:id/preview/participant` — Shows ParticipantSession with mock vote
+- Generate mock votes using template response options
+
+**Modified Files:**
+- `src/hooks/use-realtime-channel.ts` — Check preview context before subscribing
+- `src/contexts/preview-context.tsx` — NEW context provider
+- `src/pages/TemplatePreviewPresentation.tsx` — NEW preview page
+- `src/pages/TemplatePreviewParticipant.tsx` — NEW preview page
+
+---
+
+## Feature 3: Team-Based Voting
+
+### Problem
+Sessions need to support multiple teams with separate QR codes, vote filtering, and results aggregation. Current model assumes all participants vote on same questions.
+
+### Database Schema
+
+**Add team dimension:**
 ```sql
--- ============================================
--- Unified Session Sequence
--- ============================================
--- Replaces the implicit interleaving of batches and unbatched questions.
--- Each row represents one ordered element in the presentation sequence.
+-- Team participation tracking
+ALTER TABLE votes ADD COLUMN team_id TEXT;
+CREATE INDEX idx_votes_team_id ON votes(team_id);
 
-CREATE TABLE session_items (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id TEXT NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
-  item_type TEXT NOT NULL CHECK (item_type IN ('batch', 'slide')),
-  position INTEGER NOT NULL DEFAULT 0,
+-- Sessions can optionally use teams
+ALTER TABLE sessions ADD COLUMN teams_enabled BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE sessions ADD COLUMN team_ids JSONB; -- Array of team identifiers
 
-  -- Polymorphic reference: exactly one of these is non-null
-  batch_id UUID REFERENCES batches(id) ON DELETE CASCADE,
-  -- Slide data (inline, not a separate table -- slides are simple)
-  slide_image_path TEXT,        -- Storage path: {session_id}/{uuid}.{ext}
-  slide_caption TEXT,           -- Optional caption displayed below image
-
-  -- Constraints
-  CONSTRAINT valid_batch_item CHECK (
-    item_type != 'batch' OR (batch_id IS NOT NULL AND slide_image_path IS NULL)
-  ),
-  CONSTRAINT valid_slide_item CHECK (
-    item_type != 'slide' OR (batch_id IS NULL AND slide_image_path IS NOT NULL)
-  ),
-
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_session_items_session_id ON session_items(session_id);
-CREATE INDEX idx_session_items_position ON session_items(session_id, position);
-
--- RLS (follows same pattern as batches, questions)
-ALTER TABLE session_items ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Anyone can read session_items"
-  ON session_items FOR SELECT TO authenticated
-  USING (true);
-
-CREATE POLICY "Session creator can insert session_items"
-  ON session_items FOR INSERT TO authenticated
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM sessions
-      WHERE sessions.session_id = session_items.session_id
-      AND sessions.created_by = (select auth.uid())
-    )
-  );
-
-CREATE POLICY "Session creator can update session_items"
-  ON session_items FOR UPDATE TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM sessions
-      WHERE sessions.session_id = session_items.session_id
-      AND sessions.created_by = (select auth.uid())
-    )
-  );
-
-CREATE POLICY "Session creator can delete session_items"
-  ON session_items FOR DELETE TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM sessions
-      WHERE sessions.session_id = session_items.session_id
-      AND sessions.created_by = (select auth.uid())
-    )
-  );
-
--- Realtime publication for live reordering
-ALTER PUBLICATION supabase_realtime ADD TABLE session_items;
+-- Session items can be team-specific or shared
+ALTER TABLE session_items ADD COLUMN team_filter TEXT; -- NULL = all teams
 ```
 
-**Design decisions:**
+**Data Model:**
+- `sessions.teams_enabled` — Boolean flag to enable team mode
+- `sessions.team_ids` — JSONB array: `["red", "blue", "green"]`
+- `votes.team_id` — Which team this vote belongs to
+- `session_items.team_filter` — NULL (all teams) or team ID (team-specific content)
 
-1. **Inline slide data, not a separate slides table.** Slides have only two fields (image path, caption). A separate table would add a join with no benefit. The polymorphic CHECK constraints enforce data integrity.
+### QR Code Routing
 
-2. **Batches referenced by FK, unbatched questions NOT in session_items.** Unbatched standalone questions (batch_id IS NULL) continue to work as they do today -- they belong to no batch and appear in the AdminSession question list. Only batches and slides get sequenced. This avoids migrating every existing question into session_items.
+**URL pattern:**
+- Standard: `/session/:sessionId` (no team)
+- Team-based: `/session/:sessionId/:teamId` (team-scoped)
 
-   **Rationale:** The current system already handles unbatched questions as standalone items. Forcing them into session_items would break backward compatibility and add complexity. The AdminControlBar's "Activate Next" already handles both batches and unbatched questions.
-
-   **Alternative considered:** Including `item_type = 'question'` for standalone questions. Rejected because it would require migrating all existing sessions and duplicating the position field that already exists on questions.
-
-3. **ON DELETE CASCADE for batch_id.** If a batch is deleted, its session_item entry is automatically removed. This is safe because batch deletion already handles questions (ON DELETE SET NULL on questions.batch_id).
-
-### session_templates -- Supabase Session Templates
-
-```sql
--- ============================================
--- Session Templates (replaces localStorage TemplatePanel)
--- ============================================
--- Stores reusable session blueprints: questions, batches, and slide references.
--- Global scope (like response_templates), not session-scoped.
-
-CREATE TABLE session_templates (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL UNIQUE,
-  description TEXT,
-  -- Full session blueprint as JSONB (same structure as export JSON)
-  blueprint JSONB NOT NULL,
-  -- Preview metadata (denormalized for list display)
-  question_count INTEGER NOT NULL DEFAULT 0,
-  batch_count INTEGER NOT NULL DEFAULT 0,
-  slide_count INTEGER NOT NULL DEFAULT 0,
-  created_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- Auto-update updated_at (per MEMORY.md: moddatetime not available)
-CREATE OR REPLACE FUNCTION update_session_templates_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER handle_session_templates_updated_at
-  BEFORE UPDATE ON session_templates
-  FOR EACH ROW
-  EXECUTE PROCEDURE update_session_templates_updated_at();
-
--- RLS (global access, same pattern as response_templates)
-ALTER TABLE session_templates ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Anyone can read session_templates"
-  ON session_templates FOR SELECT TO authenticated
-  USING (true);
-
-CREATE POLICY "Authenticated users can create session_templates"
-  ON session_templates FOR INSERT TO authenticated
-  WITH CHECK (true);
-
-CREATE POLICY "Authenticated users can update session_templates"
-  ON session_templates FOR UPDATE TO authenticated
-  USING (true);
-
-CREATE POLICY "Authenticated users can delete session_templates"
-  ON session_templates FOR DELETE TO authenticated
-  USING (true);
-```
-
-**Design decisions:**
-
-1. **JSONB blueprint, not relational.** Session templates are snapshots, not live references. When loaded, the blueprint is materialized into real batches, questions, and session_items. Same principle as the existing JSON export/import. Using JSONB avoids a complex web of template-specific relational tables.
-
-2. **Denormalized counts.** `question_count`, `batch_count`, `slide_count` are computed at save time and stored for fast list rendering. The alternative (parsing JSONB on every list render) is wasteful.
-
-3. **Global scope with created_by tracking.** Matches response_templates pattern (global, not session-scoped). `created_by` is for future "my templates" filtering but all templates are readable by everyone.
-
-4. **Name-based uniqueness.** Consistent with response_templates pattern. Enables name-based dedup on import.
-
----
-
-## Supabase Storage Configuration
-
-### Bucket: session-images
-
-```
-Bucket name: session-images
-Public: YES
-Allowed MIME types: image/png, image/jpeg, image/webp, image/gif
-Max file size: 10MB
-```
-
-**Why public bucket:**
-- Images are displayed on admin projection screen (no auth context in projected view)
-- `getPublicUrl()` returns permanent, cacheable URLs -- no signed URL expiration to manage
-- Upload/delete still require authentication (RLS enforced for write operations even on public buckets, per Supabase docs)
-- Performance: public buckets use a different caching layer per Supabase docs
-
-**File path convention:**
-```
-{session_id}/{uuid}.{ext}
-```
-
-Example: `abc123/550e8400-e29b-41d4-a716-446655440000.webp`
-
-- Session ID prefix enables easy cleanup when session is deleted
-- UUID filename prevents collisions and name conflicts
-- Extension preserved for content-type inference
-
-### Storage RLS Policies
-
-Even on a public bucket, write operations need RLS:
-
-```sql
--- Allow authenticated users to upload images to session-images bucket
--- Uses storage.foldername() to extract session_id from path
-CREATE POLICY "Session creator can upload images"
-  ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (
-    bucket_id = 'session-images'
-    AND EXISTS (
-      SELECT 1 FROM sessions
-      WHERE sessions.session_id = (storage.foldername(name))[1]
-      AND sessions.created_by = (select auth.uid())
-    )
-  );
-
--- Allow session creator to delete their images
-CREATE POLICY "Session creator can delete images"
-  ON storage.objects FOR DELETE TO authenticated
-  USING (
-    bucket_id = 'session-images'
-    AND EXISTS (
-      SELECT 1 FROM sessions
-      WHERE sessions.session_id = (storage.foldername(name))[1]
-      AND sessions.created_by = (select auth.uid())
-    )
-  );
-```
-
-### Image Upload Data Flow
-
-```
-User selects file
-  |
-  v
-ImageUploader component
-  |-- Client-side validation (type, size < 10MB)
-  |-- Generate UUID filename: crypto.randomUUID() + extension
-  |-- supabase.storage.from('session-images').upload(path, file, { upsert: false })
-  |
-  v
-Supabase Storage (session-images bucket)
-  |-- Returns { data: { path } } on success
-  |
-  v
-Get public URL
-  |-- supabase.storage.from('session-images').getPublicUrl(path)
-  |-- Returns permanent URL: https://{project}.supabase.co/storage/v1/object/public/session-images/{path}
-  |
-  v
-Store in session_items
-  |-- INSERT into session_items (session_id, item_type='slide', slide_image_path=path, slide_caption, position)
-  |
-  v
-Admin projection displays image via public URL
-```
-
-### Image Display Pattern
-
+**QR Code generation:**
 ```typescript
-// Constructing display URL from stored path
-function getSlideImageUrl(imagePath: string): string {
-  const { data } = supabase.storage
-    .from('session-images')
-    .getPublicUrl(imagePath);
-  return data.publicUrl;
-}
-
-// In SlideDisplay component
-<img
-  src={getSlideImageUrl(slide.slide_image_path)}
-  alt={slide.slide_caption ?? 'Slide'}
-  className="w-full h-full object-contain bg-white"
-/>
-```
-
-### Image Cleanup
-
-When a slide is deleted from session_items:
-1. Delete the storage object: `supabase.storage.from('session-images').remove([imagePath])`
-2. Delete the session_items row
-
-When a session is deleted:
-1. session_items CASCADE deletes automatically
-2. Storage cleanup needs explicit logic: `supabase.storage.from('session-images').list(sessionId)` then `.remove(paths)`
-3. This can be a client-side cleanup call triggered before or after session deletion
-
-**Note on image transformations:** Supabase offers on-the-fly image resizing via `transform` option on `getPublicUrl`, but this requires Pro Plan. For the free tier, client-side resizing before upload is recommended. Consider using canvas-based resize to max 1920px width before upload to keep file sizes manageable for projection.
-
----
-
-## Integration Points with Existing Components
-
-### AdminSession (MODIFY -- significant)
-
-**Current:** Loads session, questions, batches, votes. Manages realtime channel. Renders different views per session status (draft/lobby/active/ended).
-
-**Changes:**
-1. **Load session_items** alongside batches and questions on initial fetch
-2. **Add session_items to realtime channel** (Postgres Changes listener for INSERT/UPDATE/DELETE)
-3. **Track active sequence index** for presentation mode (new state: `activeItemIndex`)
-4. **Pass session_items to SequenceManager** instead of passing raw batches+questions to BatchList for top-level ordering
-5. **Render SlideDisplay** when active item is a slide (in the active/projection view)
-6. **Replace TemplatePanel** with SessionTemplatePanel
-
-New state additions to AdminSession:
-```typescript
-const [sessionItems, setSessionItems] = useState<SessionItem[]>([]);
-const [activeItemIndex, setActiveItemIndex] = useState<number>(-1);
-```
-
-### BatchList (MODIFY -- reduced scope)
-
-**Current:** Interleaves batches and unbatched questions with DndContext for top-level reordering.
-
-**Changes:**
-- **Remove top-level interleaving.** SequenceManager handles the sequence. BatchList only manages questions within a single batch (or shows the standalone questions section).
-- **Keep internal question reordering** (the nested DndContext for intra-batch drag-and-drop via BatchCard).
-- Props simplification: no more `onReorderItems`, no more interleaved item type union.
-
-### AdminControlBar (MODIFY)
-
-**Current:** Fixed bottom bar with timer selection, quick question, activate next (batch or question), close voting, session transitions.
-
-**Changes:**
-- **Replace "Activate Next" with sequence-aware navigation.** The `nextItem` logic that currently builds from pending questions + batches is replaced by `sessionItems[activeItemIndex + 1]`.
-- **Add Previous/Next arrows** for sequence navigation during presentation.
-- **Show current item indicator** (e.g., "Slide 2 of 8" or "Batch: Customer Feedback").
-- **Handle slide items:** When next item is a slide, display it (local state only, no broadcast). When next item is a batch, activate it (existing `batch_activated` broadcast).
-
-### SessionImportExport (MODIFY)
-
-**Current:** Exports/imports JSON with batches, questions, votes, templates.
-
-**Changes:**
-- **Export session_items ordering** (sequence structure)
-- **Export slide references** as image URLs (not base64 per project requirements)
-- **Import creates session_items** from sequence data
-- **Import does NOT download images** from URLs (images may be unavailable; URLs are informational)
-
-Export schema addition:
-```typescript
-// New optional field in SessionExportSchema
-sequence: z.array(z.discriminatedUnion('type', [
-  z.object({ type: z.literal('batch'), batch_name: z.string(), position: z.number() }),
-  z.object({ type: z.literal('slide'), image_url: z.string(), caption: z.string().nullable(), position: z.number() }),
-])).optional()
-```
-
-### ParticipantSession (MINIMAL CHANGE)
-
-**Current:** Responds to broadcast events (question_activated, batch_activated, etc.), shows voting UI.
-
-**Changes:**
-- **No changes needed for slides.** Slides are admin-projection only. Participants never see them.
-- **No new broadcast events needed.** When admin advances past a slide to a batch, the existing `batch_activated` broadcast fires. When admin advances to a standalone question, the existing `question_activated` broadcast fires.
-- The only change: participants may see slightly longer "waiting" periods between votes while the admin shows slides. This is already handled by the existing `waiting` view state.
-
-### Zustand session-store (MODIFY)
-
-**Current:** Manages session, questions, batches, voting state, realtime state.
-
-**Additions:**
-```typescript
-// New state
-sessionItems: SessionItem[];
-activeItemIndex: number; // -1 = not presenting
-
-// New actions
-setSessionItems: (items: SessionItem[]) => void;
-addSessionItem: (item: SessionItem) => void;
-updateSessionItem: (id: string, updates: Partial<SessionItem>) => void;
-removeSessionItem: (id: string) => void;
-reorderSessionItems: (orderedIds: string[]) => void;
-setActiveItemIndex: (index: number) => void;
-```
-
-### TypeScript Types (MODIFY database.ts)
-
-```typescript
-export type SessionItemType = 'batch' | 'slide';
-
-export interface SessionItem {
-  id: string;
-  session_id: string;
-  item_type: SessionItemType;
-  position: number;
-  batch_id: string | null;
-  slide_image_path: string | null;
-  slide_caption: string | null;
-  created_at: string;
-}
-
-export interface SessionTemplate {
-  id: string;
-  name: string;
-  description: string | null;
-  blueprint: SessionBlueprint;
-  question_count: number;
-  batch_count: number;
-  slide_count: number;
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface SessionBlueprint {
-  batches: Array<{
-    name: string;
-    position: number;
-    questions: Array<{
-      text: string;
-      type: VoteType;
-      options: string[] | null;
-      anonymous: boolean;
-      template_id: string | null; // template name, not UUID
-    }>;
-  }>;
-  sequence: Array<
-    | { type: 'batch'; batch_name: string; position: number }
-    | { type: 'slide'; image_path: string; caption: string | null; position: number }
-  >;
-  templates?: Array<{ name: string; options: string[] }>;
+function generateTeamQRCodes(sessionId: string, teams: string[]): QRCode[] {
+  return teams.map(team => ({
+    teamId: team,
+    url: `${origin}/session/${sessionId}/${team}`,
+    displayName: team.toUpperCase(),
+  }));
 }
 ```
 
----
-
-## New Components Detail
-
-### SequenceManager
-
-**Purpose:** Visual drag-and-drop ordering of session items (batches and slides).
-
-```
-SequenceManager (replaces BatchList's top-level interleaving)
-  |-- DndContext (top-level sequence reordering)
-  |     |-- SortableSequenceItem (batch type) -> BatchCard collapsed view
-  |     |-- SortableSequenceItem (slide type) -> SlideCard thumbnail + caption
-  |     +-- DragOverlay
-  |-- "Add Slide" button -> opens SlideEditor modal
-  |-- "Add Batch" button -> creates batch + session_item
-  +-- Standalone questions section (below sequence, for unbatched questions)
-```
-
-**Key behavior:**
-- Replaces the top-level interleaving in BatchList
-- When a batch session_item is expanded, it shows its BatchCard with question management
-- When a slide is clicked, it opens SlideEditor for editing
-- Drag-and-drop reorders `session_items.position` in database
-- Standalone (unbatched) questions appear below the sequence in a separate "Standalone Questions" section
-
-### SlideEditor
-
-**Purpose:** Modal for creating/editing a slide.
-
-```
-SlideEditor (modal)
-  |-- ImageUploader (file picker + preview)
-  |-- Caption input (text field, optional)
-  |-- Save / Delete buttons
-```
-
-**Follows existing modal pattern:** Uses the same mousedown+mouseup overlay close pattern as TemplateEditor (per MEMORY.md). Checks for unsaved changes before closing.
-
-### ImageUploader
-
-**Purpose:** Reusable file upload component for Supabase Storage.
-
+**Routing:**
 ```typescript
-interface ImageUploaderProps {
-  sessionId: string;
-  currentImagePath?: string | null;
-  onUploaded: (path: string) => void;
-  onRemoved?: () => void;
-}
+// In App.tsx
+<Route path="/session/:sessionId/:teamId?" element={<ParticipantSession />} />
+
+// In ParticipantSession.tsx
+const { sessionId, teamId } = useParams();
+const effectiveTeamId = teamId ?? null; // null = non-team session
 ```
 
-**Behavior:**
-1. File input accepts `image/png, image/jpeg, image/webp, image/gif`
-2. Client-side validation: type check, size < 10MB
-3. Optional client-side resize to max 1920px width (canvas-based, keeps aspect ratio)
-4. Upload to `{sessionId}/{crypto.randomUUID()}.{ext}`
-5. Show upload progress (loading state)
-6. Display thumbnail preview after upload
-7. Allow removal (deletes from storage, calls onRemoved)
+### Realtime Channel Partitioning
 
-### SlideDisplay
-
-**Purpose:** Full-screen image display during presentation mode (active session view).
-
+**Single channel per session, team filtering via Presence metadata:**
 ```typescript
-interface SlideDisplayProps {
-  imagePath: string;
-  caption: string | null;
-}
-```
+// Participant joins with team metadata
+channel.track({
+  userId: participantId,
+  role: 'participant',
+  teamId: effectiveTeamId, // Added field
+  joinedAt: new Date().toISOString(),
+});
 
-**Renders in the same viewport area as ActiveQuestionHero** -- they are mutually exclusive:
-- When active item is a batch with an active question: show ActiveQuestionHero
-- When active item is a batch (waiting/closed): show batch summary (existing behavior)
-- When active item is a slide: show SlideDisplay
-- Uses admin light theme (bg-white), full viewport height minus header and control bar
+// Admin counts participants per team
+channel.on('presence', { event: 'sync' }, () => {
+  const state = channel.presenceState();
+  const teamCounts: Record<string, number> = {};
 
-### SessionTemplatePanel
-
-**Purpose:** Replaces TemplatePanel (localStorage) with Supabase-backed session templates.
-
-```
-SessionTemplatePanel
-  |-- "Save Current Session as Template" (name input + save button)
-  |-- Template list (name, counts, date)
-  |     |-- Load button -> materializes blueprint into session
-  |     |-- Delete button -> with confirmation
-  +-- Empty state
-```
-
-**Follows existing patterns:**
-- Same Zustand store pattern as template-store (new session-template-store)
-- Same API module pattern as template-api (new session-template-api)
-- Same UI layout as TemplatePanel (bg-white card in draft view)
-
----
-
-## Presentation Mode Data Flow
-
-### Admin Advancing Through Sequence
-
-```
-Admin clicks "Next" in AdminControlBar
-  |
-  v
-Check sessionItems[activeItemIndex + 1]
-  |
-  +-- type === 'slide'
-  |     |-- setActiveItemIndex(index + 1) -- local state only
-  |     |-- SlideDisplay renders image from Supabase Storage public URL
-  |     |-- NO broadcast to participants (admin-only)
-  |     +-- Participants stay in current view (waiting, voting, etc.)
-  |
-  +-- type === 'batch'
-        |-- setActiveItemIndex(index + 1) -- local state
-        |-- handleActivateBatch(batch_id, timerDuration) -- existing logic
-        |-- Broadcast: batch_activated -> participants enter BatchVotingCarousel
-        +-- Admin sees ProgressDashboard (existing behavior)
-```
-
-### Participant Experience (unchanged)
-
-```
-Participant is on "waiting" screen
-  |
-  v
-Receives batch_activated broadcast (same as today)
-  |-- Fetches batch questions
-  |-- Renders BatchVotingCarousel
-  |-- Submits votes
-  |-- Returns to waiting
-  |
-  v
-(Admin may show slides between batches -- participant sees nothing, stays on "waiting")
-  |
-  v
-Receives next batch_activated broadcast
-  ... (repeat)
-```
-
----
-
-## Backward Compatibility
-
-### Sessions Without session_items
-
-Existing sessions created before v1.3 will have no session_items rows. The UI must handle this gracefully:
-
-1. **Draft view:** If no session_items exist, show the current BatchList experience unchanged (batches and standalone questions interleaved by position, as today)
-2. **Active view:** If no session_items exist, use the current AdminControlBar "Activate Next" logic (unchanged)
-3. **Migration on demand:** When an admin first opens the SequenceManager on an existing session, auto-generate session_items from existing batches
-
-```typescript
-// Auto-migration: create session_items from existing batches
-async function ensureSessionItems(sessionId: string, batches: Batch[]): Promise<SessionItem[]> {
-  const { data: existing } = await supabase
-    .from('session_items')
-    .select('id')
-    .eq('session_id', sessionId)
-    .limit(1);
-
-  if (existing && existing.length > 0) {
-    return fetchSessionItems(sessionId);
+  for (const presences of Object.values(state)) {
+    for (const p of presences as { role?: string; teamId?: string }[]) {
+      if (p.role !== 'admin') {
+        const team = p.teamId ?? 'default';
+        teamCounts[team] = (teamCounts[team] || 0) + 1;
+      }
+    }
   }
 
-  // Create session_items from batches (sorted by position)
-  const items = batches
-    .sort((a, b) => a.position - b.position)
-    .map((batch, index) => ({
-      session_id: sessionId,
-      item_type: 'batch' as const,
-      position: index,
-      batch_id: batch.id,
-    }));
+  setTeamParticipantCounts(teamCounts);
+});
+```
 
-  if (items.length > 0) {
-    await supabase.from('session_items').insert(items);
-  }
-
-  return fetchSessionItems(sessionId);
+**Vote filtering in results:**
+```typescript
+// Filter votes by team when rendering results
+function getTeamVotes(questionId: string, teamId: string | null): Vote[] {
+  const allVotes = sessionVotes[questionId] ?? [];
+  if (!teamId) return allVotes; // Non-team session
+  return allVotes.filter(v => v.team_id === teamId);
 }
 ```
 
-### Export/Import Compatibility
+**No additional channels needed** — Single channel per session, team is metadata.
 
-New export format includes optional `sequence` field. Old exports without `sequence` are handled by backward-compatible import logic (same approach as the optional `templates` field added in v1.2).
+### Integration Points
+
+**Existing:**
+- `useRealtimeChannel` tracks presence with `userId` and `role` (lines 62-97 in use-realtime-channel.ts)
+- Vote insertion in `VoteAgreeDisagree` and `VoteMultipleChoice`
+- QR code generation in `AdminSession`
+
+**New:**
+- Add team selection UI in session setup (draft mode)
+- Generate multiple QR codes (one per team) when `teams_enabled = true`
+- Pass `teamId` from URL params through to vote insertion
+- Filter vote aggregation by team in admin results view
+- Add team selector dropdown in admin view to switch between team results
+
+**Modified Files:**
+- `src/types/database.ts` — Add `team_id` to Vote, `teams_enabled` to Session
+- `src/hooks/use-realtime-channel.ts` — Add `teamId` to presence tracking
+- `src/components/VoteAgreeDisagree.tsx` — Include `teamId` in vote insert
+- `src/components/VoteMultipleChoice.tsx` — Include `teamId` in vote insert
+- `src/pages/ParticipantSession.tsx` — Extract `teamId` from URL
+- `src/pages/AdminSession.tsx` — Add team QR generation, team filter UI
+- Database migration: `supabase/migrations/YYYYMMDD_teams.sql`
+
+---
+
+## Feature 4: Inline Batch Editing
+
+### Problem
+Batch items in `SequenceManager` currently show name + question count. Authors need to expand batches inline to edit questions without navigating away.
+
+### Solution: Collapsible Nested List
+
+**Pattern:**
+```typescript
+function SequenceItemCard({ item, expanded, onToggleExpand }: Props) {
+  const [isExpanded, setIsExpanded] = useState(expanded ?? false);
+
+  if (item.item_type === 'batch' && item.batch_id) {
+    return (
+      <div>
+        {/* Batch header — always visible */}
+        <div onClick={() => setIsExpanded(!isExpanded)}>
+          <CaretIcon direction={isExpanded ? 'down' : 'right'} />
+          <span>{batch.name}</span>
+          <span>{questionCount} questions</span>
+        </div>
+
+        {/* Nested question list — conditionally rendered */}
+        {isExpanded && (
+          <div className="pl-8 space-y-2">
+            {batchQuestions.map(q => (
+              <QuestionEditCard
+                key={q.id}
+                question={q}
+                onEdit={(updates) => updateQuestion(q.id, updates)}
+                onDelete={() => removeQuestion(q.id)}
+              />
+            ))}
+            <button onClick={() => addQuestionToBatch(item.batch_id)}>
+              + Add Question
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Slide item remains unchanged
+  return <SlideCard item={item} />;
+}
+```
+
+**State management:**
+- Expanded state stored in parent `SequenceManager` (map of batchId → boolean)
+- Questions fetched from `useSessionStore` filtered by `batch_id`
+- Question edits update store + persist to database
+
+**Sources:**
+- [react-collapsed](https://blog.logrocket.com/create-collapsible-react-components-react-collapsed/) — Collapsible components with hooks
+- [DevExtreme List](https://js.devexpress.com/React/Documentation/Guide/UI_Components/List/Grouping/Expand_and_Collapse_a_Group/) — Expand/collapse groups
+
+### Integration Points
+
+**Existing:**
+- `SequenceItemCard` renders batch header (lines 95-109 in SequenceItemCard.tsx)
+- `onExpandBatch` callback navigates away from sequence view
+- Questions stored in `useSessionStore.questions`
+
+**New:**
+- Replace `onExpandBatch` navigation with inline expansion
+- Add `expandedBatches: Set<string>` state to `SequenceManager`
+- Render `QuestionList` nested under batch when expanded
+- Add visual indent (left padding) for nested questions
+- Keep drag handle on batch header only (not on nested questions)
+
+**Modified Files:**
+- `src/components/SequenceItemCard.tsx` — Add expansion UI and nested question rendering
+- `src/components/SequenceManager.tsx` — Manage expanded state
+- `src/components/QuestionEditCard.tsx` — NEW compact question editor for inline use
+
+---
+
+## Feature 5: Multi-Select in dnd-kit
+
+### Problem
+Authors need to select multiple items (batches/slides) and drag them together or bulk delete. dnd-kit doesn't provide built-in multi-select.
+
+### Solution: Custom Selection State Layer
+
+**Pattern:**
+```typescript
+function SequenceManager() {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [dragRepresentativeId, setDragRepresentativeId] = useState<string | null>(null);
+
+  // Multi-select via Cmd/Ctrl+Click
+  function handleItemClick(itemId: string, event: React.MouseEvent) {
+    if (event.metaKey || event.ctrlKey) {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        next.has(itemId) ? next.delete(itemId) : next.add(itemId);
+        return next;
+      });
+    } else {
+      setSelectedIds(new Set([itemId]));
+    }
+  }
+
+  // Drag representative item, move all selected on drop
+  function handleDragStart(event: DragStartEvent) {
+    const id = event.active.id as string;
+    setDragRepresentativeId(id);
+
+    // If dragging unselected item, select it first
+    if (!selectedIds.has(id)) {
+      setSelectedIds(new Set([id]));
+    }
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over) return;
+
+    const itemsToMove = Array.from(selectedIds);
+    const newIndex = sortableIds.indexOf(over.id as string);
+
+    // Move all selected items to new position as a group
+    const reordered = moveItemsAsGroup(sortableIds, itemsToMove, newIndex);
+    const updates = reordered.map((id, idx) => ({ id, position: idx }));
+
+    useSessionStore.getState().updateSessionItemPositions(updates);
+    reorderSessionItems(updates);
+
+    setDragRepresentativeId(null);
+  }
+
+  // Bulk delete
+  function handleBulkDelete() {
+    for (const id of selectedIds) {
+      const item = sessionItems.find(i => i.id === id);
+      if (item) deleteSessionItem(item);
+    }
+    setSelectedIds(new Set());
+  }
+
+  return (
+    <div>
+      {selectedIds.size > 0 && (
+        <div className="flex gap-2 mb-3">
+          <span>{selectedIds.size} selected</span>
+          <button onClick={handleBulkDelete}>Delete Selected</button>
+        </div>
+      )}
+
+      <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <SortableContext items={sortableIds}>
+          {sessionItems.map(item => (
+            <SequenceItemCard
+              key={item.id}
+              item={item}
+              selected={selectedIds.has(item.id)}
+              onClick={(e) => handleItemClick(item.id, e)}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
+    </div>
+  );
+}
+```
+
+**Key insight:** dnd-kit drags one item, but `onDragEnd` moves all selected items to maintain group.
+
+**Source:** [dnd-kit multi-select discussion](https://github.com/clauderic/dnd-kit/issues/120) — Simulate multi-select by moving all selected items on DragEnd
+
+### Integration Points
+
+**Existing:**
+- `SequenceManager` uses dnd-kit with single item dragging (lines 79-124 in SequenceManager.tsx)
+- `SequenceItemCard` is sortable with drag handle (lines 27-41 in SequenceItemCard.tsx)
+
+**New:**
+- Add `selectedIds` state to `SequenceManager`
+- Add `selected` prop to `SequenceItemCard` for visual highlight
+- Intercept click events on cards for Cmd/Ctrl+Click selection
+- Modify `handleDragEnd` to move all selected items as a group
+- Add bulk action toolbar when items selected
+
+**Modified Files:**
+- `src/components/SequenceManager.tsx` — Add selection state and multi-move logic
+- `src/components/SequenceItemCard.tsx` — Add selected highlight styling
+- `src/lib/sequence-api.ts` — Ensure batch position updates handle groups
+
+---
+
+## Feature 6: Background Color Propagation
+
+### Problem
+Session items (slides, batches) need customizable background colors. Color must propagate from item → presentation view → participant view without prop drilling through 5+ components.
+
+### Solution: Theme Context Pattern
+
+**Pattern:**
+```typescript
+// Theme context provides color overrides
+interface ThemeContextValue {
+  backgroundColor: string; // Global default
+  itemColors: Record<string, string>; // Per-item overrides
+  setItemColor: (itemId: string, color: string | null) => void;
+}
+
+const ThemeContext = createContext<ThemeContextValue>({
+  backgroundColor: '#1a1a1a',
+  itemColors: {},
+  setItemColor: () => {},
+});
+
+// Provider wraps entire app
+function ThemeProvider({ children }: { children: ReactNode }) {
+  const [backgroundColor, setBackgroundColor] = useState('#1a1a1a');
+  const [itemColors, setItemColors] = useState<Record<string, string>>({});
+
+  const setItemColor = (itemId: string, color: string | null) => {
+    setItemColors(prev => {
+      const next = { ...prev };
+      if (color === null) {
+        delete next[itemId];
+      } else {
+        next[itemId] = color;
+      }
+      return next;
+    });
+  };
+
+  return (
+    <ThemeContext.Provider value={{ backgroundColor, itemColors, setItemColor }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+// Components consume theme
+function SlideDisplay({ imagePath, itemId }: Props) {
+  const { backgroundColor, itemColors } = useContext(ThemeContext);
+  const effectiveColor = itemColors[itemId] ?? backgroundColor;
+
+  return (
+    <div style={{ backgroundColor: effectiveColor }}>
+      <img src={imagePath} />
+    </div>
+  );
+}
+
+// Admin editor sets colors
+function SessionItemEditor({ item }: Props) {
+  const { setItemColor } = useContext(ThemeContext);
+
+  return (
+    <input
+      type="color"
+      onChange={(e) => setItemColor(item.id, e.target.value)}
+    />
+  );
+}
+```
+
+**Persistence:**
+```sql
+-- Store color in session_items
+ALTER TABLE session_items ADD COLUMN bg_color TEXT;
+
+-- Load colors into context on session load
+useEffect(() => {
+  const colors: Record<string, string> = {};
+  for (const item of sessionItems) {
+    if (item.bg_color) colors[item.id] = item.bg_color;
+  }
+  setItemColors(colors);
+}, [sessionItems]);
+```
+
+**Source:** [React Context for Theming](https://www.geeksforgeeks.org/reactjs/create-a-context-provider-for-theming-using-react-hooks/) — Theme context provider pattern
+
+### Integration Points
+
+**Existing:**
+- `SlideDisplay` hardcodes `bg-[#1a1a1a]` (line 10 in SlideDisplay.tsx)
+- `PresentationView` wraps content (line 330 in PresentationView.tsx)
+
+**New:**
+- Add `ThemeProvider` wrapping `<BrowserRouter>` in `App.tsx`
+- Add color picker in `SequenceItemCard` when editing
+- Persist color to `session_items.bg_color` on change
+- `SlideDisplay` reads color from `ThemeContext`
+- `BatchResultsProjection` reads color from `ThemeContext`
+
+**Modified Files:**
+- `src/contexts/theme-context.tsx` — NEW context provider
+- `src/App.tsx` — Wrap with ThemeProvider
+- `src/components/SlideDisplay.tsx` — Use context color
+- `src/components/BatchResultsProjection.tsx` — Use context color
+- `src/components/SequenceItemCard.tsx` — Add color picker UI
+- Database migration: Add `bg_color` column to `session_items`
+
+---
+
+## Feature 7: Batch-Slide Association
+
+### Problem
+Batches need optional "cover images" displayed before batch voting starts. Current model has no relationship between batches and slides.
+
+### Database Schema
+
+**Add foreign key linking batches to slides:**
+```sql
+-- Batches can reference a cover image from session_items
+ALTER TABLE batches ADD COLUMN cover_slide_id UUID REFERENCES session_items(id) ON DELETE SET NULL;
+
+-- Constraint: cover_slide must be a slide type, not batch
+ALTER TABLE batches ADD CONSTRAINT valid_cover_slide
+  CHECK (
+    cover_slide_id IS NULL OR
+    EXISTS (
+      SELECT 1 FROM session_items
+      WHERE id = cover_slide_id AND item_type = 'slide'
+    )
+  );
+```
+
+**Data Model:**
+- `batches.cover_slide_id` — Optional FK to `session_items` (must be type='slide')
+- If set, presentation shows slide before activating batch questions
+- If null, batch activates directly
+
+**Presentation Flow:**
+```typescript
+// When batch activated, check for cover slide
+async function activateBatch(batchId: string) {
+  const batch = batches.find(b => b.id === batchId);
+  if (!batch) return;
+
+  if (batch.cover_slide_id) {
+    // Show cover slide first
+    await activateSlide(batch.cover_slide_id, 'forward');
+    // Admin clicks "next" to start batch voting
+  } else {
+    // Skip directly to batch voting
+    await activateBatchVoting(batchId);
+  }
+}
+```
+
+**UI for association:**
+```typescript
+// In batch editor
+function BatchEditor({ batch }: Props) {
+  const slides = sessionItems.filter(i => i.item_type === 'slide');
+
+  return (
+    <div>
+      <label>Cover Slide (optional)</label>
+      <select
+        value={batch.cover_slide_id ?? ''}
+        onChange={(e) => updateBatch(batch.id, {
+          cover_slide_id: e.target.value || null
+        })}
+      >
+        <option value="">None</option>
+        {slides.map(slide => (
+          <option key={slide.id} value={slide.id}>
+            {slide.slide_caption || 'Untitled Slide'}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+```
+
+### Integration Points
+
+**Existing:**
+- Batches stored in `useSessionStore.batches` (lines 96-111 in session-store.ts)
+- Batch activation broadcasts `batch_activated` event (AdminSession.tsx)
+
+**New:**
+- Add `cover_slide_id` field to `Batch` type in `types/database.ts`
+- Add cover slide selector in batch creation/edit UI
+- Modify batch activation flow to show cover slide first (if set)
+- Add "Skip to Questions" button on cover slide in admin view
+
+**Modified Files:**
+- `src/types/database.ts` — Add `cover_slide_id` to Batch interface
+- `src/components/BatchEditor.tsx` — Add cover slide selector
+- `src/pages/AdminSession.tsx` — Two-stage batch activation (cover → questions)
+- Database migration: Add `cover_slide_id` column to `batches`
+
+---
+
+## Data Flow Patterns
+
+### Template Creation Flow
+```
+User clicks "New Template"
+  → TemplateEditor page loads (mode='template')
+  → SequenceManager in template mode (no Realtime)
+  → User drags batches/slides, edits inline
+  → Click "Save Template"
+  → Serialize sessionItems → SessionBlueprint JSONB
+  → Insert into session_templates table
+  → Return to template list
+```
+
+### Template → Live Session Flow
+```
+User clicks "Use Template" on template
+  → Fetch template.blueprint from database
+  → Create new session (draft status)
+  → For each blueprint.sessionItems:
+    - Insert batch (if type='batch') + questions
+    - Insert session_item (if type='slide')
+  → Load AdminSession with new sessionId
+  → Session ready for editing/launch
+```
+
+### Team Voting Flow
+```
+Admin enables teams → Enters team names
+  → QR codes generated for each team
+  → Participant scans team-specific QR
+  → URL: /session/:sessionId/:teamId
+  → Vote includes team_id column
+  → Admin filters results by team dropdown
+  → Presence counts shown per team
+```
+
+### Preview Flow
+```
+Template author clicks "Preview Presentation"
+  → Load template.blueprint (no session created)
+  → Wrap PresentationView in PreviewContext
+  → Mock data: activeItemId, votes, participant count
+  → Realtime subscription disabled (isPreview=true)
+  → Navigation controls cycle through blueprint items
+  → No database writes
+```
 
 ---
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Broadcasting Slides to Participants
-**What:** Sending slide data to participant devices
-**Why bad:** Wastes bandwidth, confuses participant UI, slides are admin-projection-only
-**Instead:** Slides are purely local state on the admin. Participants remain in "waiting" view during slides.
+### Anti-Pattern 1: Prop Drilling for Mode State
 
-### Anti-Pattern 2: Storing Images as Base64 in Database
-**What:** Encoding images as base64 strings in the session_items table
-**Why bad:** Bloats database, slow queries, breaks Supabase row size limits
-**Instead:** Store file path in session_items, actual file in Supabase Storage bucket.
+**What people do:** Pass `isLive`, `isTemplate`, `isDraft` booleans through 5 levels of components.
 
-### Anti-Pattern 3: Separate Slides Table
-**What:** Creating a dedicated `slides` table with its own RLS policies
-**Why bad:** Over-normalized for 2 fields (image_path, caption). Adds a join to every sequence query.
-**Instead:** Inline slide data in session_items with CHECK constraints for type safety.
+**Why it's wrong:**
+- Easy to pass wrong combination (e.g., `isLive=true` + `isTemplate=true`)
+- No compile-time enforcement of valid states
+- Adding new modes requires updating all intermediate components
 
-### Anti-Pattern 4: Migrating Existing Questions into session_items
-**What:** Adding `item_type = 'question'` to session_items for standalone questions
-**Why bad:** Requires migrating all existing sessions, duplicates position logic, breaks backward compatibility
-**Instead:** Standalone questions remain as-is. Only batches and slides are sequenced in session_items. The admin UI shows standalone questions in a separate section below the sequence.
+**Do this instead:**
+Use discriminated unions with mode-specific props. TypeScript enforces valid combinations.
 
-### Anti-Pattern 5: Storing Full Image URLs in Database
-**What:** Storing the complete Supabase Storage URL instead of the relative path
-**Why bad:** URL structure may change (project migration, CDN changes). Path is the stable identifier.
-**Instead:** Store only the relative path (`{session_id}/{uuid}.ext`). Construct URL at display time using `getPublicUrl()`.
+```typescript
+// BAD
+<SequenceManager isLive={true} isTemplate={false} isDraft={false} sessionId={id} />
 
-### Anti-Pattern 6: Making session_templates Relational
-**What:** Normalizing session templates into separate tables (template_batches, template_questions, template_slides)
-**Why bad:** Enormous complexity for a snapshot feature. Templates are frozen-in-time blueprints.
-**Instead:** JSONB blueprint field. Same pattern as the existing JSON export/import. Materialized into real rows on load.
+// GOOD
+<SequenceManager mode="live" sessionId={id} onActivateItem={...} />
+```
 
----
+### Anti-Pattern 2: Creating Separate Realtime Channels Per Team
 
-## Patterns to Follow
+**What people do:** Create `session:${sessionId}:${teamId}` channels for each team.
 
-### Pattern 1: Consistent RLS Policies
-**What:** All new tables follow the same RLS pattern as batches and questions -- session creator check via subquery on sessions table.
-**Where:** See session_items and session_templates RLS policies above. The `EXISTS (SELECT 1 FROM sessions WHERE ...)` pattern is used consistently.
+**Why it's wrong:**
+- Multiplies connection overhead (3 teams = 3 channels)
+- Admin must subscribe to all channels to see all teams
+- Presence counts require aggregating across channels
 
-### Pattern 2: Realtime Publication
-**What:** New tables that need live updates are added to `supabase_realtime` publication.
-**Applied to:** `session_items` (for sequence reordering during draft). NOT `session_templates` (no need for real-time template list updates -- loaded on demand).
+**Do this instead:**
+Single channel per session, team as Presence metadata. Filter in application layer.
 
-### Pattern 3: Inline PL/pgSQL Triggers for updated_at
-**What:** Use `CREATE OR REPLACE FUNCTION` + `CREATE TRIGGER` for auto-updating `updated_at` timestamps.
-**Why:** moddatetime extension not available (per MEMORY.md).
-**Applied to:** `session_templates` (has updated_at). Not needed for `session_items` (no updated_at -- position changes are full row updates).
+```typescript
+// BAD
+const channel = supabase.channel(`session:${sessionId}:${teamId}`);
 
-### Pattern 4: Zustand Store + API Module Separation
-**What:** State in Zustand store, async operations in separate `lib/` API module.
-**Existing example from v1.2:**
-- `stores/template-store.ts` -- state + synchronous actions
-- `lib/template-api.ts` -- async CRUD functions that update store
-**Applied to:** New `stores/session-template-store.ts` + `lib/session-template-api.ts`
+// GOOD
+const channel = supabase.channel(`session:${sessionId}`);
+channel.track({ userId, role: 'participant', teamId });
+```
 
-### Pattern 5: Position-Based Ordering with DnD-Kit
-**What:** Items have `position` integer column, DndContext handles reordering, positions updated in database.
-**Existing example from v1.1:** BatchList `handleDragEnd` -> `onReorderItems` -> sequential position updates in AdminSession.
-**Applied to:** SequenceManager for session_items reordering.
+### Anti-Pattern 3: Duplicating Presentation Components for Preview
 
-### Pattern 6: Modal Overlay with mousedown+mouseup Close
-**What:** Modal close requires both mousedown AND mouseup on overlay to prevent text selection drift from closing the modal.
-**Existing example:** TemplateEditor.tsx (per MEMORY.md).
-**Applied to:** SlideEditor modal. Always check for unsaved changes before closing (confirm dialog).
+**What people do:** Create `PresentationPreview.tsx` with copied code from `PresentationView.tsx`.
 
----
+**Why it's wrong:**
+- Code duplication → bugs fixed in one place but not the other
+- Feature parity divergence over time
+- Double maintenance burden
 
-## Suggested Build Order
+**Do this instead:**
+Use Preview Context to inject mock data into existing components.
 
-Based on dependency analysis:
+```typescript
+// BAD
+<PresentationPreview template={template} /> // Separate component
 
-### Phase 1: Database Foundation + Storage
-**What:** Schema migration, Storage bucket, TypeScript types
-**Dependencies:** None
-**Rationale:** Everything else depends on the schema and storage being available
-- Migration: session_items table (with CHECK constraints, RLS, indexes, realtime publication)
-- Migration: session_templates table (with trigger, RLS)
-- Supabase Storage bucket: session-images (created via Dashboard, set public, configure MIME types)
-- Storage RLS policies (INSERT + DELETE for session creator)
-- TypeScript types: SessionItem, SessionTemplate, SessionBlueprint in database.ts
+// GOOD
+<PreviewContext.Provider value={mockData}>
+  <PresentationView /> // Reuse existing component
+</PreviewContext.Provider>
+```
 
-### Phase 2: Image Upload + Slide CRUD
-**What:** ImageUploader, SlideEditor, basic slide management
-**Dependencies:** Phase 1 (storage bucket, session_items table)
-**Rationale:** Slides are the core new content type. Must work before sequencing.
-- ImageUploader component (upload, preview, remove, client-side resize)
-- SlideEditor modal (create slide -> upload image + caption, edit, delete)
-- Image cleanup on slide deletion (remove from storage + delete session_items row)
-- Wire into AdminSession draft view (temporary: add slides below existing BatchList)
+### Anti-Pattern 4: Storing Background Color in Multiple Places
 
-### Phase 3: Unified Sequence Management
-**What:** SequenceManager replaces BatchList's top-level interleaving
-**Dependencies:** Phase 2 (slides exist as items), Phase 1 (session_items table)
-**Rationale:** The sequence UI brings slides and batches together
-- SequenceManager component with DndContext for session_items
-- session_items CRUD API (add batch item, add slide item, reorder, delete)
-- BatchList scope reduction (remove top-level interleaving, keep intra-batch reorder)
-- Auto-migration for existing sessions (ensureSessionItems)
-- session-store additions (sessionItems state + actions)
-- Standalone questions section (below sequence)
+**What people do:** Store color in component state + database + global store.
 
-### Phase 4: Presentation Controller
-**What:** Sequence-aware advancing during active session
-**Dependencies:** Phase 3 (sequence exists and is ordered)
-**Rationale:** This is the "play" mode for the sequence built in Phase 3
-- AdminControlBar enhancement with sequence navigation (prev/next through items)
-- SlideDisplay component for active view (full-screen image in projection area)
-- Advance/back logic: slide = local state only, batch = existing broadcast
-- Active item tracking (activeItemIndex in session-store)
-- Backward compatibility: sessions without session_items use existing behavior
+**Why it's wrong:**
+- State synchronization bugs (color updated in one place but not others)
+- Unclear source of truth
+- Refetch required to see updates
 
-### Phase 5: Session Templates in Supabase
-**What:** Replace localStorage TemplatePanel with Supabase session_templates
-**Dependencies:** Phase 3 (sequences and slides can be included in templates)
-**Rationale:** Templates snapshot the whole session including the sequence
-- session-template-store.ts (Zustand store)
-- session-template-api.ts (CRUD operations against session_templates table)
-- SessionTemplatePanel component (save/load/delete)
-- Save current session as template: serialize questions, batches, sequence, slide image paths into blueprint JSONB
-- Load template into session: materialize blueprint into real rows (batches, questions, session_items)
-- Handle image references in templates (store paths; images must already exist in storage)
-- Remove old TemplatePanel component and question-templates.ts localStorage code
+**Do this instead:**
+Single source of truth (database), loaded into Context on mount.
 
-### Phase 6: Export/Import + Polish
-**What:** Update JSON export to include sequence and image URLs
-**Dependencies:** All previous phases
-**Rationale:** Export must capture the complete state; polish is last
-- Export schema update (add optional `sequence` field with image public URLs)
-- Import schema update (backward compatible -- sequence field optional)
-- Image URL handling in export (convert storage paths to public URLs, not base64)
-- Session deletion cleanup: remove storage objects when session is deleted
-- Edge cases testing across all flows
-- Remove any remaining dead code from old patterns
+```typescript
+// BAD
+const [bgColor, setBgColor] = useState('#fff'); // Component state
+const globalColor = useGlobalStore(s => s.bgColor); // Global store
+// Which one is correct?
+
+// GOOD
+const { itemColors } = useContext(ThemeContext); // Single source
+const color = itemColors[itemId] ?? defaultColor;
+```
 
 ---
 
-## Scalability Considerations
+## Build Order Recommendations
 
-| Concern | Current (50-100 users) | At 1,000 users | Notes |
-|---------|------------------------|-----------------|-------|
-| Image storage | Public bucket, direct URL | Same | Supabase CDN handles caching |
-| Sequence size | 10-20 items typical | Same | No scalability concern |
-| Template JSONB size | < 100KB typical | Same | Single session blueprint |
-| Realtime session_items | Postgres Changes | Same | Low frequency updates (reorder only during draft) |
-| Image upload concurrency | 1 admin at a time | Same | Single admin per session |
+### Phase 1: Mode Separation (Foundation)
+1. Add discriminated union types for component modes
+2. Refactor `SequenceManager` to accept mode prop
+3. Create `TemplateEditor` page using mode='template'
+4. Implement template CRUD (no preview yet)
 
-No scalability concerns for v1.3. The main performance consideration is image file size -- recommend client-side resize to 1920px max width before upload.
+**Rationale:** Establishes mode pattern used by all other features.
+
+### Phase 2: Preview System
+1. Add `PreviewContext` provider
+2. Modify `useRealtimeChannel` to respect preview flag
+3. Create preview routes with mock data generation
+4. Test presentation/participant preview rendering
+
+**Rationale:** Depends on template creation (Phase 1). Enables testing other features without live sessions.
+
+### Phase 3: Background Color Theming
+1. Add `ThemeContext` provider
+2. Add `bg_color` column to database
+3. Modify `SlideDisplay` and `BatchResultsProjection` to use context
+4. Add color picker UI in item editor
+
+**Rationale:** Independent feature, no dependencies on other new features.
+
+### Phase 4: Inline Batch Editing
+1. Add expand/collapse state to `SequenceManager`
+2. Render nested question list in `SequenceItemCard`
+3. Create `QuestionEditCard` compact editor
+4. Test question CRUD within expanded batch
+
+**Rationale:** Requires template mode (Phase 1) but independent of teams/preview.
+
+### Phase 5: Team-Based Voting
+1. Add team schema to database (team_id columns)
+2. Modify vote insertion to include team_id
+3. Add team selection UI in session setup
+4. Generate team-specific QR codes
+5. Add team filter in results view
+6. Test multi-team voting flow
+
+**Rationale:** Most complex feature, benefits from preview system (Phase 2) for testing.
+
+### Phase 6: Batch-Slide Association
+1. Add `cover_slide_id` to batches table
+2. Add cover slide selector in batch editor
+3. Modify batch activation flow for two-stage display
+4. Test cover slide → batch transition
+
+**Rationale:** Simple extension after inline editing (Phase 4) is complete.
+
+### Phase 7: Multi-Select DnD
+1. Add selection state to `SequenceManager`
+2. Implement Cmd/Ctrl+Click selection
+3. Modify drag-end to move groups
+4. Add bulk action toolbar
+5. Test multi-item operations
+
+**Rationale:** Final polish feature, least critical path. Requires stable sequencing from earlier phases.
+
+---
+
+## Scaling Considerations
+
+| Concern | Current (< 100 sessions) | At Scale (1000+ sessions) | At Large Scale (10K+ sessions) |
+|---------|--------------------------|---------------------------|-------------------------------|
+| **Template Storage** | JSONB in PostgreSQL | Same — JSONB indexed | Consider separate blob storage |
+| **Team Presence** | Single channel, metadata filtering | Same — efficient | Consider team-scoped channels if > 20 teams |
+| **Background Colors** | React Context per session | Same — minimal overhead | Inline in session_items fetch |
+| **Preview Mock Data** | Generated client-side | Same | Consider pre-generated snapshots |
+| **Multi-Select State** | Component state | Same | No scaling issue (UI only) |
+
+**First bottleneck:** Template blueprints become large (100+ items) → JSONB query performance degrades.
+
+**Mitigation:** Add GIN index on `session_templates.blueprint` for JSONB queries. Paginate template list.
+
+**Second bottleneck:** Team presence tracking with 50+ teams → Client-side filtering becomes expensive.
+
+**Mitigation:** Move team count aggregation to server-side edge function. Cache counts with 1-second TTL.
 
 ---
 
 ## Sources
 
-- [Supabase Storage Buckets Documentation](https://supabase.com/docs/guides/storage/buckets/fundamentals) -- public vs private buckets, access control
-- [Supabase Storage Access Control](https://supabase.com/docs/guides/storage/security/access-control) -- RLS for storage.objects
-- [Supabase JS SDK Storage Upload Reference](https://supabase.com/docs/reference/javascript/storage-from-upload) -- upload API, options, permissions
-- [Supabase JS SDK createSignedUrl Reference](https://supabase.com/docs/reference/javascript/storage-from-createsignedurl) -- signed URLs vs public URLs
-- [Supabase Storage Image Transformations](https://supabase.com/docs/guides/storage/serving/image-transformations) -- resize/optimize (Pro Plan only)
-- Existing codebase analysis: AdminSession.tsx, BatchList.tsx, AdminControlBar.tsx, ParticipantSession.tsx, session-store.ts, template-store.ts, template-api.ts, session-export.ts, session-import.ts, TemplatePanel.tsx, question-templates.ts, all 11 migration files, database.ts, App.tsx, use-realtime-channel.ts
+### Official Documentation
+- [Supabase Realtime Documentation](https://supabase.com/docs/guides/realtime) — Broadcast, Presence, Postgres Changes
+- [dnd-kit Documentation](https://docs.dndkit.com) — Drag and drop toolkit
+- [React Context API](https://legacy.reactjs.org/docs/context.html) — Context propagation
+- [TypeScript Discriminated Unions](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions) — Type narrowing
+
+### Architecture Patterns (2026)
+- [TypeScript Discriminated Unions for React Components](https://oneuptime.com/blog/post/2026-01-15-typescript-discriminated-unions-react-props/view) — Mode-aware component props
+- [React Context for Theming](https://www.geeksforgeeks.org/reactjs/create-a-context-provider-for-theming-using-react-hooks/) — Theme provider pattern
+- [dnd-kit Multi-Select Discussion](https://github.com/clauderic/dnd-kit/issues/120) — Custom multi-select implementation
+
+### Component Libraries
+- [Preview.js](https://previewjs.com/) — Component preview with mock data
+- [react-collapsed](https://blog.logrocket.com/create-collapsible-react-components-react-collapsed/) — Collapsible components
+- [DevExtreme List](https://js.devexpress.com/React/Documentation/Guide/UI_Components/List/Grouping/Expand_and_Collapse_a_Group/) — Expand/collapse groups
+
+### Research Queries
+- React template authoring separate from live instance architecture patterns 2026
+- Preview mode simulating UI without real data React 2026
+- React discriminated union component modes TypeScript pattern 2026
+- Collapsible nested list expand collapse inline editing React 2026
+- dnd-kit multi-select drag drop multiple items React 2026
+- React context vs props component theming background color propagation 2026
 
 ---
 
-*Researched: 2026-02-10*
-*Valid for: QuickVote v1.3 Presentation Mode milestone*
+*Architecture research for: QuickVote v1.4 — Template Authoring, Teams, and Presentation Polish*
+*Researched: 2026-02-12*

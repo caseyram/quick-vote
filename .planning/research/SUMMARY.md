@@ -1,219 +1,319 @@
 # Project Research Summary
 
-**Project:** QuickVote v1.3 - Presentation Mode
-**Domain:** Real-time voting with image slides, unified session sequencing, Supabase Storage
-**Researched:** 2026-02-10
+**Project:** QuickVote v1.4 - Template Authoring & Teams
+**Domain:** Real-time voting with template workflow, team-based voting, and presentation polish
+**Researched:** 2026-02-12
 **Confidence:** HIGH
 
 ## Executive Summary
 
-QuickVote v1.3 adds a **presentation layer** on top of the existing voting system: image slides projected by the admin between voting batches, a unified drag-and-drop sequence mixing slides and batches, and session templates persisted in Supabase (replacing localStorage). The existing stack handles nearly everything -- the only new runtime dependency is `browser-image-compression` (~27KB gzipped) for client-side image resize before upload. Supabase Storage is already bundled in the existing `@supabase/supabase-js` SDK. The architecture formalizes what the codebase already does informally: `session_items` is a database-level version of `BatchList`'s in-memory interleaved item list, and slides are inlined directly into that table (two extra columns, no separate join table needed).
+QuickVote v1.4 extends the existing real-time voting platform with three major capability sets: template authoring (PowerPoint-like edit/preview workflow), team-based voting (multi-team QR codes with filtered results), and presentation polish (crossfade transitions, background colors, batch cover images). Research confirms these are table stakes features for professional polling tools — Mentimeter, Slido, and Poll Everywhere all implement similar patterns, but QuickVote's immersive/tactile positioning enables differentiation through seamless workflows rather than gamification.
 
-The recommended approach is to build in six phases following strict dependency order: database schema and Storage bucket first, then image upload mechanics, then the unified sequence UI (replacing BatchList's top-level interleaving), then the presentation controller for live advancing, then session templates in Supabase, and finally export/import extension with polish. This order prevents rework because each phase produces artifacts consumed by the next. Slides cannot exist without Storage; the sequence cannot display slides without the upload pipeline; presentation mode cannot advance without the sequence; and templates cannot serialize sessions without slides and sequences being complete.
+The recommended approach leverages the existing validated stack (Motion for transitions, dnd-kit for multi-select, qrcode.react for team QR codes) with minimal additions (polished for color contrast, isomorphic-dompurify for inline editing security). Architecture follows discriminated union patterns for mode separation (edit vs preview vs live), React Context for theme propagation, and single Realtime channel per session with team metadata filtering. This avoids the complexity of separate preview components or per-team Realtime channels.
 
-The top risks are **orphaned Storage files** (Supabase has no cascade delete from database rows to Storage objects -- every delete path must explicitly call the Storage API), **Storage RLS blocking uploads with cryptic 403 errors** (policies on `storage.objects` are separate from table RLS and must be configured explicitly), and **position conflicts** between the new `session_items.position` and the existing `batch.position` / `question.position` columns (the unified sequence table must be the single source of truth for display order). A secondary risk is CDN cache serving stale images after replacement -- mitigated by using unique file paths per upload and never reusing Storage paths. All critical pitfalls have concrete prevention strategies that must be built into the first phase, not retrofitted.
+Critical risks center on template preview divergence (preview must render identically to live mode), team aggregation performance (requires server-side RPC and composite indexes), and inline editing scroll preservation (needs stable keys and debounced state). All pitfalls have documented prevention strategies and are addressable with existing patterns. Overall confidence is HIGH — this is a well-understood problem space with established solutions.
 
 ## Key Findings
 
 ### Recommended Stack
 
-Zero new runtime dependencies beyond the existing stack for core functionality. One recommended addition for image optimization.
+**No major stack additions required.** Existing stack (React 19, Supabase, Motion, dnd-kit, qrcode.react) handles all new features. Only two utility libraries needed: polished for WCAG contrast validation (2kB) and isomorphic-dompurify for inline editing XSS prevention (4kB). Total bundle addition: ~6kB gzipped.
 
-**Core technologies (existing, no changes):**
-- **@supabase/supabase-js 2.93.2**: Database, Auth, Realtime, and now Storage -- the Storage SDK is already bundled, no separate install needed
-- **Motion (framer-motion) v12**: Slide transition animations between sequence items (AnimatePresence for enter/exit)
-- **@dnd-kit/core + @dnd-kit/sortable**: Sequence drag-and-drop reordering, extending existing BatchList patterns
-- **Zod**: Export/import schema validation extended with optional slide and sequence fields
-- **Zustand**: Session store extended with `sessionItems[]` and `activeItemIndex` state
+**Core technologies:**
+- **polished** (4.3.1): WCAG contrast checking for background color feature — industry standard for color utilities, provides readableColor() for auto text contrast and getLuminance() for WCAG AA compliance (4.5:1 normal text)
+- **isomorphic-dompurify** (3.0.0-rc.2): XSS prevention for contenteditable inline editing — OWASP-recommended sanitizer with server-side support needed for template import/export flows
+- **Motion** (existing): AnimatePresence with mode="wait" for crossfade transitions — no new library needed, existing installation supports sequential fade pattern
+- **dnd-kit** (existing): Multi-select via custom selection state layer — no built-in multi-select, but GitHub issue #120 confirms pattern of moving all selected items in onDragEnd handler
+- **qrcode.react** (existing): Per-team QR code generation — already supports React 19, generates multiple QR codes with team parameter in URL
 
-**New dependency (one package):**
-- **browser-image-compression 2.0.2** (~27KB gzipped): Client-side image compression via Web Worker. Promise-based API fits existing async/await patterns. Compresses 3-10MB camera photos to 300KB-1MB targeting 1920px max dimension. Critical for staying within Supabase free tier (1GB storage) and for fast uploads on venue Wi-Fi.
-
-**Explicitly rejected:** react-dropzone (overkill), sharp/jimp (server-side), react-image-crop (no cropping needed), uppy/filepond (heavy upload widgets), blurhash (no public gallery), any lightbox library (CSS handles full-screen display).
-
-See [STACK.md](./STACK.md) for full rationale, API examples, and Supabase Storage configuration details.
+**What NOT to add:**
+- react-contenteditable (unmaintained 3 years, React 19 compatibility unverified) — use native contenteditable with DOMPurify instead
+- color-contrast-checker (4 years old, limited features) — polished provides broader utilities with active maintenance
+- Separate preview component library — reuse existing components with PreviewContext to inject mock data
 
 ### Expected Features
 
 **Must have (table stakes):**
-- Unified ordered sequence of slides + batches (every competitor uses single-deck mental model)
-- Image upload to Supabase Storage with public URLs
-- Full-screen image display on admin projection screen
-- Drag-and-drop sequence reordering (extending existing dnd-kit patterns)
-- Admin manual advance with keyboard navigation (arrow keys, on-screen buttons)
-- Participant waiting state during slide display ("Waiting for next question...")
-- Session templates saved in Supabase (save/load full session blueprints with slides)
-- JSON export extension including slide image URLs and sequence order (backward-compatible)
+- **Edit/preview mode toggle** — PowerPoint/Google Slides standard workflow, users separate editing from presenting
+- **Inline editing in sequence** — Modern UI expectation (Notion, Airtable, Trello), edit where items appear not separate panel
+- **Team voting with QR codes** — Poll Everywhere, Easy Poll (Teams), Boardable all support group segmentation for education/corporate use cases
+- **Timer on batches** — Slido, Mentimeter, Kahoot standard feature for live polling momentum
+- **Visual drag affordances** — 44px+ touch targets with dedicated handles for mobile users
+- **Customizable branding** — Background color with WCAG contrast validation (4.5:1 normal, 3:1 large text)
+- **Multi-select for bulk actions** — Standard pattern (Gmail, file managers) for managing lists
+- **Smooth slide transitions** — Professional presentations need subtle transitions, not abrupt cuts
 
-**Should have (differentiators):**
-- Fullscreen API toggle (one-click browser fullscreen for projection)
-- Slide transition animations (fade/slide between items using Motion)
-- Slide preview thumbnails in sequence management
-- Extended keyboard shortcuts (Space, Escape, B for black screen)
-- QR code overlay on content slides for latecomers
+**Should have (competitive differentiation):**
+- **Template-first authoring workflow** — Shifts from "create sessions" to "design templates, run instances" matching PowerPoint reuse model
+- **Batch cover image** — Visual context during voting, shows relevant slide while batch active (immersive feel)
+- **Seamless crossfade** — Both slides visible during transition (premium feel vs instant swap)
+- **Free-form timer input** — Flexibility over dropdown presets (90s, 2.5m, 3:30) matches QuickVote's tactile philosophy
+- **Per-team QR codes** — Each team gets dedicated code (scan = auto-assigned) vs single QR + team selection
+- **Drag handles only in edit mode** — Prevents accidental moves during live presentation
 
-**Defer (v2+):**
-- PowerPoint/Google Slides import (massive scope, tangential to core value)
-- Video slides (playback complexity, autoplay policies)
-- Rich text or heading slide types (scope creep -- image-only is sufficient)
-- Participant-visible slides (doubles rendering surface, complicates phone UX)
-- Auto-advance / timed slides (contradicts admin-controlled flow)
-- Image editing/annotation (out of scope, use external tools)
-
-See [FEATURES.md](./FEATURES.md) for competitor analysis matrix and complexity estimates.
+**Defer (v2+ or anti-featured):**
+- Real-time collaborative template editing — conflict resolution complexity, ownership unclear, accidental overwrites
+- Nested teams (hierarchies) — exponential UI complexity for minimal value, single-level teams + Excel pivot sufficient
+- Per-question timers — fragmented experience, batch-level timer keeps model simple
+- Animated transitions beyond crossfade — feature bloat, one high-quality crossfade beats 50 mediocre options
+- Team leaderboards/gamification — wrong positioning, QuickVote is immersive voting not game show (Kahoot territory)
+- Auto-save templates — unclear version stability, explicit save button gives user control
 
 ### Architecture Approach
 
-v1.3 adds a presentation layer on top of the existing voting layer. The key architectural decision is **inlining slide data into `session_items`** rather than creating a separate slides table -- slides have only two fields (image path, caption), so a separate table would add a join with no benefit. `session_items` formalizes the interleaving pattern already implemented in `BatchList.tsx` at the database level. Participants see no change -- slides are admin-projection-only state. Session templates use a JSONB `blueprint` column (same principle as JSON export/import), not a relational template schema.
+**Mode separation via discriminated unions** enables type-safe component behavior (edit/preview/live modes). Template editor uses mode='template' variant of SequenceManager, preview uses PreviewContext to inject mock data into existing presentation components (no duplication), and live mode operates unchanged. Single Realtime channel per session with team as Presence metadata (no per-team channels). Background colors propagate via ThemeContext to avoid prop drilling through 5+ components.
 
-**Major components (new and modified):**
-1. **SequenceManager** (NEW) -- Drag-and-drop ordering of `session_items`, replaces BatchList's top-level interleaving
-2. **ImageUploader** (NEW) -- File picker, client-side compression, upload to Supabase Storage
-3. **SlideEditor** (NEW) -- Modal for creating/editing slides (image + caption), follows TemplateEditor patterns
-4. **SlideDisplay** (NEW) -- Full-screen image display during active presentation, renders in same viewport area as ActiveQuestionHero
-5. **PresentationController** (NEW, integrated into AdminControlBar) -- Sequence-aware advance/back with slide = local state only, batch = existing broadcast
-6. **SessionTemplatePanel** (NEW, replaces TemplatePanel) -- Save/load session blueprints from Supabase
-7. **AdminSession** (MODIFY) -- Loads session_items, tracks active sequence index, renders SlideDisplay when active item is slide
-8. **BatchList** (MODIFY) -- Reduced scope: removed top-level interleaving (handled by SequenceManager), keeps intra-batch question reorder
-9. **SessionImportExport** (MODIFY) -- Extended schema with optional slide URLs and sequence order
-
-**Key architectural decisions:**
-- `session_items` is the single source of truth for display ordering (not `batch.position`)
-- Slide data is inlined in `session_items` (no separate slides table)
-- Slide navigation does NOT broadcast to participants (admin-only state)
-- `session_items` should NOT be added to Supabase Realtime publication (use Broadcast for advance events instead)
-- Session templates use JSONB blueprint (not relational normalization)
-- Store relative Storage paths in database, construct full URLs at display time
-
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for full schema, component boundaries, data flow diagrams, and anti-patterns.
+**Major components:**
+1. **TemplateEditor** — mode='template' variant of SequenceManager with DnD + inline batch editing, saves to session_templates.blueprint JSONB instead of session_items
+2. **PreviewContext** — React Context providing mock data (activeItemId, votes, participant count) with isPreview flag to disable Realtime subscriptions during preview
+3. **Team voting layer** — URL routing (/session/:id/:team), single Realtime channel with teamId in Presence metadata, vote.team_id column for filtering, composite indexes for aggregation performance
+4. **Inline batch editing** — Collapsible nested lists in SequenceItemCard with expanded state map, QuestionEditCard compact editor, replaces bottom-scrolled batch form
+5. **Multi-select DnD** — Selection state (Set<string>) layered over dnd-kit, Cmd/Ctrl+click for toggle, onDragEnd moves all selected items as group
+6. **ThemeContext** — Global backgroundColor + itemColors Record<string, string> for per-item overrides, persisted in session_items.bg_color column
+7. **Batch-slide association** — batches.cover_slide_id FK to session_items (type='slide'), two-stage activation (cover → questions) with optional skip
 
 ### Critical Pitfalls
 
-1. **Orphaned Storage files** (CRITICAL) -- Supabase has no cascade from database rows to Storage objects. Every delete path (slide removal, session deletion) must explicitly call `supabase.storage.from().remove()`. Use session-scoped paths (`{session_id}/{uuid}.ext`) for batch cleanup. Ignoring this leaks storage quota permanently.
+1. **Template Preview Diverges from Live Behavior** — Preview and live components render differently due to separate rendering paths. **Avoid:** Share components with previewMode prop to disable interaction, use same Zustand store structure with preview instance, visual regression testing comparing preview to live renders.
 
-2. **Storage RLS blocks uploads with cryptic 403** (CRITICAL) -- Policies on `storage.objects` are completely separate from table RLS. Must create explicit INSERT/DELETE policies for the slides bucket before any client upload code. Test with the anon key (not service role or dashboard), because anonymous auth users are `authenticated` role, not `anon` role.
+2. **Team Aggregation Performance Collapse** — 10 teams × 50 questions × 100 participants = 50,000 vote rows to scan causes 30s+ load times. **Avoid:** Server-side PostgreSQL RPC with window functions, composite index on (session_id, question_id, participant_id), lazy load results per question not all upfront.
 
-3. **Position conflicts between session_items and existing batch/question positions** (CRITICAL) -- `session_items.position` must be the single source of truth for sequence ordering. Do not maintain two independent position systems. Existing `batch.position` should be derived from or superseded by `session_items.position`.
+3. **Inline Editing Loses Scroll Position** — Component re-renders on keystroke trigger React reconciliation, list scrolls to top mid-edit. **Avoid:** Stable keys (question.id not array index), debounced state updates (300ms), store scrollTop in ref before render and restore after.
 
-4. **CDN cache serves stale images after replacement** (CRITICAL) -- Never reuse Storage paths. Generate a unique `{uuid}.{ext}` filename for every upload. If replacing an image, upload to a new path and delete the old one. Add cache-bust query parameter as fallback for projection display.
+4. **Multi-Select Drag-Drop State Desync** — dnd-kit doesn't natively support multi-select, custom implementation risks items disappearing or appearing in wrong order. **Avoid:** Store selectedIds in Zustand not component state, batch database updates transactionally via RPC, optimistic update only after DB success.
 
-5. **Drag-and-drop with mixed item types breaks DnD context** (MODERATE) -- Adding `slide-{id}` items to the existing `batch-{id}` / `question-{id}` DnD system requires extending ID prefix patterns, DragOverlay rendering, and nested context isolation. Must prototype early -- highest-risk UI work in v1.3.
-
-See [PITFALLS.md](./PITFALLS.md) for 17 total pitfalls with detailed prevention strategies and phase-specific warnings.
+5. **Background Color Contrast Failures** — User sets gold background + black text, invisible on projection. **Avoid:** WCAG contrast validation on save (4.5:1 normal text, 3:1 large), live contrast ratio display below color picker, preset palette of accessible combinations, warning (not blocking) for low contrast.
 
 ## Implications for Roadmap
 
-Based on research, suggested six-phase structure:
+Based on research, suggested phase structure emphasizes foundational patterns first (mode separation, preview system) before building features that depend on them (team voting, inline editing). Architecture research confirms mode discrimination and preview context are dependencies for all other features.
 
-### Phase 1: Database Schema + Storage Bucket
+### Phase 1: Template Foundation & Mode Separation
+**Rationale:** Establishes discriminated union pattern for component modes (edit/preview/live). All subsequent features depend on template creation and mode-aware rendering. Must come first to avoid rework.
 
-**Rationale:** Everything downstream depends on the schema and Storage being configured. This phase has zero UI work and can be validated independently with SQL queries and Storage API calls.
-**Delivers:** `session_items` table with CHECK constraints, `session_templates` table with JSONB blueprint and updated_at trigger, Supabase Storage bucket (`session-images` or `session-slides`) with public access and RLS policies, TypeScript types for `SessionItem`, `SessionTemplate`, `SessionBlueprint`.
-**Addresses:** Unified sequence data model, session template persistence infrastructure
-**Avoids:** Pitfall 2 (RLS blocking uploads), Pitfall 3 (position conflicts -- by establishing session_items as single source of truth from day one), Pitfall 15 (realtime overhead -- by NOT adding session_items to realtime publication)
+**Delivers:**
+- session_templates table migration (blueprint JSONB, serializeSession RPC)
+- Discriminated union types for SequenceManager modes
+- TemplateEditor page using mode='template'
+- Template CRUD (create, list, load into session)
 
-### Phase 2: Image Upload + Slide CRUD
+**Addresses (from FEATURES.md):**
+- Template-first authoring workflow (differentiator)
+- Foundation for edit/preview mode toggle (table stakes)
 
-**Rationale:** Slides are the core new content type. The upload pipeline (compression, validation, Storage upload, cleanup) must work before sequencing or presentation can use slides.
-**Delivers:** ImageUploader component, SlideEditor modal, client-side compression and validation, image cleanup on delete, temporary integration into AdminSession draft view.
-**Addresses:** Image upload to Storage, file validation (type/size/content), image slide CRUD
-**Avoids:** Pitfall 1 (orphaned images -- cleanup built in from day one), Pitfall 4 (CDN cache -- unique paths per upload), Pitfall 5 (no validation -- client-side type/size/content checks), Pitfall 9 (upload timeout -- compression before upload), Pitfall 10 (MIME bypass -- Image() content check)
-**Uses:** browser-image-compression, Supabase Storage API, nanoid for filenames
+**Avoids (from PITFALLS.md):**
+- Session Template Migration Timing Failure — includes error handling for missing table, schema validation on load
 
-### Phase 3: Unified Sequence Management
+### Phase 2: Preview System
+**Rationale:** Enables testing template rendering without creating live sessions. Depends on template creation (Phase 1). Provides foundation for validating all subsequent features in preview mode before live deployment.
 
-**Rationale:** The sequence UI brings slides and batches together into a single drag-and-drop list. Depends on slides existing (Phase 2) and session_items table (Phase 1).
-**Delivers:** SequenceManager component replacing BatchList's top-level interleaving, session_items CRUD API, auto-migration for existing sessions (backfill session_items from batches), session-store extensions.
-**Addresses:** Unified sequence model, drag-and-drop reordering, standalone questions section
-**Avoids:** Pitfall 3 (position conflicts -- BatchList scope reduced, SequenceManager owns ordering), Pitfall 7 (mixed DnD types -- extend existing ID prefix pattern), Pitfall 13 (position gaps -- sequential integer compaction on reorder)
+**Delivers:**
+- PreviewContext provider with mock data generation
+- useRealtimeChannel respects isPreview flag
+- Preview routes (/templates/:id/preview/presentation, /participant)
+- Mock vote generation using template response options
 
-### Phase 4: Presentation Controller
+**Addresses:**
+- Edit/preview mode toggle (table stakes, second half)
+- Validates template rendering matches live rendering
 
-**Rationale:** This is the "play" mode for the sequence built in Phase 3. Admin advances through slides and batches during a live session.
-**Delivers:** Sequence-aware navigation in AdminControlBar, SlideDisplay component, keyboard navigation (arrows, Space, Escape), backward compatibility for sessions without session_items.
-**Addresses:** Manual advance through sequence, full-screen image projection, keyboard shortcuts, participant waiting state during slides
-**Avoids:** Pitfall 4 (stale cached images -- preload with cache-bust), Pitfall 11 (aspect ratios -- object-contain in fixed container), Pitfall 16 (channel overhead -- single Broadcast event per advance, not per-slide data)
+**Avoids:**
+- Template Preview Divergence — shared components from day one, visual regression testing established early
 
-### Phase 5: Session Templates in Supabase
+**Research flag:** Standard pattern (React Context well-documented), no additional research needed.
 
-**Rationale:** Templates snapshot the complete session including the sequence. Must come after slides and sequences are fully implemented so templates can serialize them.
-**Delivers:** SessionTemplatePanel replacing TemplatePanel, Zustand store + API module for session templates, save/load/delete with JSONB blueprints, one-time localStorage migration.
-**Addresses:** Session templates in Supabase, localStorage-to-database migration, image reference handling in templates
-**Avoids:** Pitfall 6 (migration data loss -- one-time migration with fallback and backup), Pitfall 12 (stale image URLs in templates -- validate on load, provide re-upload option), Pitfall 14 (dead localStorage code -- remove after migration verified)
+### Phase 3: Background Color Theming
+**Rationale:** Independent feature with no dependencies on other new features. Can be developed in parallel with Phase 4. ThemeContext pattern used here informs other context-based features.
 
-### Phase 6: Export/Import Extension + Polish
+**Delivers:**
+- ThemeContext provider for color propagation
+- bg_color column in session_items table
+- Color picker UI with WCAG contrast validation
+- SlideDisplay and BatchResultsProjection use context colors
 
-**Rationale:** Export must capture complete state. Polish and edge cases come last after all features work.
-**Delivers:** Extended JSON export with optional `sequence` field and slide image URLs, backward-compatible import for v1.2 exports, session deletion Storage cleanup, transition animations, fullscreen API toggle.
-**Addresses:** JSON export extension, backward compatibility, image URL handling in exports, visual polish
-**Avoids:** Pitfall 8 (cross-instance URLs -- document limitation, graceful fallback for missing images), Pitfall 17 (schema breaking change -- optional fields, schema version field)
+**Addresses:**
+- Customizable branding (table stakes)
+- WCAG AA contrast compliance (4.5:1 normal, 3:1 large text)
+
+**Avoids:**
+- Background Color Contrast Failures — polished library provides getLuminance() and readableColor() for validation
+
+**Uses (from STACK.md):**
+- polished ^4.3.1 for contrast checking
+- Context API for theme propagation (no prop drilling)
+
+**Research flag:** Standard pattern (theme context well-documented), no additional research needed.
+
+### Phase 4: Inline Batch Editing
+**Rationale:** Requires template mode (Phase 1) but independent of teams/preview. Modern UX expectation replaces bottom-scrolled batch form with edit-in-place pattern. Can be developed in parallel with Phase 3.
+
+**Delivers:**
+- Expand/collapse state in SequenceManager (expandedBatches map)
+- Nested question list rendering in SequenceItemCard
+- QuestionEditCard compact editor component
+- Question CRUD within expanded batch
+
+**Addresses:**
+- Inline editing in sequence (table stakes)
+- Replaces bottom-scrolled batch form (UX improvement)
+
+**Avoids:**
+- Inline Editing Loses Scroll Position — stable keys, debounced state updates (300ms), scroll preservation with ref
+
+**Uses:**
+- isomorphic-dompurify ^3.0.0-rc.2 for contenteditable XSS prevention
+- Native contenteditable (no react-contenteditable dependency)
+
+**Research flag:** Standard pattern (collapsible nested lists well-documented), no additional research needed.
+
+### Phase 5: Team-Based Voting
+**Rationale:** Most complex feature, benefits from preview system (Phase 2) for testing. Foundational for per-team QR codes and filtered results. Database schema changes affect vote insertion and aggregation.
+
+**Delivers:**
+- Team schema (votes.team_id, sessions.teams_enabled, sessions.team_ids JSONB)
+- Team selection UI in session setup
+- Per-team QR code generation with URL routing (/session/:id/:team)
+- Team metadata in Realtime Presence tracking
+- Team filter in results view with aggregation
+- Team-filtered CSV export
+
+**Addresses:**
+- Team voting with QR codes (table stakes)
+- Per-team QR codes (differentiator)
+- Export filtered by segment (table stakes)
+
+**Avoids:**
+- Team Aggregation Performance Collapse — server-side RPC, composite index (session_id, question_id, participant_id)
+- Team Assignment Data Model Error — session-level JSONB roster, not question-level FK
+
+**Uses:**
+- qrcode.react ^4.2.0 (existing) for QR generation
+- Single Realtime channel with team as Presence metadata
+
+**Research flag:** **Needs deeper research during planning** — team aggregation RPC implementation, composite index optimization, load testing with 100 users/10 teams/50 questions to validate performance.
+
+### Phase 6: Presentation Polish (Crossfade, Cover Images, Timer)
+**Rationale:** Polish features after core template and team functionality validated. Crossfade uses existing Motion, cover images extend batch model, timer stored in batch JSONB.
+
+**Delivers:**
+- Crossfade transitions (AnimatePresence mode="wait")
+- Batch cover image (batches.cover_slide_id FK to session_items)
+- Two-stage batch activation (cover → questions)
+- Timer in batch JSONB with free-form input parsing
+- Countdown display during active batch
+
+**Addresses:**
+- Smooth slide transitions (table stakes)
+- Batch cover image (differentiator)
+- Timer on batches (table stakes)
+- Free-form timer input (differentiator)
+
+**Avoids:**
+- Batch Timer Template Override — session state authoritative, template provides defaults only
+- Image Preloading Layout Shift — aspect ratio reservation, preload next slide
+
+**Uses:**
+- Motion ^12.29.2 (existing) AnimatePresence
+- Existing batch activation flow extended for two-stage display
+
+**Research flag:** Standard patterns (AnimatePresence mode="wait" documented, FK constraints standard), no additional research needed.
+
+### Phase 7: Multi-Select & Drag Enhancements
+**Rationale:** Final polish feature, least critical path. Requires stable sequencing from earlier phases. Multi-select is custom implementation over dnd-kit (no built-in support).
+
+**Delivers:**
+- Selection state (Set<string>) in SequenceManager
+- Cmd/Ctrl+Click selection toggle
+- Shift+click range selection
+- Drag-end moves all selected items as group
+- Bulk action toolbar (delete selected)
+- Visual drag handles only in edit mode
+
+**Addresses:**
+- Multi-select for bulk actions (table stakes)
+- Visual drag affordances (table stakes)
+- Drag handles only in edit mode (differentiator)
+
+**Avoids:**
+- Multi-Select Drag-Drop State Desync — selection state in Zustand, batch position updates via RPC, test with 5 selected items
+
+**Uses:**
+- dnd-kit ^6.3.1 (existing) with custom multi-select layer
+- Pattern from dnd-kit GitHub issue #120 (move all selected in onDragEnd)
+
+**Research flag:** **Needs validation during planning** — dnd-kit multi-select pattern requires testing with 5+ selected items, verify order preservation and no data loss. GitHub issue #120 confirms approach but not an official feature.
 
 ### Phase Ordering Rationale
 
-- **Schema before upload:** Storage bucket and RLS policies must exist before any client upload code runs. TypeScript types must exist before any component code.
-- **Upload before sequence:** Slides must be creatable before they can be placed in a sequence. Image cleanup patterns must be proven before sequence deletion can rely on them.
-- **Sequence before presentation:** The presentation controller navigates a sequence that must already exist and be orderable.
-- **Templates after sequence:** Templates serialize sessions including sequences and slides. They cannot be complete without those features.
-- **Export last:** Export captures all data. Every feature must be finalized before the export schema can be frozen.
-- **Phase 3 is the riskiest:** DnD with mixed item types plus replacing BatchList's top-level interleaving is the highest-complexity UI work. Budget extra time.
+- **Foundation first:** Template creation (Phase 1) and preview system (Phase 2) are dependencies for all other features. Mode separation and shared component architecture established early avoids rework.
+- **Parallel development:** Background color (Phase 3) and inline editing (Phase 4) are independent, can be developed simultaneously after foundation.
+- **Complexity sequenced:** Team voting (Phase 5) most complex, deferred until foundation stable and preview system available for testing without live sessions.
+- **Polish last:** Crossfade transitions and multi-select (Phases 6-7) are refinements, not blockers. Validated user demand before building complex multi-select.
+- **Pitfall prevention:** Order ensures preview divergence testing established early (Phase 2), team performance optimization addressed during implementation (Phase 5), inline editing scroll issues prevented via stable keys from start (Phase 4).
 
 ### Research Flags
 
-**Phases likely needing deeper research during planning:**
-- **Phase 2 (Image Upload):** Client-side compression settings need tuning (quality vs. size tradeoffs). browser-image-compression WebP output behavior across browsers. Whether to use TUS resumable uploads for files over 2MB.
-- **Phase 3 (Unified Sequence):** The BatchList refactor is complex -- existing tests (BatchList.test.tsx, AdminSession.test.tsx) may need significant updates. The auto-migration logic (backfill session_items from existing batches) needs careful design to avoid breaking existing sessions.
-- **Phase 5 (Session Templates):** Image lifecycle in templates is a design decision that needs resolution -- do template images get copied to a separate Storage path, or do they reference session images (which may be deleted)?
+Phases likely needing deeper research during planning:
+- **Phase 5 (Team Voting):** Server-side aggregation RPC implementation needs PostgreSQL window function research, composite index optimization testing, load testing with realistic data volumes (100 users, 10 teams, 50 questions) to validate performance under PITFALLS.md scenarios.
+- **Phase 7 (Multi-Select DnD):** dnd-kit multi-select pattern from GitHub issue #120 needs validation testing — drag 5 selected items, verify order preservation, confirm no data loss. Not an official dnd-kit feature, requires custom state management.
 
-**Phases with standard patterns (skip research-phase):**
-- **Phase 1 (Schema + Storage):** Well-documented Supabase patterns. SQL is provided in ARCHITECTURE.md and STACK.md. Manual apply via Dashboard SQL Editor per MEMORY.md.
-- **Phase 4 (Presentation Controller):** Standard keyboard event handling, CSS full-screen layout, simple state machine (advance index, render appropriate component). Existing Broadcast patterns cover the advance event.
-- **Phase 6 (Export/Import):** Existing export/import code already handles optional fields (templates field added in v1.2). Extension is additive.
+Phases with standard patterns (skip research-phase):
+- **Phase 1 (Template Foundation):** session_templates schema, JSONB blueprint storage, serializeSession RPC — standard PostgreSQL patterns already used in QuickVote v1.3.
+- **Phase 2 (Preview System):** React Context for mock data injection — well-documented pattern, Preview.js precedent.
+- **Phase 3 (Background Color):** ThemeContext pattern, polished library usage — standard React context for theming, polished has comprehensive docs.
+- **Phase 4 (Inline Editing):** Collapsible nested lists, debounced contenteditable — established patterns, LogRocket and Tania Rascia guides available.
+- **Phase 6 (Presentation Polish):** Motion AnimatePresence mode="wait", FK constraints for cover images — Motion docs cover sequential transitions, database FK standard.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Verified via official Supabase Storage docs, browser-image-compression npm/GitHub, and existing codebase analysis. Zero ambiguity on what to install. |
-| Features | MEDIUM-HIGH | Competitor analysis covers 7 tools (Mentimeter, Kahoot, Slido, AhaSlides, Poll Everywhere, SlideLizard, Canva). Feature scope is deliberately narrow (image-only slides, admin-projection-only). |
-| Architecture | HIGH | Based on full codebase analysis of 11 migration files, all major components, and existing patterns. Schema SQL and component boundaries are concrete, not speculative. |
-| Pitfalls | HIGH | 4 critical pitfalls verified against Supabase official docs and GitHub discussions with linked sources. Integration pitfalls verified by direct codebase analysis. |
+| Stack | HIGH | Existing stack handles all features, only 2 utility libraries needed (polished, isomorphic-dompurify). Context7 docs + npm package research confirm versions and patterns. |
+| Features | MEDIUM | Competitor feature analysis (Mentimeter, Slido, Kahoot) confirms table stakes, but QuickVote differentiation via non-gamified team voting is positioning bet not validated pattern. MVP definition clear. |
+| Architecture | HIGH | Discriminated unions for modes, Context for preview/theme, single Realtime channel with metadata — all validated patterns with TypeScript/React precedent. Component integration points documented from existing codebase. |
+| Pitfalls | HIGH | 10 critical pitfalls identified with prevention strategies from OWASP (XSS), WCAG (contrast), dnd-kit GitHub (multi-select), Supabase docs (RLS performance). Recovery steps documented. |
 
 **Overall confidence:** HIGH
 
+Research leveraged Context7 libraries (official docs), GitHub issues (dnd-kit multi-select community patterns), and competitor analysis (Mentimeter/Slido feature sets). All major technical patterns have documented precedent. Confidence reduced to MEDIUM for Features due to positioning bet on non-gamified team voting (differentiator not validated with users yet).
+
 ### Gaps to Address
 
-- **Inline slides vs. separate slides table:** STACK.md proposes a separate `slides` table while ARCHITECTURE.md proposes inlining slide data into `session_items`. The ARCHITECTURE.md approach (inline) is recommended because slides have only two fields. **Resolve during Phase 1 schema design** -- the choice affects every downstream component.
+**Multi-select drag-drop performance at scale:** dnd-kit GitHub issue #120 confirms pattern (move all selected items in onDragEnd), but no official examples with 10+ selected items. Need to validate during Phase 7 planning that batch position updates via RPC handle large selection sets without timeout. Mitigation: Start with 5-item limit, increase after load testing.
 
-- **Storage bucket naming:** STACK.md uses `session-slides`, ARCHITECTURE.md uses `session-images`. Pick one name during Phase 1 and use it consistently. Recommend `session-slides` (more specific to purpose).
+**Team aggregation query optimization:** PITFALLS.md identifies risk of 30s+ load times with 10 teams × 50 questions × 100 participants. Composite index (session_id, question_id, participant_id) recommended but not benchmarked. Need to implement server-side RPC during Phase 5 and load test with realistic data before shipping. Mitigation: Lazy load results per question initially, add materialized aggregation table if RPC insufficient.
 
-- **Session template scope (global vs. per-user):** STACK.md proposes per-user templates with `UNIQUE(name, created_by)`, while ARCHITECTURE.md proposes global templates with `name UNIQUE` (matching response_templates pattern). The existing response_templates are global. **Decide during Phase 5 planning** -- per-user is more correct for anonymous auth but global is simpler and matches existing patterns.
+**Template preview parity enforcement:** Research recommends shared components + visual regression testing, but no specific tooling identified. Need to select screenshot testing library (Percy, Chromatic, or playwright screenshot comparison) during Phase 2 planning. Mitigation: Manual cross-checks every release until automated testing established.
 
-- **Free tier Storage limits:** 1GB total storage is tight for sustained use. With compression (~500KB/image, ~10 images/session), each session uses ~5MB, giving ~200 sessions. A cleanup mechanism for ended sessions should be designed during Phase 2 (image upload), even if implementation is deferred.
-
-- **session_items Realtime subscription:** ARCHITECTURE.md adds session_items to realtime publication, while PITFALLS.md warns against it (generates N UPDATE events per reorder). The PITFALLS.md recommendation is correct -- **do NOT add session_items to realtime publication**. Use Broadcast for advance events instead.
+**WCAG contrast edge cases:** polished library provides getLuminance() and readableColor(), but research doesn't cover large text (18pt+) vs normal text threshold handling. Need to clarify during Phase 3 implementation whether polished distinguishes 4.5:1 (normal) vs 3:1 (large). Mitigation: Enforce stricter 4.5:1 for all text sizes if unclear.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Supabase Storage Upload API](https://supabase.com/docs/reference/javascript/storage-from-upload) -- upload, getPublicUrl, remove, list
-- [Supabase Storage Access Control](https://supabase.com/docs/guides/storage/security/access-control) -- RLS for storage.objects, storage.foldername() helper
-- [Supabase Storage CDN](https://supabase.com/docs/guides/storage/cdn/fundamentals) -- caching behavior, cache invalidation
-- [Supabase Storage Bucket Configuration](https://supabase.com/docs/guides/storage/buckets/fundamentals) -- public vs private, MIME types, size limits
-- [browser-image-compression](https://github.com/Donaldcwl/browser-image-compression) -- API, options, Web Worker support
-- [Supabase Orphaned Files Discussion](https://github.com/orgs/supabase/discussions/34254) -- SQL DELETE does not remove S3 files
-- [Supabase MIME Validation Issue](https://github.com/supabase/storage/issues/639) -- filename-only check
+- [Motion AnimatePresence Documentation](https://motion.dev/docs/react-animate-presence) — mode="wait" for sequential transitions, confirmed crossfade pattern
+- [dnd-kit GitHub Repository](https://github.com/clauderic/dnd-kit) — Multi-select via custom selection state (issue #120), sortable list patterns
+- [OWASP XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html) — DOMPurify sanitization best practices
+- [Supabase Realtime Documentation](https://supabase.com/docs/guides/realtime) — Broadcast, Presence, single channel per session patterns
+- [TypeScript Discriminated Unions](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions) — Type narrowing for component modes
+- [React Context API](https://legacy.reactjs.org/docs/context.html) — Context propagation for preview and theme
+- [WebAIM Contrast Checker](https://webaim.org/resources/contrastchecker/) — WCAG AA contrast ratios (4.5:1 normal, 3:1 large)
 
 ### Secondary (MEDIUM confidence)
-- [Mentimeter Presentation Mode](https://help.mentimeter.com/en/articles/410899-how-the-presentation-mode-affects-your-presentation) -- unified deck, keyboard navigation
-- [Kahoot Slides](https://support.kahoot.com/hc/en-us/articles/29644015543315-How-to-use-Kahoot-slides) -- image/video slides between questions
-- [Supabase Storage CDN Cache Discussion](https://github.com/orgs/supabase/discussions/5737) -- stale content on path reuse
-- [Efficient Database Reordering](https://yasoob.me/posts/how-to-efficiently-reorder-or-rerank-items-in-database/) -- position management patterns
-- [Aha Engineering: Fullscreen API with React](https://www.aha.io/engineering/articles/using-the-fullscreen-api-with-react) -- implementation patterns
+- [polished npm](https://www.npmjs.com/package/polished) — readableColor() and getLuminance() utilities, version 4.3.1
+- [isomorphic-dompurify npm](https://www.npmjs.com/package/isomorphic-dompurify) — Server-side sanitization support, version 3.0.0-rc.2
+- [qrcode.react GitHub](https://github.com/zpao/qrcode.react) — React 19 compatibility, version 4.2.0
+- [Mentimeter vs Slido comparison](https://www.capterra.com/compare/154051-160936/Slido-vs-Mentimeter) — Competitor feature analysis
+- [Kahoot vs Poll Everywhere](https://www.wooclap.com/en/blog/poll-everywhere-vs-kahoot/) — Team mode gamification patterns
+- [LogRocket: Inline editable UI in React](https://blog.logrocket.com/build-inline-editable-ui-react/) — contenteditable patterns
+- [react-collapsed](https://blog.logrocket.com/create-collapsible-react-components-react-collapsed/) — Collapsible component hooks
+- [TypeScript Discriminated Unions for React](https://oneuptime.com/blog/post/2026-01-15-typescript-discriminated-unions-react-props/view) — Mode-aware component props
 
-### Project Context
-- QuickVote v1.0-v1.2 codebase: AdminSession.tsx, BatchList.tsx, AdminControlBar.tsx, session-store.ts, template-store.ts, template-api.ts, question-templates.ts, session-export.ts, session-import.ts, TemplatePanel.tsx, database.ts, all 11 migration files
-- MEMORY.md constraints: moddatetime unavailable, manual SQL migration via Dashboard, admin light theme, mousedown+mouseup overlay close pattern
+### Tertiary (LOW confidence, project-specific)
+- QuickVote v1.3 codebase — Existing SequenceManager, session_store, Realtime patterns
+- QuickVote Phase 16 implementation — browser-image-compression, Storage path conventions
+- QuickVote Phase 17 implementation — PostgREST schema cache 404 workaround
+- Internal testing observations — VoteAgreeDisagree batch mode props, CountdownTimer timing
 
 ---
-*Research completed: 2026-02-10*
+*Research completed: 2026-02-12*
 *Ready for roadmap: yes*
