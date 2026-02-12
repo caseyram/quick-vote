@@ -13,11 +13,11 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 
 **Milestone:** v1.4 Template Authoring & Teams
 **Phase:** 22 of 26 (Template Foundation & Authoring)
-**Plan:** 01 of 04 complete
+**Plan:** 02 of 04 complete
 **Status:** In progress
-**Last activity:** 2026-02-12 — Completed 22-01 (template editor foundation)
+**Last activity:** 2026-02-12 — Completed 22-02 (batch question editing)
 
-Progress: [██░░░░░░░░░░░░░░░░░] 10% (v1.4: 1 of 10-12 plans complete)
+Progress: [████░░░░░░░░░░░░░░░] 20% (v1.4: 2 of 10-12 plans complete)
 
 ## Milestone History
 
@@ -74,6 +74,8 @@ Recent decisions:
 - (v1.3) Inline slide data in session_items — avoids separate slides table, simpler queries
 - (v1.3) PresentationView no auth required — read-only projection content, simplifies cross-device setup
 - (v1.3) JSONB blueprint for session templates — flexible schema, single column stores full session structure
+- [Phase 22]: Auto-collapse expanded questions on drag start to prevent glitchy overlays
+- [Phase 22]: Timer duration as number input in seconds with human-readable conversion
 
 ### Known Issues
 
@@ -85,11 +87,11 @@ Recent decisions:
 
 ## Session Continuity
 
-**Last session:** 2026-02-12 — Phase 22 Plan 01 execution
-**Stopped at:** Completed 22-01-PLAN.md (template editor foundation)
-**Next action:** Execute Plan 22-02 (batch question editing)
+**Last session:** 2026-02-12T23:51:41.409Z
+**Stopped at:** Completed 22-02-PLAN.md (batch question editing)
+**Next action:** Execute Plan 22-03 (preview mode)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-12 — Completed Phase 22 Plan 01*
+*Updated: 2026-02-12 — Completed Phase 22 Plan 02*
