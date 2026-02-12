@@ -84,37 +84,37 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | — | Pending |
-| AUTH-02 | — | Pending |
-| AUTH-03 | — | Pending |
-| AUTH-04 | — | Pending |
-| AUTH-05 | — | Pending |
-| AUTH-06 | — | Pending |
-| AUTH-07 | — | Pending |
-| AUTH-08 | — | Pending |
-| AUTH-09 | — | Pending |
-| PRES-01 | — | Pending |
-| PRES-02 | — | Pending |
-| PRES-03 | — | Pending |
-| PRES-04 | — | Pending |
-| PRES-05 | — | Pending |
-| PRES-06 | — | Pending |
-| TEAM-01 | — | Pending |
-| TEAM-02 | — | Pending |
-| TEAM-03 | — | Pending |
-| TEAM-04 | — | Pending |
-| TEAM-05 | — | Pending |
-| SEQE-01 | — | Pending |
-| SEQE-02 | — | Pending |
-| RESL-01 | — | Pending |
-| RESL-02 | — | Pending |
-| RESL-03 | — | Pending |
+| AUTH-01 | Phase 22 | Pending |
+| AUTH-02 | Phase 22 | Pending |
+| AUTH-03 | Phase 23 | Pending |
+| AUTH-04 | Phase 23 | Pending |
+| AUTH-05 | Phase 23 | Pending |
+| AUTH-06 | Phase 22 | Pending |
+| AUTH-07 | Phase 22 | Pending |
+| AUTH-08 | Phase 22 | Pending |
+| AUTH-09 | Phase 22 | Pending |
+| PRES-01 | Phase 24 | Pending |
+| PRES-02 | Phase 24 | Pending |
+| PRES-03 | Phase 24 | Pending |
+| PRES-04 | Phase 24 | Pending |
+| PRES-05 | Phase 24 | Pending |
+| PRES-06 | Phase 24 | Pending |
+| TEAM-01 | Phase 25 | Pending |
+| TEAM-02 | Phase 25 | Pending |
+| TEAM-03 | Phase 25 | Pending |
+| TEAM-04 | Phase 25 | Pending |
+| TEAM-05 | Phase 25 | Pending |
+| SEQE-01 | Phase 26 | Pending |
+| SEQE-02 | Phase 26 | Pending |
+| RESL-01 | Phase 26 | Pending |
+| RESL-02 | Phase 26 | Pending |
+| RESL-03 | Phase 26 | Pending |
 
 **Coverage:**
 - v1.4 requirements: 25 total
-- Mapped to phases: 0
-- Unmapped: 25
+- Mapped to phases: 25/25 (100%)
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-12*
-*Last updated: 2026-02-12 after initial definition*
+*Last updated: 2026-02-12 after v1.4 roadmap creation*

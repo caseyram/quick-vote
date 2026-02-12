@@ -7,17 +7,17 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 **Core Value:** Participants can instantly vote on questions in a way that feels immersive and tactile -- not like filling out a form.
 **Stack:** Vite + React (TypeScript), Supabase (database + realtime + storage), Vercel deployment
 **Repo:** C:/code/quick-vote
-**Current focus:** v1.4 Template Authoring & Teams
+**Current focus:** v1.4 Template Authoring & Teams - Phase 22 (Template Foundation & Authoring)
 
 ## Current Position
 
 **Milestone:** v1.4 Template Authoring & Teams
-**Phase:** Not started (defining requirements)
+**Phase:** 22 of 26 (Template Foundation & Authoring)
 **Plan:** —
-**Status:** Defining requirements
-**Last activity:** 2026-02-12 — Milestone v1.4 started
+**Status:** Ready to plan
+**Last activity:** 2026-02-12 — v1.4 roadmap created
 
-Progress: [░░░░░░░░░░░░░░░░░░░] 0% (v1.4)
+Progress: [░░░░░░░░░░░░░░░░░░░] 0% (v1.4: 0 plans complete)
 
 ## Milestone History
 
@@ -56,16 +56,25 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 - Requirements: 22/22 delivered
 - Timeline: 2 days (2026-02-10 to 2026-02-11)
 
+**v1.4 Target (Phases 22-26):**
+- Requirements: 25 total
+- Estimated plans: 10-12 (2-2.5/phase avg)
+- Research flags: Phase 25 (team aggregation RPC), Phase 26 (multi-select DnD)
+
 ## Accumulated Context
 
 ### Decisions
 
 See PROJECT.md for full decision log.
 
+Recent decisions:
+- (v1.3) Inline slide data in session_items — avoids separate slides table, simpler queries
+- (v1.3) PresentationView no auth required — read-only projection content, simplifies cross-device setup
+- (v1.3) JSONB blueprint for session templates — flexible schema, single column stores full session structure
+
 ### Known Issues
 
 - **PostgREST schema cache:** claim_session RPC returns 404 until PostgREST cache refreshes. Project restart needed. Call is wrapped in try-catch so it doesn't block loading.
-- **Migration pending:** session_templates migration (20250211_050_session_templates.sql) must be applied manually via Supabase Dashboard SQL Editor before template UI can function.
 
 ### Blockers
 
@@ -73,11 +82,11 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-02-12 — v1.4 milestone started
-**Stopped at:** Defining requirements
-**Next action:** Define requirements, create roadmap
+**Last session:** 2026-02-12 — v1.4 roadmap created
+**Stopped at:** Roadmap complete with 5 phases (22-26), all 25 requirements mapped
+**Next action:** Plan Phase 22 (Template Foundation & Authoring)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-12 — v1.4 milestone started*
+*Updated: 2026-02-12 — v1.4 roadmap created*
