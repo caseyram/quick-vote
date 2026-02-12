@@ -226,7 +226,7 @@
 
             <div class="summary-grid">
                 <div class="summary-card">
-                    <div class="summary-value coverage-high">415</div>
+                    <div class="summary-value coverage-high">~425</div>
                     <div class="summary-label">Total Tests</div>
                 </div>
                 <div class="summary-card">
@@ -509,11 +509,33 @@
                     <td><div class="progress-bar"><div class="progress-fill low" style="width: 37%"></div></div></td>
                     <td>Vote counting utilities</td>
                 </tr>
+                <tr>
+                    <td>session-template-api.ts</td>
+                    <td class="coverage-low">35%</td>
+                    <td><div class="progress-bar"><div class="progress-fill low" style="width: 35%"></div></div></td>
+                    <td>Session template CRUD</td>
+                </tr>
+                <tr>
+                    <td>slide-api.ts</td>
+                    <td class="coverage-low">30%</td>
+                    <td><div class="progress-bar"><div class="progress-fill low" style="width: 30%"></div></div></td>
+                    <td>Slide CRUD operations</td>
+                </tr>
+                <tr>
+                    <td>sequence-api.ts</td>
+                    <td class="coverage-low">28%</td>
+                    <td><div class="progress-bar"><div class="progress-fill low" style="width: 28%"></div></div></td>
+                    <td>Session items management</td>
+                </tr>
             </table>
+
+            <div class="gaps">
+                <strong>Gaps:</strong> The newer API modules (<code>session-template-api.ts</code>, <code>slide-api.ts</code>, <code>sequence-api.ts</code>) have lower coverage due to heavy Supabase client mocking requirements. These are candidates for integration testing.
+            </div>
         </section>
 
         <section class="section">
-            <h2>Stores <span class="test-count">100% statements</span></h2>
+            <h2>Stores <span class="test-count">~85% statements</span></h2>
 
             <table>
                 <tr>
@@ -527,6 +549,18 @@
                     <td class="coverage-high">100%</td>
                     <td><div class="progress-bar"><div class="progress-fill high" style="width: 100%"></div></div></td>
                     <td>Central Zustand store</td>
+                </tr>
+                <tr>
+                    <td>template-store.ts</td>
+                    <td class="coverage-medium">75%</td>
+                    <td><div class="progress-bar"><div class="progress-fill medium" style="width: 75%"></div></div></td>
+                    <td>Response template store</td>
+                </tr>
+                <tr>
+                    <td>session-template-store.ts</td>
+                    <td class="coverage-medium">72%</td>
+                    <td><div class="progress-bar"><div class="progress-fill medium" style="width: 72%"></div></div></td>
+                    <td>Session template store</td>
                 </tr>
             </table>
         </section>
@@ -562,8 +596,8 @@
                 </tr>
                 <tr>
                     <td>Stores</td>
-                    <td>1</td>
-                    <td>25</td>
+                    <td>3</td>
+                    <td>35</td>
                 </tr>
                 <tr>
                     <td>App</td>
@@ -573,13 +607,13 @@
                 <tr style="font-weight: bold;">
                     <td>Total</td>
                     <td>37</td>
-                    <td>415</td>
+                    <td>~425</td>
                 </tr>
             </table>
         </section>
 
         <footer>
-            <p>QuickVote Test Coverage Report · January 2026</p>
+            <p>QuickVote Test Coverage Report · February 2026</p>
             <p><a href="index.html">← Back to Documentation</a> · <a href="architecture.html">Architecture</a> · <a href="threat-model.html">Threat Model</a></p>
         </footer>
     </div>

@@ -314,8 +314,8 @@
             <h1>🔒 QuickVote Threat Model</h1>
             <p class="subtitle">Security Analysis & Architecture Documentation</p>
             <div class="metadata">
-                <span>📅 Generated: January 2026</span>
-                <span>📦 Version: 1.0</span>
+                <span>📅 Updated: February 2026</span>
+                <span>📦 Version: 1.3</span>
                 <span>🏷️ Classification: Internal</span>
             </div>
         </header>
@@ -323,7 +323,7 @@
         <!-- Executive Summary -->
         <section class="section">
             <h2>Executive Summary</h2>
-            <p>QuickVote is a real-time web-based polling application designed for live voting in meetings, classrooms, and presentations. This threat model identifies security risks across the application's architecture, including the React SPA frontend, Supabase backend-as-a-service, and real-time WebSocket communications.</p>
+            <p>QuickVote is a real-time web-based polling application designed for live voting in meetings, classrooms, and presentations. This threat model identifies security risks across the application's architecture, including the React SPA frontend, Supabase backend-as-a-service, real-time WebSocket communications, image slide uploads via Supabase Storage, a separate presentation window for projected content, and session templates.</p>
 
             <div class="data-flow">
                 <div class="flow-item">
@@ -530,7 +530,7 @@
 
                     <!-- Threat indicators (repositioned lower left) -->
                     <g transform="translate(50, 470)">
-                        <rect width="300" height="160" rx="8" fill="rgba(239, 68, 68, 0.1)" stroke="#ef4444" stroke-width="1"/>
+                        <rect width="300" height="190" rx="8" fill="rgba(239, 68, 68, 0.1)" stroke="#ef4444" stroke-width="1"/>
                         <text x="150" y="25" text-anchor="middle" fill="#ef4444" font-size="12" font-weight="600">⚠️ Attack Surface</text>
                         <text x="20" y="50" fill="#f1f5f9" font-size="10">T1: Admin token in URL (guessable)</text>
                         <text x="20" y="70" fill="#f1f5f9" font-size="10">T2: Client-side password gate (bypassable)</text>
@@ -538,6 +538,8 @@
                         <text x="20" y="110" fill="#f1f5f9" font-size="10">T4: XSS via user-generated content</text>
                         <text x="20" y="130" fill="#f1f5f9" font-size="10">T5: Vote manipulation (client controls)</text>
                         <text x="20" y="150" fill="#f1f5f9" font-size="10">T6: DoS via large import files</text>
+                        <text x="20" y="170" fill="#f1f5f9" font-size="10">T7: Storage bucket abuse (image uploads)</text>
+                        <text x="20" y="185" fill="#f1f5f9" font-size="10">T8: Template blueprint tampering</text>
                     </g>
 
                     <!-- API Key note (repositioned to avoid arrow paths) -->
@@ -644,6 +646,26 @@
                     <td>sessionStorage</td>
                     <td><span class="risk-medium">Client-side only (bypassable)</span></td>
                 </tr>
+                <tr>
+                    <td>Presentation View</td>
+                    <td>React 19, TypeScript</td>
+                    <td>Standalone projection window, no authentication required</td>
+                </tr>
+                <tr>
+                    <td>Sequence Manager</td>
+                    <td>React 19, dnd-kit</td>
+                    <td>Unified slide/batch ordering</td>
+                </tr>
+                <tr>
+                    <td>Image Uploader</td>
+                    <td>browser-image-compression</td>
+                    <td>Client-side image compression before Storage upload</td>
+                </tr>
+                <tr>
+                    <td>Session Template Panel</td>
+                    <td>React 19, TypeScript</td>
+                    <td>Save/load session blueprints from Supabase</td>
+                </tr>
             </table>
 
             <h3>Backend (Supabase BaaS)</h3>
@@ -667,6 +689,11 @@
                     <td>Auth</td>
                     <td>Anonymous authentication</td>
                     <td>JWT token generation</td>
+                </tr>
+                <tr>
+                    <td>Storage</td>
+                    <td>Image file hosting</td>
+                    <td>RLS policies enforce path-based access for authenticated users</td>
                 </tr>
             </table>
         </section>
@@ -692,6 +719,14 @@
                     <h4>4. Admin Broadcast</h4>
                     <p>Admin Action → DB Update → Broadcast Event → All Participants receive</p>
                 </div>
+                <div class="flow-item">
+                    <h4>5. Image Upload</h4>
+                    <p>Admin → Compress Image → Upload to Storage → Create session_item → Display in projection</p>
+                </div>
+                <div class="flow-item">
+                    <h4>6. Presentation Sync</h4>
+                    <p>Admin navigates → Broadcast event → Presentation window receives → Display updates</p>
+                </div>
             </div>
         </section>
 
@@ -707,6 +742,8 @@
                     <li>Client-side validation can be bypassed</li>
                     <li>Password gate is stored in sessionStorage (bypassable)</li>
                     <li>Admin token is exposed in URL (can be shared/leaked)</li>
+                    <li>Presentation window is unauthenticated (read-only, receives broadcast events)</li>
+                    <li>Image uploads are validated client-side only (type + size checks)</li>
                 </ul>
             </div>
 
@@ -783,6 +820,18 @@
                 </div>
             </div>
 
+            <div class="threat-card low">
+                <div class="threat-header">
+                    <span class="threat-title">T3: Session Template Blueprint Tampering</span>
+                    <span class="badge badge-green">LOW</span>
+                </div>
+                <p>Session templates store full session blueprints as JSONB in the database. A malicious user could craft API calls to insert oversized or malformed blueprints.</p>
+                <div class="mitigation">
+                    <div class="mitigation-label">Existing Mitigation</div>
+                    <p>Templates are serialized through the session-template-api which validates structure before storage. Blueprint data is re-validated on load. RLS policies restrict template creation to authenticated users.</p>
+                </div>
+            </div>
+
             <h3>Repudiation</h3>
             <div class="threat-card low">
                 <div class="threat-header">
@@ -847,6 +896,18 @@
                 <div class="mitigation">
                     <div class="mitigation-label">Existing Mitigation</div>
                     <p>Supabase has built-in connection limits. Presence tracking helps monitor participants.</p>
+                </div>
+            </div>
+
+            <div class="threat-card low">
+                <div class="threat-header">
+                    <span class="threat-title">D3: Storage Bucket Abuse</span>
+                    <span class="badge badge-green">LOW</span>
+                </div>
+                <p>Authenticated users could upload many or large image files to the Supabase Storage bucket, consuming storage quota.</p>
+                <div class="mitigation">
+                    <div class="mitigation-label">Existing Mitigation</div>
+                    <p>Client-side image compression (browser-image-compression) reduces file sizes before upload. RLS policies restrict uploads to authenticated users with path-based access. Supabase plan storage quotas provide an upper bound.</p>
                 </div>
             </div>
 
@@ -971,6 +1032,22 @@
                     <td>Low</td>
                     <td class="risk-medium">MEDIUM</td>
                     <td><span class="badge badge-blue">By Design</span></td>
+                </tr>
+                <tr>
+                    <td>T3</td>
+                    <td>Template Blueprint Tampering</td>
+                    <td>Low</td>
+                    <td>Low</td>
+                    <td class="risk-low">LOW</td>
+                    <td><span class="badge badge-green">Mitigated</span></td>
+                </tr>
+                <tr>
+                    <td>D3</td>
+                    <td>Storage Bucket Abuse</td>
+                    <td>Low</td>
+                    <td>Low</td>
+                    <td class="risk-low">LOW</td>
+                    <td><span class="badge badge-green">Mitigated</span></td>
                 </tr>
             </table>
         </section>
@@ -1107,7 +1184,7 @@
         </section>
 
         <footer>
-            <p>QuickVote Threat Model v1.0 | Generated January 2026</p>
+            <p>QuickVote Threat Model v1.3 | Updated February 2026</p>
             <p>This document should be reviewed and updated whenever significant architectural changes are made.</p>
         </footer>
     </div>

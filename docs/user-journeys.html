@@ -580,6 +580,7 @@
                         <li><strong>Clone session:</strong> Copy questions from a previous session</li>
                         <li><strong>Batch voting:</strong> Group questions for carousel-style voting</li>
                         <li><strong>On-the-fly question:</strong> Add questions mid-session</li>
+                        <li><strong>Presentation mode:</strong> Open separate projection window with slides between voting batches</li>
                     </ul>
                 </div>
 
@@ -988,6 +989,306 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="alt-paths">
+                    <h5>v1.3+ Enhancements</h5>
+                    <ul>
+                        <li><strong>Extended export schema:</strong> v1.3+ exports include slides, sequence order, and template references</li>
+                        <li><strong>Import validation:</strong> Import validates Storage image availability for slide references</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Journey 7: Presentation Session -->
+        <section class="section">
+            <h2>Journey 7: Run a Presentation Session</h2>
+
+            <div class="journey-card">
+                <div class="journey-header">
+                    <div class="journey-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">🖥</div>
+                    <div class="journey-title">
+                        <h4>Admin: Full Presentation Flow</h4>
+                        <span>Slides, batches, and keyboard-driven navigation on a projection screen</span>
+                    </div>
+                    <span class="journey-badge badge-important">Important Flow</span>
+                </div>
+
+                <div class="flow-container">
+                    <div class="flow">
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 1</div>
+                                <div class="step-title">Upload Slides</div>
+                                <div class="step-actor">Admin Dashboard</div>
+                            </div>
+                            <div class="step-details">Add slide images to session</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 2</div>
+                                <div class="step-title">Arrange Sequence</div>
+                                <div class="step-actor">Sequence Editor</div>
+                            </div>
+                            <div class="step-details">Drag-and-drop slides + batches</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box decision-point">
+                                <div class="step-number">Step 3</div>
+                                <div class="step-title">Open Lobby</div>
+                                <div class="step-actor">Decision</div>
+                            </div>
+                            <div class="step-details">Display QR code for joining</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 4</div>
+                                <div class="step-title">Start Session</div>
+                                <div class="step-actor">Admin Dashboard</div>
+                            </div>
+                            <div class="step-details">Begin accepting participants</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 5</div>
+                                <div class="step-title">Open Presentation</div>
+                                <div class="step-actor">New Window</div>
+                            </div>
+                            <div class="step-details">Projection-optimized view</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 6</div>
+                                <div class="step-title">Navigate Sequence</div>
+                                <div class="step-actor">Keyboard Nav</div>
+                            </div>
+                            <div class="step-details">Arrows / Space to advance</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 7</div>
+                                <div class="step-title">Show Slides / Activate Batches</div>
+                                <div class="step-actor">Presentation Window</div>
+                            </div>
+                            <div class="step-details">Cross-device sync via Realtime</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 8</div>
+                                <div class="step-title">Reveal Results</div>
+                                <div class="step-actor">Live Bar Chart</div>
+                            </div>
+                            <div class="step-details">Show QR for latecomers</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box success-point">
+                                <div class="step-number">Step 9</div>
+                                <div class="step-title">End Session</div>
+                                <div class="step-actor">Complete</div>
+                            </div>
+                            <div class="step-details">Close presentation window</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value">9</div>
+                        <div class="metric-label">Steps (Full Flow)</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">Keyboard</div>
+                        <div class="metric-label">Primary Navigation</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">Real-time</div>
+                        <div class="metric-label">Cross-Device Sync</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">2 windows</div>
+                        <div class="metric-label">Admin + Projection</div>
+                    </div>
+                </div>
+
+                <div class="touchpoints">
+                    <div class="touchpoint">
+                        <span class="touchpoint-label">Entry:</span>
+                        <span class="touchpoint-value">Admin Dashboard</span>
+                    </div>
+                    <div class="touchpoint">
+                        <span class="touchpoint-label">Control:</span>
+                        <span class="touchpoint-value">Keyboard (Arrows / Space / B / F / ?)</span>
+                    </div>
+                    <div class="touchpoint">
+                        <span class="touchpoint-label">Projection:</span>
+                        <span class="touchpoint-value">Presentation Window</span>
+                    </div>
+                </div>
+
+                <div class="alt-paths">
+                    <h5>Alternative Paths</h5>
+                    <ul>
+                        <li><strong>B key:</strong> Toggle black screen between sequence items</li>
+                        <li><strong>F key:</strong> Toggle fullscreen mode on presentation window</li>
+                        <li><strong>? key:</strong> Show keyboard shortcut help overlay</li>
+                    </ul>
+                </div>
+
+                <div class="error-scenarios">
+                    <h5>Error Scenarios</h5>
+                    <ul>
+                        <li><strong>Presentation window disconnected:</strong> Auto-reconnect via Supabase Realtime channel</li>
+                        <li><strong>Missing slide images:</strong> Placeholder shown with upload prompt</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Journey 8: Save and Load Session Templates -->
+        <section class="section">
+            <h2>Journey 8: Save and Load Session Templates</h2>
+
+            <div class="journey-card">
+                <div class="journey-header">
+                    <div class="journey-icon" style="background: linear-gradient(135deg, #10b981, #059669);">📦</div>
+                    <div class="journey-title">
+                        <h4>Admin: Session Template Reusability</h4>
+                        <span>Save session blueprints and load them into new sessions</span>
+                    </div>
+                    <span class="journey-badge badge-standard">Standard Flow</span>
+                </div>
+
+                <h3>Save as Template</h3>
+                <div class="flow-container">
+                    <div class="flow">
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 1</div>
+                                <div class="step-title">Open Session</div>
+                                <div class="step-actor">Admin Dashboard</div>
+                            </div>
+                            <div class="step-details">Active or completed session</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 2</div>
+                                <div class="step-title">Click Save as Template</div>
+                                <div class="step-actor">Session Menu</div>
+                            </div>
+                            <div class="step-details">Open save dialog</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 3</div>
+                                <div class="step-title">Name Template</div>
+                                <div class="step-actor">Modal Input</div>
+                            </div>
+                            <div class="step-details">Enter descriptive name</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box success-point">
+                                <div class="step-number">Step 4</div>
+                                <div class="step-title">Template Saved</div>
+                                <div class="step-actor">Complete</div>
+                            </div>
+                            <div class="step-details">Available for future use</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Load Template</h3>
+                <div class="flow-container">
+                    <div class="flow">
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 1</div>
+                                <div class="step-title">Create New Session</div>
+                                <div class="step-actor">Home Page</div>
+                            </div>
+                            <div class="step-details">Start fresh session</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 2</div>
+                                <div class="step-title">Click Load Template</div>
+                                <div class="step-actor">Admin Dashboard</div>
+                            </div>
+                            <div class="step-details">Open template panel</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 3</div>
+                                <div class="step-title">Select Template</div>
+                                <div class="step-actor">Template List</div>
+                            </div>
+                            <div class="step-details">Browse saved templates</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 4</div>
+                                <div class="step-title">Review Items</div>
+                                <div class="step-actor">Preview Panel</div>
+                            </div>
+                            <div class="step-details">See questions and slides</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box decision-point">
+                                <div class="step-number">Step 5</div>
+                                <div class="step-title">Confirm Action</div>
+                                <div class="step-actor">Replace or Append</div>
+                            </div>
+                            <div class="step-details">Choose merge strategy</div>
+                        </div>
+                        <div class="flow-arrow">-></div>
+                        <div class="flow-step">
+                            <div class="step-box success-point">
+                                <div class="step-number">Step 6</div>
+                                <div class="step-title">Session Populated</div>
+                                <div class="step-actor">Ready</div>
+                            </div>
+                            <div class="step-details">Edit and customize</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value">3 clicks</div>
+                        <div class="metric-label">To Save Template</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">4 clicks</div>
+                        <div class="metric-label">To Load Template</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">Replace / Append</div>
+                        <div class="metric-label">Merge Strategy</div>
+                    </div>
+                </div>
+
+                <div class="alt-paths">
+                    <h5>Alternative Paths</h5>
+                    <ul>
+                        <li><strong>Rename template:</strong> Edit template name from the template list</li>
+                        <li><strong>Delete template:</strong> Remove with type-to-confirm safety dialog</li>
+                        <li><strong>Append instead of replace:</strong> Add template items to existing session content</li>
+                    </ul>
+                </div>
             </div>
         </section>
 
@@ -1045,6 +1346,20 @@
                     <td>3-5</td>
                     <td>JSON validated</td>
                 </tr>
+                <tr>
+                    <td>Run Presentation Session</td>
+                    <td>Admin</td>
+                    <td><span class="journey-badge badge-important">Important</span></td>
+                    <td>9</td>
+                    <td>Keyboard-driven</td>
+                </tr>
+                <tr>
+                    <td>Save/Load Templates</td>
+                    <td>Admin</td>
+                    <td><span class="journey-badge badge-standard">Standard</span></td>
+                    <td>4-6</td>
+                    <td>3 clicks to save</td>
+                </tr>
             </table>
         </section>
 
@@ -1101,11 +1416,29 @@
                     <td>View vote distribution</td>
                     <td>Feedback loop</td>
                 </tr>
+                <tr>
+                    <td>Presentation Window</td>
+                    <td>Admin (projected)</td>
+                    <td>Full-screen slides, batch results, QR overlay</td>
+                    <td>Presentation sessions</td>
+                </tr>
+                <tr>
+                    <td>Sequence Editor</td>
+                    <td>Admin</td>
+                    <td>Drag-and-drop ordering of batches and slides</td>
+                    <td>Presentation setup</td>
+                </tr>
+                <tr>
+                    <td>Session Template Panel</td>
+                    <td>Admin</td>
+                    <td>Save, load, rename, delete session templates</td>
+                    <td>Session reuse</td>
+                </tr>
             </table>
         </section>
 
         <footer>
-            <p>QuickVote User Journeys v1.0</p>
+            <p>QuickVote User Journeys v1.3 | Updated February 2026</p>
             <p><a href="index.html">← Back to Documentation</a> · <a href="threat-model.html">Threat Model</a></p>
         </footer>
     </div>
