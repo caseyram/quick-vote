@@ -52,11 +52,13 @@ See `.planning/milestones/` for archived details.
   3. Admin can click slide thumbnail to view full image in lightbox
   4. Admin can create quick one-off session without template editor
   5. Batch timer duration is configurable via free-form input in template
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 22-01: TBD
-- [ ] 22-02: TBD
+- [ ] 22-01-PLAN.md — Editor shell, store, toolbar, sidebar with drag-reorder, and save
+- [ ] 22-02-PLAN.md — Inline batch editing with collapsed/expanded question rows and timer input
+- [ ] 22-03-PLAN.md — Edit/preview toggle, preview mode, slide lightbox, and quick session flow
+- [ ] 22-04-PLAN.md — Human verification of all AUTH requirements
 
 #### Phase 23: Preview System
 **Goal**: Admin can preview projection, control, and participant views before going live
@@ -130,7 +132,7 @@ Phases execute in numeric order: 22 → 23 → 24 → 25 → 26
 | 6-10+09.1 | v1.1 | 18/18 | Shipped | 2026-01-29 |
 | 11-15 | v1.2 | 11/11 | Shipped | 2026-02-10 |
 | 16-21 | v1.3 | 12/12 | Shipped | 2026-02-11 |
-| 22. Template Foundation & Authoring | v1.4 | 0/? | Not started | - |
+| 22. Template Foundation & Authoring | v1.4 | 0/4 | Planned | - |
 | 23. Preview System | v1.4 | 0/? | Not started | - |
 | 24. Presentation Polish | v1.4 | 0/? | Not started | - |
 | 25. Team-Based Voting | v1.4 | 0/? | Not started | - |
@@ -138,4 +140,4 @@ Phases execute in numeric order: 22 → 23 → 24 → 25 → 26
 
 ---
 *Created: 2026-01-27*
-*Updated: 2026-02-12 - v1.4 roadmap created*
+*Updated: 2026-02-12 - Phase 22 planned (4 plans, 3 waves)*
