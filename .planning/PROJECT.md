@@ -2,9 +2,9 @@
 
 ## What This Is
 
-A real-time voting web application where an administrator poses questions to a group and participants respond from their phones or desktops. Supports both live single-question push and self-paced batch voting modes. Built with Vite + React, backed by Supabase, and deployed to Vercel.
+A real-time voting web application where an administrator poses questions to a group and participants respond from their phones or desktops. Supports live single-question push, self-paced batch voting, and guided presentations with image slides, unified sequencing, and a dedicated presenter view. Built with Vite + React, backed by Supabase, and deployed to Vercel.
 
-**Current state:** v1.2 shipped with 18,662 LOC TypeScript across 37+ source files. Response templates provide consistent multiple choice layouts across participants and admin views.
+**Current state:** v1.3 shipped with 20,057 LOC TypeScript across 80+ source files. Presentation mode transforms sessions into guided experiences with image slides between voting batches, keyboard-driven navigation, a separate projection window, and reusable session templates.
 
 ## Core Value
 
@@ -59,20 +59,32 @@ Participants can instantly vote on questions in a way that feels immersive and t
 - ✓ Templates included in JSON export and restored on import (name-based dedup) — v1.2
 - ✓ Template-question associations preserved through export/import round-trip — v1.2
 - ✓ Admin result views match participant template ordering — v1.2
+- ✓ Admin can upload full-screen images to Supabase Storage with validation — v1.3
+- ✓ Admin can view uploaded images displayed full-screen on admin projection — v1.3
+- ✓ Admin can create, view, and delete image slides with storage cleanup — v1.3
+- ✓ Admin can add optional title/label to slides for admin management — v1.3
+- ✓ Admin can arrange slides and batches in unified drag-and-drop sequence — v1.3
+- ✓ Admin can advance through sequence with keyboard and on-screen buttons — v1.3
+- ✓ Participants see waiting state when admin is on a content slide — v1.3
+- ✓ Smooth transition animations between sequence items — v1.3
+- ✓ Admin can open separate presentation window for clean projected output — v1.3
+- ✓ Admin control view shows sequence list, navigation, preview, QR toggle — v1.3
+- ✓ Presentation window syncs via Supabase Realtime (cross-device) — v1.3
+- ✓ Admin can toggle QR overlay on presentation from control view — v1.3
+- ✓ Extended keyboard shortcuts (Space, B, F, Escape) in presentation — v1.3
+- ✓ Fullscreen API toggle in presentation window — v1.3
+- ✓ Save session as reusable template in Supabase — v1.3
+- ✓ Load saved template into new session — v1.3
+- ✓ List, rename, and delete session templates — v1.3
+- ✓ JSON export includes slides, sequence, and template provenance — v1.3
+- ✓ JSON import restores slides and sequence with Storage validation — v1.3
+- ✓ Session template references preserved in export/import — v1.3
+- ✓ Slide preview thumbnails in sequence editor — v1.3
+- ✓ QR overlay on content slides in presentation view — v1.3
 
 ### Active
 
-**Current Milestone: v1.3 Presentation Mode**
-
-**Goal:** Transform sessions into guided presentations with image slides, unified sequencing, and reusable session templates stored in Supabase.
-
-**Target features:**
-- Image slides: upload full-screen images to Supabase Storage, display on admin projection between voting batches
-- Unified session sequence: single ordered list mixing slides and batches, drag-and-drop arrangement
-- Manual advance: admin controls presentation flow, advancing through slides and batches
-- Session templates in Supabase: upgrade TemplatePanel from localStorage to database, save/load full session blueprints including slides and images
-- JSON export includes image URLs (not binary); results data excludes images
-- Participants see normal voting/waiting experience (images are admin-projection only)
+(No active milestone — planning next)
 
 ### Out of Scope
 
@@ -85,17 +97,25 @@ Participants can instantly vote on questions in a way that feels immersive and t
 - Mobile native app — web only, responsive design
 - Skip logic / branching in batch questions — high complexity, low value for short sessions
 - Swipe gesture navigation for mobile — arrow keys and buttons sufficient
-- Custom color picker per template — current palette sufficient, consistency is the priority
+- Custom color picker per template — current palette sufficient
 - Template versioning — overkill for 2-5 templates
 - Template sharing between users — no user accounts exist
+- Video slides — playback complexity, autoplay policies
+- Rich text editor on slides — scope explosion, text baked into images
+- Participant-visible slides — doubles rendering surface, complicates phone experience
+- Slide templates/themes — theming is scope creep
+- Image editing/annotation — admin uses external tools
+- Auto-advance / timed slides — contradicts manual control model
+- Binary image embedding in export — file size explosion
 
 ## Context
 
-- **Scale:** v1.2 handles 50-100 concurrent participants. Single Supabase channel per session multiplexes Broadcast + Presence + Postgres Changes.
-- **Tech stack:** Vite + React 19 + TypeScript, Supabase (PostgreSQL + Realtime), Vercel, Zustand, Motion (framer-motion), React Router v7, Zod, dnd-kit
+- **Scale:** v1.3 handles 50-100 concurrent participants. Single Supabase channel per session multiplexes Broadcast + Presence + Postgres Changes.
+- **Tech stack:** Vite + React 19 + TypeScript, Supabase (PostgreSQL + Realtime + Storage), Vercel, Zustand, Motion (framer-motion), React Router v7, Zod, dnd-kit, browser-image-compression
 - **Themes:** Admin uses light theme (projection-friendly), participants use dark theme (immersive)
-- **Voting modes:** Live single-question push, self-paced batch mode (introduced v1.1)
-- **Templates:** Reusable response templates with global storage, template assignment, consistent rendering (introduced v1.2)
+- **Voting modes:** Live single-question push, self-paced batch mode (v1.1)
+- **Templates:** Reusable response templates with global storage, template assignment, consistent rendering (v1.2)
+- **Presentations:** Image slides, unified sequence, presenter view with separate projection window, session templates in Supabase (v1.3)
 - **Testing:** Vitest with happy-dom, 413 tests passing (16 pre-existing failures)
 
 ## Key Decisions
@@ -122,6 +142,16 @@ Participants can instantly vote on questions in a way that feels immersive and t
 | Name-based template dedup on import | Portable across Supabase instances (UUIDs differ) | ✓ Good |
 | Locked options while template assigned | Prevents accidental inconsistency, detach to customize | ✓ Good |
 | Vote guard on template changes | Prevents data integrity issues with existing votes | ✓ Good |
+| Inline slide data in session_items | Avoids separate slides table, simpler queries | ✓ Good |
+| session_items excluded from Realtime | Use Broadcast for lower overhead, avoid duplicate triggers | ✓ Good |
+| browser-image-compression | Client-side WebP conversion before upload, smaller files | ✓ Good |
+| Relative Storage paths in export | Portable across environments (URLs change) | ✓ Good |
+| Discriminated union for export | Type-safe mixed slide/batch arrays, preserves import order | ✓ Good |
+| PresentationView no auth required | Read-only projection content, simplifies cross-device setup | ✓ Good |
+| Results hidden by default in presentation | Admin explicitly reveals, prevents spoilers | ✓ Good |
+| JSONB blueprint for session templates | Flexible schema, single column stores full session structure | ✓ Good |
+| .passthrough() on ImportSchema | Forward compatibility — v1.2 importers ignore new fields | ✓ Good |
+| Idempotent backfill pattern | Safe to call on every load, graceful RLS fallback | ✓ Good |
 
 ---
-*Last updated: 2026-02-10 after v1.3 milestone start*
+*Last updated: 2026-02-11 after v1.3 milestone*

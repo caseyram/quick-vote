@@ -1,5 +1,31 @@
 # Project Milestones: QuickVote
 
+## v1.3 Presentation Mode (Shipped: 2026-02-11)
+
+**Delivered:** Full presentation system with image slides, unified sequencing, keyboard-driven navigation, a dedicated presenter view with QR overlay and black screen, reusable session templates in Supabase, and backward-compatible export/import with slide support.
+
+**Phases completed:** 16-21 (12 plans total)
+
+**Key accomplishments:**
+- Image slides: Upload, manage, and display full-screen images with client-side compression, Supabase Storage integration, and preview support
+- Unified sequence: Single drag-and-drop interface combining batches and slides with idempotent backfill for seamless mixed-content presentations
+- Presentation controller: Keyboard-driven navigation (arrows, Space) with real-time broadcast of slide transitions and animated crossfade/spring transitions
+- Presenter view: Dedicated projection window with QR overlay (hidden/corner/fullscreen), black screen toggle, keyboard shortcuts, fullscreen API, and admin-controlled result reveal with reason highlighting
+- Session templates: Save/load/rename/delete full session blueprints in Supabase with JSONB storage, response template validation, and replace/append load modes
+- Export/import extension: Backward-compatible JSON export with slides, sequence, and template provenance; Storage validation on import with missing image handling
+
+**Stats:**
+- 80 files modified
+- 20,057 lines of TypeScript (13,856 net added in v1.3)
+- 6 phases, 12 plans, 22 requirements
+- 2 days from v1.2 to ship
+
+**Git range:** `feat(16-01)` → `docs(21)`
+
+**What's next:** Video slides, participant-visible slides, auto-advance, or speaker notes
+
+---
+
 ## v1.2 Response Templates (Shipped: 2026-02-10)
 
 **Delivered:** Reusable response templates that eliminate participant confusion from inconsistent multiple choice layouts — locked option order, colors, and layout across all template-linked questions.
