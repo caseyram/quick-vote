@@ -88,6 +88,7 @@ export function EditorToolbar() {
       batch: {
         name: `Batch ${batchCount + 1}`,
         questions: [],
+        timer_duration: null,
       },
     };
     addItem(newBatch, selectedItemId);

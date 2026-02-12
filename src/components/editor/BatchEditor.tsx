@@ -17,6 +17,7 @@ import {
 import { useTemplateEditorStore } from '../../stores/template-editor-store';
 import type { EditorItem, EditorQuestion } from '../../stores/template-editor-store';
 import { QuestionRow } from './QuestionRow';
+import { DurationInput } from '../shared/DurationInput';
 
 interface BatchEditorProps {
   item: EditorItem;
@@ -151,30 +152,49 @@ export function BatchEditor({ item }: BatchEditorProps) {
   return (
     <div className="space-y-6">
       {/* Batch header */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <div className="flex items-center justify-between mb-2">
-          {isEditingName ? (
-            <input
-              ref={nameInputRef}
-              type="text"
-              value={editedName}
-              onChange={(e) => setEditedName(e.target.value)}
-              onBlur={handleSaveName}
-              onKeyDown={handleNameKeyDown}
-              className="text-2xl font-semibold text-gray-900 bg-gray-50 border border-gray-300 rounded px-2 py-1 flex-1"
-            />
-          ) : (
-            <h2
-              onClick={handleStartEditName}
-              className="text-2xl font-semibold text-gray-900 cursor-pointer hover:text-indigo-600"
-            >
-              {item.batch.name}
-            </h2>
-          )}
+      <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            {isEditingName ? (
+              <input
+                ref={nameInputRef}
+                type="text"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                onBlur={handleSaveName}
+                onKeyDown={handleNameKeyDown}
+                className="text-2xl font-semibold text-gray-900 bg-gray-50 border border-gray-300 rounded px-2 py-1 flex-1"
+              />
+            ) : (
+              <h2
+                onClick={handleStartEditName}
+                className="text-2xl font-semibold text-gray-900 cursor-pointer hover:text-indigo-600"
+              >
+                {item.batch.name}
+              </h2>
+            )}
+          </div>
+          <p className="text-sm text-gray-500">
+            {questions.length} {questions.length === 1 ? 'question' : 'questions'}
+          </p>
         </div>
-        <p className="text-sm text-gray-500">
-          {questions.length} {questions.length === 1 ? 'question' : 'questions'}
-        </p>
+
+        {/* Batch timer duration */}
+        <div className="pt-4 border-t border-gray-200">
+          <DurationInput
+            value={item.batch.timer_duration || null}
+            onChange={(value) => {
+              updateItem(item.id, {
+                batch: {
+                  ...item.batch!,
+                  timer_duration: value,
+                },
+              });
+            }}
+            label="Batch Timer (seconds)"
+            placeholder="No timer"
+          />
+        </div>
       </div>
 
       {/* Question list */}

@@ -93,6 +93,7 @@ export interface SessionBlueprintItem {
   position: number;
   batch?: {
     name: string;
+    timer_duration?: number | null;
     questions: QuestionBlueprint[];
   };
   slide?: {
