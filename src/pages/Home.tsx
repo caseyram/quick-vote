@@ -1,9 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { nanoid } from 'nanoid';
 import { supabase } from '../lib/supabase';
 import { AdminPasswordGate } from '../components/AdminPasswordGate';
 import { PastSessions } from '../components/PastSessions';
+import { useSessionTemplateStore } from '../stores/session-template-store';
+import { fetchSessionTemplates } from '../lib/session-template-api';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -11,8 +13,16 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const submittingRef = useRef(false);
+  const { templates } = useSessionTemplateStore();
 
-  async function handleCreateSession() {
+  // Fetch templates on mount
+  useEffect(() => {
+    fetchSessionTemplates().catch((err) => {
+      console.error('Failed to fetch templates:', err);
+    });
+  }, []);
+
+  async function handleQuickSession() {
     if (submittingRef.current) return;
     submittingRef.current = true;
     setCreating(true);
@@ -51,6 +61,14 @@ export default function Home() {
     }
   }
 
+  function handleCreateNew() {
+    navigate('/templates/new');
+  }
+
+  function handleNewFromTemplate(templateId: string) {
+    navigate(`/templates/${templateId}/edit?from=template`);
+  }
+
   return (
     <AdminPasswordGate>
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-4 py-12 gap-12">
@@ -64,7 +82,22 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="space-y-4">
+          {/* Main action buttons */}
+          <div className="space-y-3">
+            <button
+              onClick={handleCreateNew}
+              className="w-full py-3 px-6 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors"
+            >
+              Create New
+            </button>
+            <p className="text-gray-500 text-sm">
+              Build a session in the template editor
+            </p>
+          </div>
+
+          {/* Quick Session section */}
+          <div className="border-t border-gray-800 pt-6 space-y-4">
+            <p className="text-gray-400 text-sm">Or start a quick session directly:</p>
             <input
               type="text"
               value={title}
@@ -73,22 +106,43 @@ export default function Home() {
               className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               disabled={creating}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCreateSession();
+                if (e.key === 'Enter') handleQuickSession();
               }}
             />
 
             <button
-              onClick={handleCreateSession}
+              onClick={handleQuickSession}
               disabled={creating}
-              className="w-full py-3 px-6 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+              className="w-full py-3 px-6 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
             >
-              {creating ? 'Creating...' : 'Create Session'}
+              {creating ? 'Creating...' : 'Quick Session'}
             </button>
 
             {error && (
               <p className="text-red-400 text-sm">{error}</p>
             )}
           </div>
+
+          {/* New from Template section */}
+          {templates.length > 0 && (
+            <div className="border-t border-gray-800 pt-6 space-y-4">
+              <p className="text-gray-400 text-sm">New from Template:</p>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {templates.slice(0, 5).map((template) => (
+                  <button
+                    key={template.id}
+                    onClick={() => handleNewFromTemplate(template.id)}
+                    className="w-full text-left px-4 py-3 bg-gray-900 hover:bg-gray-800 border border-gray-700 rounded-lg text-white transition-colors"
+                  >
+                    <div className="font-medium">{template.name}</div>
+                    <div className="text-sm text-gray-400">
+                      {template.item_count} {template.item_count === 1 ? 'item' : 'items'}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <PastSessions />

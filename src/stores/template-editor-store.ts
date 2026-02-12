@@ -47,7 +47,7 @@ interface TemplateEditorState {
   setSaving: (saving: boolean) => void;
   setLoading: (loading: boolean) => void;
   reset: () => void;
-  loadFromBlueprint: (templateId: string, name: string, blueprint: SessionBlueprint) => void;
+  loadFromBlueprint: (templateId: string | null, name: string, blueprint: SessionBlueprint) => void;
   toBlueprint: () => SessionBlueprint;
 }
 

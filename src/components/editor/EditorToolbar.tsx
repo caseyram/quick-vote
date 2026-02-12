@@ -4,9 +4,10 @@ import { nanoid } from 'nanoid';
 import imageCompression from 'browser-image-compression';
 import { useTemplateEditorStore } from '../../stores/template-editor-store';
 import type { EditorItem } from '../../stores/template-editor-store';
-import { saveSessionTemplate, overwriteSessionTemplate } from '../../lib/session-template-api';
+import { saveSessionTemplate, overwriteSessionTemplate, loadTemplateIntoSession } from '../../lib/session-template-api';
 import { uploadSlideImage } from '../../lib/slide-api';
 import { SegmentedControl } from './SegmentedControl';
+import { supabase } from '../../lib/supabase';
 
 export function EditorToolbar() {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ export function EditorToolbar() {
   const [editedName, setEditedName] = useState(templateName);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [startingSession, setStartingSession] = useState(false);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -193,6 +195,50 @@ export function EditorToolbar() {
     }
   };
 
+  const handleStartSession = async () => {
+    setStartingSession(true);
+
+    try {
+      // Serialize current editor state to blueprint
+      const blueprint = toBlueprint();
+
+      // Create new session
+      const sessionId = nanoid();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        alert('Authentication failed. Please refresh and try again.');
+        return;
+      }
+
+      const { data, error: insertError } = await supabase
+        .from('sessions')
+        .insert({
+          session_id: sessionId,
+          title: templateName || 'Untitled Session',
+          created_by: user.id,
+        })
+        .select('admin_token')
+        .single();
+
+      if (insertError) {
+        alert(insertError.message);
+        return;
+      }
+
+      // Load template blueprint into session (materialize batches/questions/items)
+      await loadTemplateIntoSession(sessionId, blueprint);
+
+      // Navigate to admin view
+      navigate(`/admin/${data.admin_token}`);
+    } catch (err) {
+      console.error('Failed to start session:', err);
+      alert(err instanceof Error ? err.message : 'Failed to start session');
+    } finally {
+      setStartingSession(false);
+    }
+  };
+
   return (
     <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-4">
       {/* Left section: Back arrow + Name */}
@@ -258,8 +304,26 @@ export function EditorToolbar() {
         />
       </div>
 
-      {/* Right section: Save + Edit/Preview toggle */}
+      {/* Right section: Start Session + Save Template + Edit/Preview toggle */}
       <div className="flex items-center gap-3">
+        <button
+          onClick={handleStartSession}
+          disabled={startingSession || items.length === 0}
+          className="px-4 py-1.5 text-sm font-medium bg-green-600 hover:bg-green-500 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          {startingSession ? (
+            <>
+              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Starting...
+            </>
+          ) : (
+            'Start Session'
+          )}
+        </button>
+
         <button
           onClick={handleSave}
           disabled={!isDirty || saving}
@@ -281,7 +345,7 @@ export function EditorToolbar() {
               Saved
             </>
           ) : (
-            'Save'
+            'Save Template'
           )}
         </button>
 

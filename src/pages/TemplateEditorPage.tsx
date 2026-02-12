@@ -37,7 +37,21 @@ export default function TemplateEditorPage() {
         if (error) throw error;
 
         const template = data as SessionTemplate;
-        loadFromBlueprint(template.id, template.name, template.blueprint);
+
+        // Check if loading from template (copy mode)
+        const isFromTemplate = searchParams.get('from') === 'template';
+
+        if (isFromTemplate) {
+          // Load as a copy (no template ID, so it saves as new)
+          loadFromBlueprint(null, `${template.name} (Copy)`, template.blueprint);
+          // Clear the from parameter after loading
+          const newParams = new URLSearchParams(searchParams);
+          newParams.delete('from');
+          window.history.replaceState({}, '', `${window.location.pathname}?${newParams}`);
+        } else {
+          // Load for editing (preserves template ID)
+          loadFromBlueprint(template.id, template.name, template.blueprint);
+        }
       } catch (err) {
         console.error('Failed to load template:', err);
         // TODO: Show error UI
@@ -46,7 +60,7 @@ export default function TemplateEditorPage() {
     }
 
     loadTemplate();
-  }, [id, reset, loadFromBlueprint]);
+  }, [id, reset, loadFromBlueprint, searchParams]);
 
   // Warn before unload if unsaved changes
   useEffect(() => {

@@ -3,6 +3,7 @@ import imageCompression from 'browser-image-compression';
 import { useTemplateEditorStore } from '../../stores/template-editor-store';
 import type { EditorItem } from '../../stores/template-editor-store';
 import { uploadSlideImage, getSlideImageUrl } from '../../lib/slide-api';
+import { SlideLightbox } from '../shared/SlideLightbox';
 
 interface SlideEditorProps {
   item: EditorItem;
@@ -11,7 +12,7 @@ interface SlideEditorProps {
 export function SlideEditor({ item }: SlideEditorProps) {
   const { updateItem } = useTemplateEditorStore();
   const [uploading, setUploading] = useState(false);
-  const [showLightbox, setShowLightbox] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!item.slide) return null;
@@ -75,12 +76,8 @@ export function SlideEditor({ item }: SlideEditorProps) {
 
   const handleImageClick = () => {
     if (hasImage) {
-      setShowLightbox(true);
+      setLightboxOpen(true);
     }
-  };
-
-  const handleCloseLightbox = () => {
-    setShowLightbox(false);
   };
 
   return (
@@ -95,7 +92,7 @@ export function SlideEditor({ item }: SlideEditorProps) {
           <>
             <div
               onClick={handleImageClick}
-              className="relative w-full rounded-lg overflow-hidden border border-gray-300 cursor-pointer hover:border-indigo-400 transition-colors"
+              className="relative w-full rounded-lg overflow-hidden border border-gray-300 cursor-pointer hover:border-indigo-400 hover:opacity-90 transition-all"
               style={{ maxHeight: '400px' }}
             >
               <img
@@ -162,28 +159,14 @@ export function SlideEditor({ item }: SlideEditorProps) {
         />
       </div>
 
-      {/* Lightbox (placeholder) */}
-      {showLightbox && hasImage && (
-        <div
-          onClick={handleCloseLightbox}
-          className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4"
-        >
-          <div className="relative max-w-7xl max-h-full">
-            <button
-              onClick={handleCloseLightbox}
-              className="absolute top-4 right-4 p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full transition-colors"
-            >
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <img
-              src={getSlideImageUrl(item.slide.image_path)}
-              alt={item.slide.caption || 'Slide'}
-              className="max-w-full max-h-screen object-contain"
-            />
-          </div>
-        </div>
+      {/* Lightbox */}
+      {hasImage && (
+        <SlideLightbox
+          open={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          imageSrc={getSlideImageUrl(item.slide.image_path)}
+          alt={item.slide.caption || 'Slide'}
+        />
       )}
     </div>
   );
