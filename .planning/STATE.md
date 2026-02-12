@@ -13,11 +13,11 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 
 **Milestone:** v1.4 Template Authoring & Teams
 **Phase:** 22 of 26 (Template Foundation & Authoring)
-**Plan:** 02 of 04 complete
+**Plan:** 03 of 04 complete
 **Status:** In progress
-**Last activity:** 2026-02-12 — Completed 22-02 (batch question editing)
+**Last activity:** 2026-02-12 — Completed 22-03 (edit/preview toggle, lightbox, quick session)
 
-Progress: [████░░░░░░░░░░░░░░░] 20% (v1.4: 2 of 10-12 plans complete)
+Progress: [██████░░░░░░░░░░░░░] 30% (v1.4: 3 of 10-12 plans complete)
 
 ## Milestone History
 
@@ -68,11 +68,13 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 See PROJECT.md for full decision log.
 
 Recent decisions:
+- (v1.4) Use URL search params for edit/preview mode — enables deep-linking to preview mode, no additional state management needed
+- (v1.4) Install yet-another-react-lightbox for image viewing — battle-tested library, minimal setup required
+- (v1.4) Restructure Home page with three session creation paths — Create New (template editor), Quick Session (direct), New from Template (copy)
+- (v1.4) Add Start Session button alongside Save Template — separate one-off session launch from template persistence
 - (v1.4) Use nanoid for editor item IDs — consistent with project convention, already in dependencies
 - (v1.4) Upload template images to 'templates' session ID folder — reuses existing slide storage infrastructure, isolates template images from session images
-- (v1.4) Store template ID in editor state after first save — enables switching from /templates/new to /templates/:id/edit after initial save
 - (v1.3) Inline slide data in session_items — avoids separate slides table, simpler queries
-- (v1.3) PresentationView no auth required — read-only projection content, simplifies cross-device setup
 - (v1.3) JSONB blueprint for session templates — flexible schema, single column stores full session structure
 - [Phase 22]: Auto-collapse expanded questions on drag start to prevent glitchy overlays
 - [Phase 22]: Timer duration as number input in seconds with human-readable conversion
@@ -87,11 +89,11 @@ Recent decisions:
 
 ## Session Continuity
 
-**Last session:** 2026-02-12T23:51:41.409Z
-**Stopped at:** Completed 22-02-PLAN.md (batch question editing)
-**Next action:** Execute Plan 22-03 (preview mode)
+**Last session:** 2026-02-12
+**Stopped at:** Completed 22-03-PLAN.md (edit/preview toggle, lightbox, quick session)
+**Next action:** Execute Plan 22-04 (template list management)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-12 — Completed Phase 22 Plan 02*
+*Updated: 2026-02-12 — Completed Phase 22 Plan 03*
