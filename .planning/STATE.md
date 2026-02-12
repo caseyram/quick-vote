@@ -13,11 +13,11 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 
 **Milestone:** v1.4 Template Authoring & Teams
 **Phase:** 22 of 26 (Template Foundation & Authoring)
-**Plan:** —
-**Status:** Ready to plan
-**Last activity:** 2026-02-12 — v1.4 roadmap created
+**Plan:** 01 of 04 complete
+**Status:** In progress
+**Last activity:** 2026-02-12 — Completed 22-01 (template editor foundation)
 
-Progress: [░░░░░░░░░░░░░░░░░░░] 0% (v1.4: 0 plans complete)
+Progress: [██░░░░░░░░░░░░░░░░░] 10% (v1.4: 1 of 10-12 plans complete)
 
 ## Milestone History
 
@@ -68,6 +68,9 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 See PROJECT.md for full decision log.
 
 Recent decisions:
+- (v1.4) Use nanoid for editor item IDs — consistent with project convention, already in dependencies
+- (v1.4) Upload template images to 'templates' session ID folder — reuses existing slide storage infrastructure, isolates template images from session images
+- (v1.4) Store template ID in editor state after first save — enables switching from /templates/new to /templates/:id/edit after initial save
 - (v1.3) Inline slide data in session_items — avoids separate slides table, simpler queries
 - (v1.3) PresentationView no auth required — read-only projection content, simplifies cross-device setup
 - (v1.3) JSONB blueprint for session templates — flexible schema, single column stores full session structure
@@ -82,11 +85,11 @@ Recent decisions:
 
 ## Session Continuity
 
-**Last session:** 2026-02-12 — v1.4 roadmap created
-**Stopped at:** Roadmap complete with 5 phases (22-26), all 25 requirements mapped
-**Next action:** Plan Phase 22 (Template Foundation & Authoring)
+**Last session:** 2026-02-12 — Phase 22 Plan 01 execution
+**Stopped at:** Completed 22-01-PLAN.md (template editor foundation)
+**Next action:** Execute Plan 22-02 (batch question editing)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-12 — v1.4 roadmap created*
+*Updated: 2026-02-12 — Completed Phase 22 Plan 01*
