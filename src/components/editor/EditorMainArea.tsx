@@ -2,27 +2,7 @@ import { nanoid } from 'nanoid';
 import { useTemplateEditorStore } from '../../stores/template-editor-store';
 import type { EditorItem } from '../../stores/template-editor-store';
 import { SlideEditor } from './SlideEditor';
-
-// BatchEditor placeholder (Plan 02 will build the real one)
-function BatchEditor({ item }: { item: EditorItem }) {
-  if (!item.batch) return null;
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-semibold text-gray-900">{item.batch.name}</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          {item.batch.questions.length} questions
-        </p>
-      </div>
-      <div className="p-4 bg-gray-100 rounded border border-gray-300">
-        <p className="text-gray-600 text-center">
-          Questions will be edited here (Plan 02)
-        </p>
-      </div>
-    </div>
-  );
-}
+import { BatchEditor } from './BatchEditor';
 
 export function EditorMainArea() {
   const { items, selectedItemId, addItem } = useTemplateEditorStore();
