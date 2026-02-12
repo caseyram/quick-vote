@@ -84,7 +84,16 @@ Participants can instantly vote on questions in a way that feels immersive and t
 
 ### Active
 
-(No active milestone — planning next)
+## Current Milestone: v1.4 Template Authoring & Teams
+
+**Goal:** Transform session creation into an iterative authoring workflow with template-first editing, full preview, team-based voting, and presentation polish.
+
+**Target features:**
+- Dedicated session template editor with inline batch editing and full preview (projection, controls, participant view)
+- Team-based voting with team configuration, team-specific QR codes, filtered results, and per-team export
+- Seamless slide transitions, configurable background color, batch cover images
+- Multi-select sequence rearrangement, multi-select reasons display
+- Presentation UX fixes (drag handles, "Results ready" label, nav button overlap, batch timer in template)
 
 ### Out of Scope
 
@@ -97,7 +106,7 @@ Participants can instantly vote on questions in a way that feels immersive and t
 - Mobile native app — web only, responsive design
 - Skip logic / branching in batch questions — high complexity, low value for short sessions
 - Swipe gesture navigation for mobile — arrow keys and buttons sufficient
-- Custom color picker per template — current palette sufficient
+- Custom color picker per response template — current palette sufficient
 - Template versioning — overkill for 2-5 templates
 - Template sharing between users — no user accounts exist
 - Video slides — playback complexity, autoplay policies
@@ -154,4 +163,4 @@ Participants can instantly vote on questions in a way that feels immersive and t
 | Idempotent backfill pattern | Safe to call on every load, graceful RLS fallback | ✓ Good |
 
 ---
-*Last updated: 2026-02-11 after v1.3 milestone*
+*Last updated: 2026-02-12 after v1.4 milestone start*

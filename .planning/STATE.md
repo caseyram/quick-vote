@@ -2,24 +2,22 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-11)
+See: .planning/PROJECT.md (updated 2026-02-12)
 
 **Core Value:** Participants can instantly vote on questions in a way that feels immersive and tactile -- not like filling out a form.
 **Stack:** Vite + React (TypeScript), Supabase (database + realtime + storage), Vercel deployment
 **Repo:** C:/code/quick-vote
-**Current focus:** Planning next milestone
+**Current focus:** v1.4 Template Authoring & Teams
 
 ## Current Position
 
-**Milestone:** v1.3 Presentation Mode -- SHIPPED
-**Phase:** All complete
-**Plan:** N/A
-**Status:** Milestone shipped, ready for next milestone
-**Last activity:** 2026-02-11 -- v1.3 milestone complete
+**Milestone:** v1.4 Template Authoring & Teams
+**Phase:** Not started (defining requirements)
+**Plan:** —
+**Status:** Defining requirements
+**Last activity:** 2026-02-12 — Milestone v1.4 started
 
-Progress: [████████████████████] 100% (v1.3)
-
-**Next Action:** Start next milestone (`/gsd:new-milestone`)
+Progress: [░░░░░░░░░░░░░░░░░░░] 0% (v1.4)
 
 ## Milestone History
 
@@ -75,11 +73,11 @@ See PROJECT.md for full decision log.
 
 ## Session Continuity
 
-**Last session:** 2026-02-11 -- v1.3 milestone complete
-**Stopped at:** Milestone archived
-**Next action:** Start next milestone (`/gsd:new-milestone`)
+**Last session:** 2026-02-12 — v1.4 milestone started
+**Stopped at:** Defining requirements
+**Next action:** Define requirements, create roadmap
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-11 -- v1.3 milestone archived*
+*Updated: 2026-02-12 — v1.4 milestone started*
