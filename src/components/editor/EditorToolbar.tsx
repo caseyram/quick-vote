@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { nanoid } from 'nanoid';
 import imageCompression from 'browser-image-compression';
 import { useTemplateEditorStore } from '../../stores/template-editor-store';
 import type { EditorItem } from '../../stores/template-editor-store';
 import { saveSessionTemplate, overwriteSessionTemplate } from '../../lib/session-template-api';
 import { uploadSlideImage } from '../../lib/slide-api';
+import { SegmentedControl } from './SegmentedControl';
 
 export function EditorToolbar() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     templateId,
     templateName,
@@ -30,6 +32,9 @@ export function EditorToolbar() {
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Read mode from URL search params
+  const mode = searchParams.get('mode') || 'edit';
 
   // Sync editedName with store when templateName changes
   useEffect(() => {
@@ -179,8 +184,12 @@ export function EditorToolbar() {
     }
   };
 
-  const handlePreviewClick = () => {
-    alert('Preview mode will be implemented in Plan 03');
+  const handleModeChange = (newMode: string) => {
+    if (newMode === 'preview') {
+      setSearchParams({ mode: 'preview' });
+    } else {
+      setSearchParams({});
+    }
   };
 
   return (
@@ -275,18 +284,15 @@ export function EditorToolbar() {
           )}
         </button>
 
-        {/* Edit/Preview toggle (placeholder) */}
-        <div className="flex border border-gray-300 rounded overflow-hidden">
-          <button className="px-3 py-1.5 text-sm font-medium bg-indigo-600 text-white">
-            Edit
-          </button>
-          <button
-            onClick={handlePreviewClick}
-            className="px-3 py-1.5 text-sm font-medium bg-white text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            Preview
-          </button>
-        </div>
+        {/* Edit/Preview toggle */}
+        <SegmentedControl
+          options={[
+            { value: 'edit', label: 'Edit' },
+            { value: 'preview', label: 'Preview' },
+          ]}
+          value={mode}
+          onChange={handleModeChange}
+        />
       </div>
     </div>
   );

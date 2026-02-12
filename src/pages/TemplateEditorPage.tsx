@@ -1,15 +1,20 @@
 import { useEffect } from 'react';
-import { useParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import { supabase } from '../lib/supabase';
 import { useTemplateEditorStore } from '../stores/template-editor-store';
 import type { SessionTemplate } from '../types/database';
 import { EditorToolbar } from '../components/editor/EditorToolbar';
 import { EditorSidebar } from '../components/editor/EditorSidebar';
 import { EditorMainArea } from '../components/editor/EditorMainArea';
+import { PreviewMode } from '../components/editor/PreviewMode';
 
 export default function TemplateEditorPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const { reset, loadFromBlueprint, isDirty } = useTemplateEditorStore();
+
+  // Read mode from URL search params
+  const mode = searchParams.get('mode') || 'edit';
 
   useEffect(() => {
     async function loadTemplate() {
@@ -60,8 +65,14 @@ export default function TemplateEditorPage() {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <EditorToolbar />
       <div className="flex flex-1 overflow-hidden">
-        <EditorSidebar />
-        <EditorMainArea />
+        {mode === 'preview' ? (
+          <PreviewMode />
+        ) : (
+          <>
+            <EditorSidebar />
+            <EditorMainArea />
+          </>
+        )}
       </div>
     </div>
   );
