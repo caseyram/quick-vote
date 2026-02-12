@@ -458,7 +458,8 @@ describe('session-import', () => {
       const result = ImportSchema.safeParse(data);
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.batches[0].questions[0].template_id).toBe('Custom Template');
+        const batch = result.data.batches[0];
+        expect('questions' in batch && batch.questions[0].template_id).toBe('Custom Template');
       }
     });
 
@@ -479,7 +480,8 @@ describe('session-import', () => {
       expect(result.success).toBe(true);
       if (result.success) {
         // template_id is optional, so it should be undefined when not present
-        expect(result.data.batches[0].questions[0].template_id).toBeUndefined();
+        const batch = result.data.batches[0];
+        expect('questions' in batch && batch.questions[0].template_id).toBeUndefined();
       }
     });
   });

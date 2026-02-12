@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { supabase } from './supabase';
-import type { SessionItem } from '../types/database';
 
 // ============================================================================
 // Export Schemas (full fidelity with votes and participant_id)
