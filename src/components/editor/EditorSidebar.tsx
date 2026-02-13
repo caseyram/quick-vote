@@ -121,6 +121,22 @@ export function EditorSidebar() {
           </div>
         </SortableContext>
       </DndContext>
+
+      {/* Add buttons */}
+      <div className="flex gap-2 mt-3">
+        <button
+          onClick={handleAddBatch}
+          className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded transition-colors"
+        >
+          + Batch
+        </button>
+        <button
+          onClick={handleAddSlide}
+          className="flex-1 px-3 py-1.5 text-xs font-medium bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded transition-colors"
+        >
+          + Slide
+        </button>
+      </div>
     </div>
   );
 }
