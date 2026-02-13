@@ -2,6 +2,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { Question, Vote } from '../types/database';
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from './BarChart';
 import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation';
+import { getTextColor } from '../lib/color-contrast';
+import { getAdaptiveChartColor } from '../lib/chart-colors';
 
 interface BatchResultsProjectionProps {
   batchId: string;
@@ -10,6 +12,7 @@ interface BatchResultsProjectionProps {
   sessionVotes: Record<string, Vote[]>;
   revealedQuestions: Set<string>;
   highlightedReason: { questionId: string; reasonId: string } | null;
+  backgroundColor?: string;
 }
 
 export function BatchResultsProjection({
@@ -19,7 +22,15 @@ export function BatchResultsProjection({
   sessionVotes,
   revealedQuestions,
   highlightedReason,
+  backgroundColor,
 }: BatchResultsProjectionProps) {
+  // Compute text color mode based on background
+  const bgColor = backgroundColor || '#1a1a2e';
+  const textMode = getTextColor(bgColor);
+  const headingColor = textMode === 'light' ? 'text-white' : 'text-gray-900';
+  const subTextColor = textMode === 'light' ? 'text-gray-400' : 'text-gray-600';
+  const cardBg = textMode === 'light' ? 'bg-white/10' : 'bg-black/10';
+
   // Get batch questions sorted by position
   const batchQuestions = questions
     .filter((q) => q.batch_id === batchId)
@@ -39,10 +50,10 @@ export function BatchResultsProjection({
   if (!currentQuestion) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center px-8">
-        <h2 className="text-5xl font-bold text-white leading-tight mb-4">
+        <h2 className={`text-5xl font-bold ${headingColor} leading-tight mb-4`}>
           {batchName}
         </h2>
-        <p className="text-2xl text-gray-400">Results ready</p>
+        <p className={`text-2xl ${subTextColor}`}>Results ready</p>
       </div>
     );
   }
@@ -74,6 +85,12 @@ export function BatchResultsProjection({
     };
   });
 
+  // Adapt chart colors for contrast with background
+  const adaptedChartData = chartData.map((item) => ({
+    ...item,
+    color: getAdaptiveChartColor(item.color, bgColor),
+  }));
+
   // Find highlighted reason if exists
   const highlightedReasonData =
     highlightedReason?.questionId === currentQuestion.id
@@ -98,7 +115,7 @@ export function BatchResultsProjection({
   return (
     <div className="flex flex-col h-full p-8">
       {/* Question text */}
-      <h2 className="text-3xl font-bold text-white mb-6 text-center">
+      <h2 className={`text-3xl font-bold ${headingColor} mb-6 text-center`}>
         {currentQuestion.text}
       </h2>
 
@@ -112,7 +129,7 @@ export function BatchResultsProjection({
         >
           <div className="w-full max-w-2xl">
             <BarChart
-              data={chartData}
+              data={adaptedChartData}
               totalVotes={questionVotes.length}
               size="large"
               theme="dark"
@@ -131,16 +148,16 @@ export function BatchResultsProjection({
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
               <div
-                className="bg-white/10 backdrop-blur rounded-lg p-6 max-w-lg"
+                className={`${cardBg} backdrop-blur rounded-lg p-6 max-w-lg`}
                 style={{
                   borderLeft: `4px solid ${getReasonColor(highlightedReasonData.value)}`,
                 }}
               >
-                <p className="text-white text-xl leading-relaxed mb-4">
+                <p className={`${headingColor} text-xl leading-relaxed mb-4`}>
                   {highlightedReasonData.reason || 'No reason provided'}
                 </p>
                 {highlightedReasonData.display_name && (
-                  <p className="text-gray-300 text-sm">
+                  <p className={`${subTextColor} text-sm`}>
                     — {highlightedReasonData.display_name}
                   </p>
                 )}
