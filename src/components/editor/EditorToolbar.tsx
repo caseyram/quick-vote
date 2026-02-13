@@ -36,7 +36,6 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [startingSession, setStartingSession] = useState(false);
   const [uploadingSlide, setUploadingSlide] = useState(false);
-  const [globalTemplateId, setGlobalTemplateId] = useState('');
   const [showPreviewDropdown, setShowPreviewDropdown] = useState(false);
 
   const responseTemplates = useTemplateStore((s) => s.templates);
@@ -277,46 +276,50 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
           className="hidden"
         />
 
-        {/* Separator */}
-        {responseTemplates.length > 0 && (
-          <>
-            <div className="w-px h-6 bg-gray-300" />
-            <select
-              value={globalTemplateId}
-              onChange={(e) => setGlobalTemplateId(e.target.value)}
-              className="bg-gray-50 border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-700"
-            >
-              <option value="">Response template...</option>
-              {responseTemplates.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-            <button
-              disabled={!globalTemplateId}
-              onClick={() => {
-                const template = responseTemplates.find((t) => t.id === globalTemplateId);
-                if (!template) return;
-                items.forEach((itm) => {
-                  if (itm.item_type === 'batch' && itm.batch) {
-                    const updatedQuestions = itm.batch.questions.map((q) => ({
-                      ...q,
-                      template_id: globalTemplateId,
-                      type: 'multiple_choice' as const,
-                      options: [...template.options],
-                    }));
-                    updateItem(itm.id, {
-                      batch: { ...itm.batch, questions: updatedQuestions },
-                    });
-                  }
-                });
-                setGlobalTemplateId('');
-              }}
-              className="px-2 py-1.5 text-xs font-medium bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-            >
-              Apply All
-            </button>
-          </>
-        )}
+        {/* Global response template */}
+        {responseTemplates.length > 0 && (() => {
+          // Derive shared template across all questions in all batches
+          const allQuestions = items
+            .filter((itm) => itm.item_type === 'batch' && itm.batch)
+            .flatMap((itm) => itm.batch!.questions);
+          const globalShared = allQuestions.length > 0 && allQuestions[0].template_id &&
+            allQuestions.every((q) => q.template_id === allQuestions[0].template_id)
+            ? allQuestions[0].template_id
+            : '';
+
+          return (
+            <>
+              <div className="w-px h-6 bg-gray-300" />
+              <select
+                value={globalShared}
+                onChange={(e) => {
+                  const tid = e.target.value || null;
+                  const template = tid ? responseTemplates.find((t) => t.id === tid) : null;
+                  items.forEach((itm) => {
+                    if (itm.item_type === 'batch' && itm.batch) {
+                      const updatedQuestions = itm.batch.questions.map((q) => ({
+                        ...q,
+                        template_id: tid,
+                        ...(template
+                          ? { type: 'multiple_choice' as const, options: [...template.options] }
+                          : {}),
+                      }));
+                      updateItem(itm.id, {
+                        batch: { ...itm.batch, questions: updatedQuestions },
+                      });
+                    }
+                  });
+                }}
+                className="bg-gray-50 border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-700"
+              >
+                <option value="">None (custom)</option>
+                {responseTemplates.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </>
+          );
+        })()}
       </div>
 
       {/* Right section: Start Session + Save Template + Preview */}
