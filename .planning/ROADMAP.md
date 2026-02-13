@@ -85,11 +85,13 @@ Plans:
   3. Text and UI elements maintain readable contrast when background color changes
   4. Admin can associate slide image with batch as cover image
   5. Projection displays batch cover image while participants answer questions
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 24-01: TBD
-- [ ] 24-02: TBD
+- [ ] 24-01-PLAN.md — Directional transitions, color infrastructure, background color, nav layout fix
+- [ ] 24-02-PLAN.md — Color picker UI in toolbar, chart contrast adaptation
+- [ ] 24-03-PLAN.md — Batch cover images (selector, projection display, blueprint persistence)
+- [ ] 24-04-PLAN.md — Human verification of all PRES requirements
 
 #### Phase 25: Team-Based Voting
 **Goal**: Multi-team voting with team-specific QR codes and filtered results
@@ -136,7 +138,7 @@ Phases execute in numeric order: 22 → 23 → 24 → 25 → 26
 | 16-21 | v1.3 | 12/12 | Shipped | 2026-02-11 |
 | 22. Template Foundation & Authoring | v1.4 | 4/4 | Done | 2026-02-12 |
 | 23. Preview System | v1.4 | 3/3 | Done | 2026-02-13 |
-| 24. Presentation Polish | v1.4 | 0/? | Not started | - |
+| 24. Presentation Polish | v1.4 | 0/4 | Not started | - |
 | 25. Team-Based Voting | v1.4 | 0/? | Not started | - |
 | 26. Sequence & Results Enhancements | v1.4 | 0/? | Not started | - |
 
