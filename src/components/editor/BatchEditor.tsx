@@ -107,13 +107,31 @@ export function BatchEditor({ item }: BatchEditorProps) {
 
   const handleAddQuestion = () => {
     const id = nanoid();
+
+    // Inherit template from existing questions if they all share one
+    let type: EditorQuestion['type'] = 'agree_disagree';
+    let options: string[] | null = null;
+    let templateId: string | null = null;
+
+    if (questions.length > 0) {
+      const sharedTemplateId = questions[0].template_id;
+      if (sharedTemplateId && questions.every((q) => q.template_id === sharedTemplateId)) {
+        const template = responseTemplates.find((t) => t.id === sharedTemplateId);
+        if (template) {
+          templateId = sharedTemplateId;
+          type = 'multiple_choice';
+          options = [...template.options];
+        }
+      }
+    }
+
     const newQuestion: EditorQuestion = {
       id,
       text: '',
-      type: 'agree_disagree',
-      options: null,
+      type,
+      options,
       timer_duration: null,
-      template_id: null,
+      template_id: templateId,
     };
 
     setCollapseSignal((prev) => prev + 1);
