@@ -30,6 +30,7 @@ interface TemplateEditorState {
   templateId: string | null;
   templateName: string;
   globalTemplateId: string | null;
+  backgroundColor: string | null;
   items: EditorItem[];
   selectedItemId: string | null;
   isDirty: boolean;
@@ -38,6 +39,7 @@ interface TemplateEditorState {
 
   setGlobalTemplateId: (id: string | null) => void;
   setTemplateName: (name: string) => void;
+  setBackgroundColor: (color: string | null) => void;
   setItems: (items: EditorItem[]) => void;
   addItem: (item: EditorItem, afterItemId: string | null) => void;
   removeItem: (id: string) => void;
@@ -57,6 +59,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
   templateId: null,
   templateName: 'Untitled Template',
   globalTemplateId: null,
+  backgroundColor: null,
   items: [],
   selectedItemId: null,
   isDirty: false,
@@ -71,6 +74,9 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
       templateName: name,
       isDirty: true,
     }),
+
+  setBackgroundColor: (color) =>
+    set({ backgroundColor: color, isDirty: true }),
 
   setItems: (items) =>
     set({ items }),
@@ -173,6 +179,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
       templateId: null,
       templateName: 'Untitled Template',
       globalTemplateId: null,
+      backgroundColor: null,
       items: [],
       selectedItemId: null,
       isDirty: false,
@@ -230,6 +237,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
       templateId,
       templateName: name,
       globalTemplateId: blueprint.globalTemplateId ?? null,
+      backgroundColor: blueprint.backgroundColor ?? null,
       items: editorItems,
       selectedItemId: editorItems[0]?.id ?? null,
       isDirty: false,
@@ -286,6 +294,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
     return {
       version: 1 as const,
       globalTemplateId: state.globalTemplateId ?? null,
+      backgroundColor: state.backgroundColor ?? null,
       sessionItems: blueprintItems,
     };
   },
