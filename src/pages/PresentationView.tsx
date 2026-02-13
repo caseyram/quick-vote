@@ -11,6 +11,7 @@ import { SlideDisplay } from '../components/SlideDisplay';
 import { QROverlay, type QRMode } from '../components/QROverlay';
 import { KeyboardShortcutHelp } from '../components/KeyboardShortcutHelp';
 import { BatchResultsProjection } from '../components/BatchResultsProjection';
+import { getTextColor } from '../lib/color-contrast';
 
 export default function PresentationView() {
   const { sessionId } = useParams();
@@ -303,7 +304,7 @@ export default function PresentationView() {
     ? sessionItems.find((item) => item.id === activeSessionItemId)
     : null;
 
-  // Animation variants (matching AdminSession patterns)
+  // Animation variants (unified directional slide transitions)
   const slideVariants = {
     enter: (direction: 'forward' | 'backward' | null) => ({
       x: direction === 'forward' ? '100%' : direction === 'backward' ? '-100%' : 0,
@@ -316,34 +317,31 @@ export default function PresentationView() {
     }),
   };
 
-  const crossfadeVariants = {
-    enter: { opacity: 0 },
-    center: { opacity: 1 },
-    exit: { opacity: 0 },
-  };
-
-  const isSlideActive = currentItem?.item_type === 'slide';
+  // Background color and text color
+  const backgroundColor = '#1a1a2e'; // TODO: Load from session template
+  const textMode = getTextColor(backgroundColor);
+  const textColorClass = textMode === 'light' ? 'text-white' : 'text-gray-900';
 
   const sessionUrl = sessionId ? `${window.location.origin}/session/${sessionId}` : '';
 
   return (
-    <div className="fixed inset-0 bg-[#1a1a1a] flex items-center justify-center overflow-hidden">
+    <div
+      className={`fixed inset-0 flex items-center justify-center overflow-hidden ${textColorClass}`}
+      style={{ backgroundColor }}
+    >
       {/* Main projection content */}
-      <AnimatePresence mode="wait" custom={navigationDirection}>
-        <motion.div
-          key={activeSessionItemId ?? 'none'}
-          custom={navigationDirection}
-          variants={isSlideActive ? slideVariants : crossfadeVariants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          transition={
-            isSlideActive
-              ? { x: { type: 'spring', stiffness: 300, damping: 30 }, opacity: { duration: 0.2 } }
-              : { duration: 0.35, ease: 'easeInOut' }
-          }
-          className="w-full h-full"
-        >
+      <div className="relative w-full h-full overflow-hidden">
+        <AnimatePresence initial={false} custom={navigationDirection}>
+          <motion.div
+            key={activeSessionItemId ?? 'none'}
+            custom={navigationDirection}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.4, ease: [0.4, 0.0, 0.2, 1] }}
+            className="w-full h-full absolute inset-0"
+          >
           {currentItem?.item_type === 'slide' && currentItem.slide_image_path ? (
             <SlideDisplay
               imagePath={currentItem.slide_image_path}
@@ -363,8 +361,9 @@ export default function PresentationView() {
               <p className="text-2xl text-gray-500">Waiting for presentation to start...</p>
             </div>
           )}
-        </motion.div>
-      </AnimatePresence>
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
       {/* QR overlay */}
       <QROverlay mode={qrMode} sessionUrl={sessionUrl} />

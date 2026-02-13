@@ -204,19 +204,21 @@ export function PresentationControls({
       </div>
 
       {/* Center area: Current + Next preview OR Batch controls */}
-      <div className="flex-1 flex flex-col p-6 min-h-0">
+      <div className="flex-1 flex flex-col p-6 min-h-0 overflow-hidden">
         {currentItem?.item_type === 'batch' && currentItem.batch_id ? (
-          <BatchControlPanel
-            batchId={currentItem.batch_id}
-            questions={questions}
-            sessionVotes={sessionVotes}
-            revealedQuestions={revealedQuestions}
-            highlightedReasonId={highlightedReasonId}
-            currentBatchQuestionIndex={currentBatchQuestionIndex}
-            onSetCurrentBatchQuestionIndex={setCurrentBatchQuestionIndex}
-            onRevealQuestion={handleRevealQuestion}
-            onHighlightReason={handleHighlightReason}
-          />
+          <div className="flex-1 min-h-0 mb-4 overflow-hidden">
+            <BatchControlPanel
+              batchId={currentItem.batch_id}
+              questions={questions}
+              sessionVotes={sessionVotes}
+              revealedQuestions={revealedQuestions}
+              highlightedReasonId={highlightedReasonId}
+              currentBatchQuestionIndex={currentBatchQuestionIndex}
+              onSetCurrentBatchQuestionIndex={setCurrentBatchQuestionIndex}
+              onRevealQuestion={handleRevealQuestion}
+              onHighlightReason={handleHighlightReason}
+            />
+          </div>
         ) : (
           <div className="flex gap-6 mb-6 flex-1 min-h-0">
             {/* Current (live mirror) */}
@@ -246,7 +248,7 @@ export function PresentationControls({
         )}
 
         {/* Navigation controls */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+        <div className="shrink-0 flex items-center justify-between pt-4 border-t border-gray-200">
           <button
             onClick={goPrev}
             disabled={!canGoPrev}

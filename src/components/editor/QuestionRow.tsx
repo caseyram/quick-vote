@@ -47,10 +47,6 @@ export function QuestionRow({ question, onUpdate, onDelete, collapseSignal, resp
     }
   }, [isExpanded]);
 
-  const handleExpand = () => {
-    setIsExpanded(true);
-  };
-
   const handleCollapse = () => {
     setIsExpanded(false);
   };

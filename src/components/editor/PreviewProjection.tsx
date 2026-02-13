@@ -3,15 +3,24 @@ import type { PreviewStep } from './SessionPreviewOverlay';
 import { BarChart } from '../BarChart';
 import { getSlideImageUrl } from '../../lib/slide-api';
 import { generateMockVotes, MOCK_TOTAL_VOTES } from './preview-mock-data';
+import { getTextColor } from '../../lib/color-contrast';
 
 interface PreviewProjectionProps {
   step: PreviewStep;
+  direction?: 'forward' | 'backward' | null;
+  backgroundColor?: string;
 }
 
-const crossfadeVariants = {
-  enter: { opacity: 0 },
-  center: { opacity: 1 },
-  exit: { opacity: 0 },
+const slideVariants = {
+  enter: (direction: 'forward' | 'backward' | null) => ({
+    x: direction === 'forward' ? '100%' : direction === 'backward' ? '-100%' : 0,
+    opacity: direction ? 0 : 1,
+  }),
+  center: { x: 0, opacity: 1 },
+  exit: (direction: 'forward' | 'backward' | null) => ({
+    x: direction === 'forward' ? '-100%' : direction === 'backward' ? '100%' : 0,
+    opacity: direction ? 0 : 1,
+  }),
 };
 
 function stepKey(step: PreviewStep) {
@@ -19,18 +28,25 @@ function stepKey(step: PreviewStep) {
   return step.item.id;
 }
 
-export function PreviewProjection({ step }: PreviewProjectionProps) {
+export function PreviewProjection({ step, direction = null, backgroundColor = '#1a1a2e' }: PreviewProjectionProps) {
+  const textMode = getTextColor(backgroundColor);
+  const textColorClass = textMode === 'light' ? 'text-white' : 'text-gray-900';
+  const secondaryTextClass = textMode === 'light' ? 'text-gray-300' : 'text-gray-600';
+
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={stepKey(step)}
-        variants={crossfadeVariants}
-        initial="enter"
-        animate="center"
-        exit="exit"
-        transition={{ duration: 0.35, ease: 'easeInOut' }}
-        className="h-full w-full flex items-center justify-center bg-white p-8"
-      >
+    <div className="relative w-full h-full overflow-hidden">
+      <AnimatePresence initial={false} custom={direction}>
+        <motion.div
+          key={stepKey(step)}
+          custom={direction}
+          variants={slideVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ duration: 0.4, ease: [0.4, 0.0, 0.2, 1] }}
+          className={`h-full w-full absolute inset-0 flex items-center justify-center p-8 ${textColorClass}`}
+          style={{ backgroundColor }}
+        >
         {step.type === 'slide' && step.item.item_type === 'slide' && step.item.slide ? (
           <div className="flex flex-col items-center justify-center h-full w-full">
             {step.item.slide.image_path ? (
@@ -42,25 +58,25 @@ export function PreviewProjection({ step }: PreviewProjectionProps) {
                   style={{ maxHeight: 'calc(100% - 3rem)' }}
                 />
                 {step.item.slide.caption && (
-                  <p className="text-gray-800 text-xl mt-4 text-center">
+                  <p className={`${textColorClass} text-xl mt-4 text-center`}>
                     {step.item.slide.caption}
                   </p>
                 )}
               </>
             ) : (
-              <div className="text-gray-400 text-lg">No image</div>
+              <div className={secondaryTextClass}>No image</div>
             )}
           </div>
         ) : step.type === 'question' ? (
           <div className="flex flex-col items-center justify-center h-full w-full">
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">
+            <h2 className={`text-3xl font-bold ${textColorClass} mb-2`}>
               {step.item.batch?.name}
             </h2>
-            <p className="text-sm text-gray-500 mb-8">
+            <p className={`text-sm ${secondaryTextClass} mb-8`}>
               Question {step.questionIndex + 1} of {step.totalQuestions}
             </p>
             <div className="flex flex-col items-center w-full max-w-4xl">
-              <p className="text-xl text-gray-700 mb-6 text-center">
+              <p className={`text-xl ${textColorClass} mb-6 text-center`}>
                 {step.question.text || 'Untitled question'}
               </p>
               <div className="w-full" style={{ height: 300 }}>
@@ -73,15 +89,16 @@ export function PreviewProjection({ step }: PreviewProjectionProps) {
                   size="default"
                 />
               </div>
-              <p className="text-sm text-gray-500 mt-4">
+              <p className={`text-sm ${secondaryTextClass} mt-4`}>
                 Total: {MOCK_TOTAL_VOTES} votes
               </p>
             </div>
           </div>
         ) : (
-          <div className="text-gray-400 text-lg">No content</div>
+          <div className={secondaryTextClass}>No content</div>
         )}
-      </motion.div>
-    </AnimatePresence>
+        </motion.div>
+      </AnimatePresence>
+    </div>
   );
 }

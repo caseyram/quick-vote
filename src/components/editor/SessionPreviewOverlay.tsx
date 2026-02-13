@@ -22,7 +22,9 @@ export function SessionPreviewOverlay({
   startIndex,
 }: SessionPreviewOverlayProps) {
   const items = useTemplateEditorStore((s) => s.items);
+  const backgroundColor = useTemplateEditorStore((s) => s.backgroundColor);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [direction, setDirection] = useState<'forward' | 'backward' | null>(null);
 
   // Flatten items into individual steps (each question is its own step)
   const steps = useMemo(() => {
@@ -72,12 +74,14 @@ export function SessionPreviewOverlay({
 
   const handleNext = () => {
     if (currentStepIndex < steps.length - 1) {
+      setDirection('forward');
       setCurrentStepIndex(currentStepIndex + 1);
     }
   };
 
   const handlePrev = () => {
     if (currentStepIndex > 0) {
+      setDirection('backward');
       setCurrentStepIndex(currentStepIndex - 1);
     }
   };
@@ -172,7 +176,11 @@ export function SessionPreviewOverlay({
                   Projection View
                 </div>
                 <div className="bg-white rounded-lg border border-gray-200 flex-1 overflow-hidden">
-                  <PreviewProjection step={currentStep} />
+                  <PreviewProjection
+                    step={currentStep}
+                    direction={direction}
+                    backgroundColor={backgroundColor ?? '#1a1a2e'}
+                  />
                 </div>
               </div>
 
