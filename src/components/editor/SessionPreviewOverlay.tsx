@@ -1,9 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTemplateEditorStore } from '../../stores/template-editor-store';
+import type { EditorItem, EditorQuestion } from '../../stores/template-editor-store';
 import { PreviewProjection } from './PreviewProjection';
 import { PreviewControls } from './PreviewControls';
 import { PreviewParticipant } from './PreviewParticipant';
+
+export type PreviewStep =
+  | { type: 'slide'; itemIndex: number; item: EditorItem }
+  | { type: 'question'; itemIndex: number; questionIndex: number; item: EditorItem; question: EditorQuestion; totalQuestions: number };
 
 interface SessionPreviewOverlayProps {
   isOpen: boolean;
@@ -17,24 +22,63 @@ export function SessionPreviewOverlay({
   startIndex,
 }: SessionPreviewOverlayProps) {
   const items = useTemplateEditorStore((s) => s.items);
-  const [currentIndex, setCurrentIndex] = useState(startIndex);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
-  // Reset currentIndex when startIndex changes
+  // Flatten items into individual steps (each question is its own step)
+  const steps = useMemo(() => {
+    const result: PreviewStep[] = [];
+    items.forEach((item, itemIndex) => {
+      if (item.item_type === 'slide') {
+        result.push({ type: 'slide', itemIndex, item });
+      } else if (item.item_type === 'batch' && item.batch) {
+        if (item.batch.questions.length === 0) {
+          // Empty batch — still show as a step
+          result.push({ type: 'slide', itemIndex, item });
+        } else {
+          item.batch.questions.forEach((question, questionIndex) => {
+            result.push({
+              type: 'question',
+              itemIndex,
+              questionIndex,
+              item,
+              question,
+              totalQuestions: item.batch!.questions.length,
+            });
+          });
+        }
+      }
+    });
+    return result;
+  }, [items]);
+
+  // Find the step index for a given item index (used for startIndex)
+  const stepIndexForItem = useMemo(() => {
+    const map = new Map<number, number>();
+    steps.forEach((step, i) => {
+      if (!map.has(step.itemIndex)) {
+        map.set(step.itemIndex, i);
+      }
+    });
+    return map;
+  }, [steps]);
+
+  // Reset step when startIndex changes
   useEffect(() => {
-    setCurrentIndex(startIndex);
-  }, [startIndex]);
+    const target = stepIndexForItem.get(startIndex) ?? 0;
+    setCurrentStepIndex(target);
+  }, [startIndex, stepIndexForItem]);
 
-  const currentItem = items[currentIndex];
+  const currentStep = steps[currentStepIndex];
 
   const handleNext = () => {
-    if (currentIndex < items.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+    if (currentStepIndex < steps.length - 1) {
+      setCurrentStepIndex(currentStepIndex + 1);
     }
   };
 
   const handlePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
+    if (currentStepIndex > 0) {
+      setCurrentStepIndex(currentStepIndex - 1);
     }
   };
 
@@ -43,7 +87,6 @@ export function SessionPreviewOverlay({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip if typing in input/textarea/select
       const target = e.target as HTMLElement;
       if (
         target.tagName === 'INPUT' ||
@@ -53,7 +96,6 @@ export function SessionPreviewOverlay({
         return;
       }
 
-      // Skip repeated keydown events
       if (e.repeat) return;
 
       switch (e.key) {
@@ -76,7 +118,7 @@ export function SessionPreviewOverlay({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, currentIndex, items.length, onClose]);
+  }, [isOpen, currentStepIndex, steps.length, onClose]);
 
   return (
     <AnimatePresence>
@@ -91,9 +133,9 @@ export function SessionPreviewOverlay({
           {/* Header bar */}
           <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center justify-between">
             <div className="text-lg font-semibold text-gray-800">Session Preview</div>
-            {items.length > 0 && (
+            {steps.length > 0 && (
               <div className="text-sm text-gray-600">
-                {currentIndex + 1} of {items.length}
+                {currentStepIndex + 1} of {steps.length}
               </div>
             )}
             <button
@@ -118,7 +160,7 @@ export function SessionPreviewOverlay({
           </div>
 
           {/* Three-panel layout */}
-          {items.length === 0 ? (
+          {steps.length === 0 ? (
             <div className="flex-1 flex items-center justify-center text-gray-400 text-lg">
               No items to preview
             </div>
@@ -130,7 +172,7 @@ export function SessionPreviewOverlay({
                   Projection View
                 </div>
                 <div className="bg-white rounded-lg border border-gray-200 flex-1 overflow-hidden">
-                  <PreviewProjection item={currentItem} />
+                  <PreviewProjection step={currentStep} />
                 </div>
               </div>
 
@@ -141,11 +183,11 @@ export function SessionPreviewOverlay({
                 </div>
                 <div className="bg-white rounded-lg border border-gray-200 flex-1 overflow-hidden">
                   <PreviewControls
-                    items={items}
-                    currentIndex={currentIndex}
+                    steps={steps}
+                    currentStepIndex={currentStepIndex}
                     onNext={handleNext}
                     onPrev={handlePrev}
-                    onGoTo={(index) => setCurrentIndex(index)}
+                    onGoTo={(index) => setCurrentStepIndex(index)}
                   />
                 </div>
               </div>
@@ -156,7 +198,7 @@ export function SessionPreviewOverlay({
                   Participant View
                 </div>
                 <div className="bg-white rounded-lg border border-gray-200 flex-1 overflow-hidden">
-                  <PreviewParticipant item={currentItem} />
+                  <PreviewParticipant step={currentStep} />
                 </div>
               </div>
             </div>

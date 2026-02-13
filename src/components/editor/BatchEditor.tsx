@@ -33,6 +33,7 @@ export function BatchEditor({ item }: BatchEditorProps) {
   const [collapseSignal, setCollapseSignal] = useState(0);
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [batchTemplateId, setBatchTemplateId] = useState('');
+  const [newQuestionId, setNewQuestionId] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch response templates on mount
@@ -106,8 +107,9 @@ export function BatchEditor({ item }: BatchEditorProps) {
   };
 
   const handleAddQuestion = () => {
+    const id = nanoid();
     const newQuestion: EditorQuestion = {
-      id: nanoid(),
+      id,
       text: '',
       type: 'agree_disagree',
       options: null,
@@ -115,6 +117,7 @@ export function BatchEditor({ item }: BatchEditorProps) {
       template_id: null,
     };
 
+    setNewQuestionId(id);
     updateItem(item.id, {
       batch: {
         ...item.batch!,
@@ -269,6 +272,7 @@ export function BatchEditor({ item }: BatchEditorProps) {
                 onDelete={() => handleDeleteQuestion(question.id)}
                 collapseSignal={collapseSignal}
                 responseTemplates={responseTemplates}
+                initialExpanded={question.id === newQuestionId}
               />
             ))}
           </SortableContext>

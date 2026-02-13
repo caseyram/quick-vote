@@ -10,10 +10,11 @@ interface QuestionRowProps {
   onDelete: () => void;
   collapseSignal: number;
   responseTemplates: ResponseTemplate[];
+  initialExpanded?: boolean;
 }
 
-export function QuestionRow({ question, onUpdate, onDelete, collapseSignal, responseTemplates }: QuestionRowProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function QuestionRow({ question, onUpdate, onDelete, collapseSignal, responseTemplates, initialExpanded = false }: QuestionRowProps) {
+  const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const {

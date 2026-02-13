@@ -1,23 +1,23 @@
-import type { EditorItem } from '../../stores/template-editor-store';
+import type { PreviewStep } from './SessionPreviewOverlay';
 import { MOCK_PARTICIPANT_COUNT } from './preview-mock-data';
 
 interface PreviewControlsProps {
-  items: EditorItem[];
-  currentIndex: number;
+  steps: PreviewStep[];
+  currentStepIndex: number;
   onNext: () => void;
   onPrev: () => void;
   onGoTo: (index: number) => void;
 }
 
 export function PreviewControls({
-  items,
-  currentIndex,
+  steps,
+  currentStepIndex,
   onNext,
   onPrev,
   onGoTo,
 }: PreviewControlsProps) {
-  const isFirst = currentIndex === 0;
-  const isLast = currentIndex === items.length - 1;
+  const isFirst = currentStepIndex === 0;
+  const isLast = currentStepIndex === steps.length - 1;
 
   return (
     <div className="h-full flex flex-col">
@@ -27,7 +27,7 @@ export function PreviewControls({
           onClick={onPrev}
           disabled={isFirst}
           className="bg-indigo-600 hover:bg-indigo-500 text-white rounded px-3 py-1.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title="Previous item (Arrow Left/Up)"
+          title="Previous (Arrow Left/Up)"
         >
           <svg
             className="w-4 h-4"
@@ -45,14 +45,14 @@ export function PreviewControls({
         </button>
 
         <div className="text-sm text-gray-600 font-medium">
-          Item {currentIndex + 1} of {items.length}
+          {currentStepIndex + 1} of {steps.length}
         </div>
 
         <button
           onClick={onNext}
           disabled={isLast}
           className="bg-indigo-600 hover:bg-indigo-500 text-white rounded px-3 py-1.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title="Next item (Arrow Right/Down)"
+          title="Next (Arrow Right/Down)"
         >
           <svg
             className="w-4 h-4"
@@ -72,96 +72,116 @@ export function PreviewControls({
 
       {/* Sequence list */}
       <div className="flex-1 overflow-y-auto">
-        {items.map((item, index) => {
-          const isActive = index === currentIndex;
-          const itemName =
-            item.item_type === 'batch' && item.batch
-              ? item.batch.name
-              : item.item_type === 'slide' && item.slide
-                ? item.slide.caption
-                  ? `Slide: ${item.slide.caption.slice(0, 30)}${item.slide.caption.length > 30 ? '...' : ''}`
-                  : 'Slide'
-                : 'Unknown';
+        {steps.map((step, index) => {
+          const isActive = index === currentStepIndex;
+
+          // Determine display info based on step type
+          let label: string;
+          let sublabel: string;
+          let icon: 'slide' | 'question';
+          let isNested = false;
+
+          if (step.type === 'slide') {
+            if (step.item.item_type === 'slide' && step.item.slide) {
+              label = step.item.slide.caption
+                ? `Slide: ${step.item.slide.caption.slice(0, 25)}${step.item.slide.caption.length > 25 ? '...' : ''}`
+                : 'Slide';
+              sublabel = 'Content Slide';
+            } else {
+              // Empty batch rendered as slide step
+              label = step.item.batch?.name || 'Empty batch';
+              sublabel = 'No questions';
+            }
+            icon = 'slide';
+          } else {
+            label = step.question.text
+              ? step.question.text.slice(0, 40) + (step.question.text.length > 40 ? '...' : '')
+              : 'Untitled question';
+            sublabel = `Q${step.questionIndex + 1}/${step.totalQuestions} · ${step.question.type === 'agree_disagree' ? 'A/D' : 'MC'}`;
+            icon = 'question';
+            isNested = true;
+          }
+
+          // Show batch header before the first question in a batch
+          const showBatchHeader = step.type === 'question' && step.questionIndex === 0;
+          const batchName = step.type === 'question' ? step.item.batch?.name : null;
 
           return (
-            <button
-              key={item.id}
-              onClick={() => onGoTo(index)}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-left border-l-4 transition-colors ${
-                isActive
-                  ? 'bg-indigo-50 border-indigo-500'
-                  : 'border-transparent hover:bg-gray-50'
-              }`}
-            >
-              {/* Position number */}
-              <div
-                className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
+            <div key={index}>
+              {showBatchHeader && (
+                <div className="px-4 pt-3 pb-1">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    {batchName}
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={() => onGoTo(index)}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-left border-l-4 transition-colors ${
+                  isNested ? 'pl-8' : ''
+                } ${
                   isActive
-                    ? 'bg-indigo-500 text-white'
-                    : 'bg-gray-200 text-gray-600'
+                    ? 'bg-indigo-50 border-indigo-500'
+                    : 'border-transparent hover:bg-gray-50'
                 }`}
               >
-                {index + 1}
-              </div>
-
-              {/* Icon */}
-              <div className="flex-shrink-0">
-                {item.item_type === 'slide' ? (
-                  <svg
-                    className={`w-5 h-5 ${isActive ? 'text-indigo-600' : 'text-gray-400'}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                ) : (
-                  <svg
-                    className={`w-5 h-5 ${isActive ? 'text-indigo-600' : 'text-gray-400'}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-                    />
-                  </svg>
-                )}
-              </div>
-
-              {/* Item name and type */}
-              <div className="flex-1 min-w-0">
+                {/* Position number */}
                 <div
-                  className={`font-medium truncate ${isActive ? 'text-gray-900' : 'text-gray-700'}`}
+                  className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${
+                    isActive
+                      ? 'bg-indigo-500 text-white'
+                      : 'bg-gray-200 text-gray-600'
+                  }`}
                 >
-                  {itemName}
+                  {index + 1}
                 </div>
-                <div className="text-xs text-gray-500 mt-0.5">
-                  {item.item_type === 'batch' && item.batch
-                    ? `${item.batch.questions.length} question${item.batch.questions.length !== 1 ? 's' : ''}`
-                    : 'Content Slide'}
-                </div>
-              </div>
 
-              {/* Type badge */}
-              <div
-                className={`flex-shrink-0 px-2 py-0.5 rounded text-xs font-medium ${
-                  item.item_type === 'batch'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-purple-100 text-purple-700'
-                }`}
-              >
-                {item.item_type === 'batch' ? 'Batch' : 'Slide'}
-              </div>
-            </button>
+                {/* Icon */}
+                <div className="flex-shrink-0">
+                  {icon === 'slide' ? (
+                    <svg
+                      className={`w-4 h-4 ${isActive ? 'text-indigo-600' : 'text-gray-400'}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className={`w-4 h-4 ${isActive ? 'text-indigo-600' : 'text-gray-400'}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  )}
+                </div>
+
+                {/* Label and sublabel */}
+                <div className="flex-1 min-w-0">
+                  <div
+                    className={`text-sm font-medium truncate ${isActive ? 'text-gray-900' : 'text-gray-700'}`}
+                  >
+                    {label}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {sublabel}
+                  </div>
+                </div>
+              </button>
+            </div>
           );
         })}
       </div>
