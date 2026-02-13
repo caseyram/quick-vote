@@ -100,7 +100,7 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
       id: nanoid(),
       item_type: 'batch',
       batch: {
-        name: `Batch ${batchCount + 1}`,
+        name: `Question Set ${batchCount + 1}`,
         questions: [],
         timer_duration: null,
         template_id: null,
@@ -260,7 +260,7 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
           onClick={handleAddBatch}
           className="px-3 py-1.5 text-sm font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded transition-colors"
         >
-          + Add Batch
+          + Question Set
         </button>
         <button
           onClick={handleAddSlide}

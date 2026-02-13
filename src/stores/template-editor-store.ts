@@ -206,7 +206,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
         id: itemId,
         item_type: 'batch' as const,
         batch: {
-          name: 'Untitled Batch',
+          name: 'Untitled Question Set',
           questions: [],
           timer_duration: null,
           template_id: null,
@@ -262,7 +262,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
         item_type: 'batch' as const,
         position: index,
         batch: {
-          name: 'Untitled Batch',
+          name: 'Untitled Question Set',
           timer_duration: null,
           template_id: null,
           questions: [],

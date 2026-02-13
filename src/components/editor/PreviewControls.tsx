@@ -88,8 +88,8 @@ export function PreviewControls({
                 : 'Slide';
               sublabel = 'Content Slide';
             } else {
-              // Empty batch rendered as slide step
-              label = step.item.batch?.name || 'Empty batch';
+              // Empty question set rendered as slide step
+              label = step.item.batch?.name || 'Empty question set';
               sublabel = 'No questions';
             }
             icon = 'slide';

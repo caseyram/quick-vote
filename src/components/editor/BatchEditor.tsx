@@ -256,7 +256,7 @@ export function BatchEditor({ item }: BatchEditorProps) {
             }}
             placeholder="Timer"
             className="w-20 bg-gray-50 border border-gray-300 rounded px-2 py-1 text-gray-900 text-sm"
-            title="Batch timer (seconds)"
+            title="Timer (seconds)"
           />
         </div>
 

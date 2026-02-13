@@ -54,7 +54,7 @@ export function EditorSidebar() {
       id: nanoid(),
       item_type: 'batch',
       batch: {
-        name: `Batch ${batchCount + 1}`,
+        name: `Question Set ${batchCount + 1}`,
         questions: [],
         timer_duration: null,
         template_id: null,
@@ -80,14 +80,14 @@ export function EditorSidebar() {
     return (
       <div className="w-72 flex-shrink-0 bg-white border-r border-gray-200 overflow-y-auto p-3 flex flex-col items-center justify-center space-y-3">
         <p className="text-gray-500 text-sm text-center">
-          Add a batch or slide to get started
+          Add a question set or slide to get started
         </p>
         <div className="flex flex-col gap-2 w-full">
           <button
             onClick={handleAddBatch}
             className="w-full px-4 py-2 text-sm font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded transition-colors"
           >
-            + Add Batch
+            + Question Set
           </button>
           <button
             onClick={handleAddSlide}
@@ -129,7 +129,7 @@ export function EditorSidebar() {
           onClick={handleAddBatch}
           className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded transition-colors"
         >
-          + Batch
+          + Q. Set
         </button>
         <button
           onClick={handleAddSlide}
