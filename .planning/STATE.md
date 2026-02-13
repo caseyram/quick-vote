@@ -12,12 +12,12 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 ## Current Position
 
 **Milestone:** v1.4 Template Authoring & Teams
-**Phase:** 23 of 26 (Preview System) — DONE
-**Plan:** 03 of 03 complete
-**Status:** Phase complete, ready for Phase 24
-**Last activity:** 2026-02-13 — Phase 23 complete (human verified)
+**Phase:** 24 of 26 (Presentation Polish)
+**Plan:** 01 of 03 complete
+**Status:** In progress
+**Last activity:** 2026-02-13 — Completed 24-01-PLAN.md (presentation foundation)
 
-Progress: [██████████████░░░░░░] 58% (v1.4: 7 of 12 plans complete)
+Progress: [███████████████░░░░░] 67% (v1.4: 8 of 12 plans complete)
 
 ## Milestone History
 
@@ -69,6 +69,9 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 See PROJECT.md for full decision log.
 
 Recent decisions:
+- [Phase 24-01]: Default background color #1a1a2e for projection views until session template loading implemented
+- [Phase 24-01]: Cubic-bezier easing [0.4, 0.0, 0.2, 1] with 400ms for smooth directional transitions
+- [Phase 24-01]: Remove AnimatePresence mode="wait" to enable overlap during transitions (no visible gaps)
 - [Phase 23-02]: Static voting mockup (no click handlers) chosen for simplicity over clickable no-ops
 - [Phase 23-02]: No device frame for participant view - just phone proportions (max-w-[320px])
 - [Phase 23-01]: Fixed deterministic mock vote distributions (no randomness) for consistent preview
@@ -97,10 +100,10 @@ Recent decisions:
 ## Session Continuity
 
 **Last session:** 2026-02-13
-**Stopped at:** Phase 23 complete (all 3 plans, human verified)
-**Next action:** Plan Phase 24 (Presentation Polish)
+**Stopped at:** Completed 24-01-PLAN.md (presentation foundation)
+**Next action:** Continue Phase 24 (Plans 02-03: background color picker, adaptive chart colors)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-13 — Phase 23 complete (Preview System, human verified)*
+*Updated: 2026-02-13 — Phase 24 Plan 01 complete (Presentation Foundation)*
