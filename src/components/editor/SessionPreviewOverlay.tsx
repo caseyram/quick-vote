@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTemplateEditorStore } from '../../stores/template-editor-store';
 import { PreviewProjection } from './PreviewProjection';
+import { PreviewControls } from './PreviewControls';
+import { PreviewParticipant } from './PreviewParticipant';
 
 interface SessionPreviewOverlayProps {
   isOpen: boolean;
@@ -137,8 +139,14 @@ export function SessionPreviewOverlay({
                 <div className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
                   Admin Controls
                 </div>
-                <div className="bg-white rounded-lg border border-gray-200 flex-1 overflow-hidden flex items-center justify-center">
-                  <span className="text-gray-400">Controls — Plan 02</span>
+                <div className="bg-white rounded-lg border border-gray-200 flex-1 overflow-hidden">
+                  <PreviewControls
+                    items={items}
+                    currentIndex={currentIndex}
+                    onNext={handleNext}
+                    onPrev={handlePrev}
+                    onGoTo={(index) => setCurrentIndex(index)}
+                  />
                 </div>
               </div>
 
@@ -147,8 +155,8 @@ export function SessionPreviewOverlay({
                 <div className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
                   Participant View
                 </div>
-                <div className="bg-white rounded-lg border border-gray-200 flex-1 overflow-hidden flex items-center justify-center">
-                  <span className="text-gray-400">Participant — Plan 02</span>
+                <div className="bg-white rounded-lg border border-gray-200 flex-1 overflow-hidden">
+                  <PreviewParticipant item={currentItem} />
                 </div>
               </div>
             </div>
