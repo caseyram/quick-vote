@@ -13,11 +13,11 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 
 **Milestone:** v1.4 Template Authoring & Teams
 **Phase:** 23 of 26 (Preview System)
-**Plan:** 01 of 03 complete
+**Plan:** 02 of 03 complete
 **Status:** In progress
-**Last activity:** 2026-02-13 — Completed Phase 23 Plan 01 (Preview Overlay Foundation)
+**Last activity:** 2026-02-13 — Completed Phase 23 Plan 02 (Admin Controls and Participant View)
 
-Progress: [█████████░░░░░░░░░░░] 42% (v1.4: 5 of 12 plans complete)
+Progress: [█████████░░░░░░░░░░░] 50% (v1.4: 6 of 12 plans complete)
 
 ## Milestone History
 
@@ -69,6 +69,8 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 See PROJECT.md for full decision log.
 
 Recent decisions:
+- [Phase 23-02]: Static voting mockup (no click handlers) chosen for simplicity over clickable no-ops
+- [Phase 23-02]: No device frame for participant view - just phone proportions (max-w-[320px])
 - [Phase 23-01]: Fixed deterministic mock vote distributions (no randomness) for consistent preview
 - [Phase 23-01]: Dropdown pattern for Preview All vs Preview from Here (better UX than two separate buttons)
 - [Phase 23-01]: Light theme for projection panel to match live presentation appearance
@@ -95,10 +97,10 @@ Recent decisions:
 ## Session Continuity
 
 **Last session:** 2026-02-13
-**Stopped at:** Completed Phase 23 Plan 01 (Preview Overlay Foundation)
-**Next action:** Execute Phase 23 Plan 02 (Admin Controls Panel)
+**Stopped at:** Completed Phase 23 Plan 02 (Admin Controls and Participant View)
+**Next action:** Execute Phase 23 Plan 03 (if exists, otherwise next phase)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-13 — Completed Phase 23 Plan 01 (Preview Overlay Foundation)*
+*Updated: 2026-02-13 — Completed Phase 23 Plan 02 (Admin Controls and Participant View)*
