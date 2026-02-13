@@ -105,67 +105,71 @@ export function QuestionRow({ question, onUpdate, onDelete, collapseSignal, resp
   // Type badge text
   const typeBadge = question.type === 'agree_disagree' ? 'A/D' : 'MC';
 
+  const headerRow = (
+    <div
+      className={`flex items-center gap-3 cursor-pointer ${isExpanded ? '' : 'hover:bg-gray-50'}`}
+      onClick={() => setIsExpanded(!isExpanded)}
+    >
+      {/* Drag handle */}
+      <button
+        {...attributes}
+        {...listeners}
+        onClick={(e) => e.stopPropagation()}
+        className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+      >
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
+        </svg>
+      </button>
+
+      {/* Type badge */}
+      <span className="px-2 py-1 text-xs font-medium bg-indigo-100 text-indigo-700 rounded">
+        {typeBadge}
+      </span>
+
+      {/* Question text (truncated) */}
+      <span className="flex-1 text-sm text-gray-900 truncate">
+        {question.text || 'New question...'}
+      </span>
+
+      {/* Delete button */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        className="text-gray-400 hover:text-red-600 transition-colors"
+        title="Delete question"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </button>
+
+      {/* Toggle chevron */}
+      <svg className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    </div>
+  );
+
   if (!isExpanded) {
-    // Collapsed state: compact row with drag handle
     return (
       <div
         ref={setNodeRef}
         style={style}
-        className="bg-white rounded-lg border border-gray-200 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-        onClick={handleExpand}
+        className="bg-white rounded-lg border border-gray-200 p-3 transition-colors"
       >
-        <div className="flex items-center gap-3">
-          {/* Drag handle - only visible when collapsed */}
-          <button
-            {...attributes}
-            {...listeners}
-            onClick={(e) => e.stopPropagation()}
-            className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
-            </svg>
-          </button>
-
-          {/* Type badge */}
-          <span className="px-2 py-1 text-xs font-medium bg-indigo-100 text-indigo-700 rounded">
-            {typeBadge}
-          </span>
-
-          {/* Question text (truncated) */}
-          <span className="flex-1 text-sm text-gray-900 truncate">
-            {question.text || 'New question...'}
-          </span>
-
-          {/* Expand chevron */}
-          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
+        {headerRow}
       </div>
     );
   }
 
-  // Expanded state: inline editing form
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-white rounded-lg border border-gray-300 p-4 space-y-4"
+      className="bg-white rounded-lg border border-gray-300 p-3 space-y-4"
       onKeyDown={handleKeyDown}
     >
-      {/* Header with collapse button */}
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-medium text-gray-700">Edit Question</h3>
-        <button
-          onClick={handleCollapse}
-          className="text-gray-400 hover:text-gray-600"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-          </svg>
-        </button>
-      </div>
+      {headerRow}
 
       {/* Question text */}
       <div>
@@ -285,15 +289,6 @@ export function QuestionRow({ question, onUpdate, onDelete, collapseSignal, resp
         />
       </div>
 
-      {/* Delete button */}
-      <div className="flex justify-end pt-2 border-t border-gray-200">
-        <button
-          onClick={onDelete}
-          className="px-3 py-1 text-sm text-red-600 hover:text-red-700"
-        >
-          Delete Question
-        </button>
-      </div>
     </div>
   );
 }
