@@ -85,13 +85,14 @@ Plans:
   3. Text and UI elements maintain readable contrast when background color changes
   4. Admin can associate slide image with batch as cover image
   5. Projection displays batch cover image while participants answer questions
-**Plans**: 4 plans
+**Plans**: 5 plans
 
 Plans:
-- [ ] 24-01-PLAN.md — Directional transitions, color infrastructure, background color, nav layout fix
-- [ ] 24-02-PLAN.md — Color picker UI in toolbar, chart contrast adaptation
-- [ ] 24-03-PLAN.md — Batch cover images (selector, projection display, blueprint persistence)
-- [ ] 24-04-PLAN.md — Human verification of all PRES requirements
+- [x] 24-01-PLAN.md — Directional transitions, color infrastructure, background color, nav layout fix
+- [x] 24-02-PLAN.md — Color picker UI in toolbar, chart contrast adaptation
+- [x] 24-03-PLAN.md — Batch cover images (selector, projection display, blueprint persistence)
+- [x] 24-04-PLAN.md — Human verification of all PRES requirements
+- [ ] 24-05-PLAN.md — Gap closure: fix nav button visibility when batch panel active (PRES-06)
 
 #### Phase 25: Team-Based Voting
 **Goal**: Multi-team voting with team-specific QR codes and filtered results
