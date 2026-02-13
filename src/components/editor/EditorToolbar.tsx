@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate } from 'react-router';
 import { nanoid } from 'nanoid';
 import imageCompression from 'browser-image-compression';
 import { useTemplateEditorStore } from '../../stores/template-editor-store';
@@ -8,12 +8,14 @@ import { useTemplateStore } from '../../stores/template-store';
 import { fetchTemplates } from '../../lib/template-api';
 import { saveSessionTemplate, overwriteSessionTemplate, loadTemplateIntoSession } from '../../lib/session-template-api';
 import { uploadSlideImage } from '../../lib/slide-api';
-import { SegmentedControl } from './SegmentedControl';
 import { supabase } from '../../lib/supabase';
 
-export function EditorToolbar() {
+interface EditorToolbarProps {
+  onOpenPreview: (startIndex: number) => void;
+}
+
+export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const {
     templateId,
     templateName,
@@ -35,6 +37,7 @@ export function EditorToolbar() {
   const [startingSession, setStartingSession] = useState(false);
   const [uploadingSlide, setUploadingSlide] = useState(false);
   const [globalTemplateId, setGlobalTemplateId] = useState('');
+  const [showPreviewDropdown, setShowPreviewDropdown] = useState(false);
 
   const responseTemplates = useTemplateStore((s) => s.templates);
 
@@ -47,9 +50,6 @@ export function EditorToolbar() {
       fetchTemplates().catch(console.error);
     }
   }, [responseTemplates.length]);
-
-  // Read mode from URL search params
-  const mode = searchParams.get('mode') || 'edit';
 
   // Sync editedName with store when templateName changes
   useEffect(() => {
@@ -172,14 +172,6 @@ export function EditorToolbar() {
       alert(err instanceof Error ? err.message : 'Failed to save template');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleModeChange = (newMode: string) => {
-    if (newMode === 'preview') {
-      setSearchParams({ mode: 'preview' });
-    } else {
-      setSearchParams({});
     }
   };
 
@@ -327,7 +319,7 @@ export function EditorToolbar() {
         )}
       </div>
 
-      {/* Right section: Start Session + Save Template + Edit/Preview toggle */}
+      {/* Right section: Start Session + Save Template + Preview */}
       <div className="flex items-center gap-3">
         <button
           onClick={handleStartSession}
@@ -372,15 +364,54 @@ export function EditorToolbar() {
           )}
         </button>
 
-        {/* Edit/Preview toggle */}
-        <SegmentedControl
-          options={[
-            { value: 'edit', label: 'Edit' },
-            { value: 'preview', label: 'Preview' },
-          ]}
-          value={mode}
-          onChange={handleModeChange}
-        />
+        {/* Preview button with dropdown */}
+        <div className="relative">
+          <div className="flex items-center">
+            <button
+              onClick={() => onOpenPreview(0)}
+              disabled={items.length === 0}
+              className="px-3 py-1.5 text-sm font-medium border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-l transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Preview
+            </button>
+            <button
+              onClick={() => setShowPreviewDropdown(!showPreviewDropdown)}
+              onBlur={() => setTimeout(() => setShowPreviewDropdown(false), 200)}
+              disabled={items.length === 0}
+              className="px-2 py-1.5 text-sm border-l-0 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-r transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+
+          {showPreviewDropdown && (
+            <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded shadow-lg z-10">
+              <button
+                onClick={() => {
+                  onOpenPreview(0);
+                  setShowPreviewDropdown(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Preview All
+              </button>
+              <button
+                onClick={() => {
+                  const startIdx = selectedItemId
+                    ? items.findIndex((i) => i.id === selectedItemId)
+                    : 0;
+                  onOpenPreview(startIdx >= 0 ? startIdx : 0);
+                  setShowPreviewDropdown(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Preview from Here
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
