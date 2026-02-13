@@ -56,6 +56,7 @@ export function EditorSidebar() {
       batch: {
         name: `Batch ${batchCount + 1}`,
         questions: [],
+        timer_duration: null,
       },
     };
     addItem(newBatch, null);

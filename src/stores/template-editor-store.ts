@@ -183,7 +183,6 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
               text: q.text,
               type: q.type,
               options: q.options,
-              anonymous: q.anonymous,
               timer_duration: null, // Not in blueprint yet
               template_id: q.template_id,
             })),
@@ -237,7 +236,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
               text: q.text,
               type: q.type,
               options: q.options,
-              anonymous: q.anonymous,
+              anonymous: true,
               position: qIndex,
               template_id: q.template_id,
             })),
