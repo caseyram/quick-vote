@@ -32,9 +32,10 @@ export function QuestionRow({ question, onUpdate, onDelete, collapseSignal, resp
     opacity: isDragging ? 0.5 : 1,
   };
 
-  // Auto-collapse when collapseSignal changes
+  // Auto-collapse when collapseSignal changes (skip initial mount)
+  const mountedSignal = useRef(collapseSignal);
   useEffect(() => {
-    if (collapseSignal > 0) {
+    if (collapseSignal > 0 && collapseSignal !== mountedSignal.current) {
       setIsExpanded(false);
     }
   }, [collapseSignal]);
