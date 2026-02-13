@@ -53,11 +53,8 @@ export function BatchEditor({ item }: BatchEditorProps) {
 
   const questions = item.batch.questions;
 
-  // Derive shared template: if all questions use the same template, show it as active
-  const sharedTemplateId = questions.length > 0 && questions[0].template_id &&
-    questions.every((q) => q.template_id === questions[0].template_id)
-    ? questions[0].template_id
-    : '';
+  // Use batch-level template_id as the source of truth for the selector
+  const batchTemplateId = item.batch.template_id ?? '';
 
   const handleApplyTemplate = (templateId: string | null) => {
     if (!templateId) {
@@ -67,7 +64,7 @@ export function BatchEditor({ item }: BatchEditorProps) {
         template_id: null,
       }));
       updateItem(item.id, {
-        batch: { ...item.batch!, questions: updatedQuestions },
+        batch: { ...item.batch!, template_id: null, questions: updatedQuestions },
       });
     } else {
       const template = responseTemplates.find((t) => t.id === templateId);
@@ -79,7 +76,7 @@ export function BatchEditor({ item }: BatchEditorProps) {
         options: [...template.options],
       }));
       updateItem(item.id, {
-        batch: { ...item.batch!, questions: updatedQuestions },
+        batch: { ...item.batch!, template_id: templateId, questions: updatedQuestions },
       });
     }
   };
@@ -138,20 +135,17 @@ export function BatchEditor({ item }: BatchEditorProps) {
   const handleAddQuestion = () => {
     const id = nanoid();
 
-    // Inherit template from existing questions if they all share one
+    // Inherit template from batch-level template_id
     let type: EditorQuestion['type'] = 'agree_disagree';
     let options: string[] | null = null;
     let templateId: string | null = null;
 
-    if (questions.length > 0) {
-      const sharedTemplateId = questions[0].template_id;
-      if (sharedTemplateId && questions.every((q) => q.template_id === sharedTemplateId)) {
-        const template = responseTemplates.find((t) => t.id === sharedTemplateId);
-        if (template) {
-          templateId = sharedTemplateId;
-          type = 'multiple_choice';
-          options = [...template.options];
-        }
+    if (item.batch?.template_id) {
+      const template = responseTemplates.find((t) => t.id === item.batch!.template_id);
+      if (template) {
+        templateId = item.batch!.template_id;
+        type = 'multiple_choice';
+        options = [...template.options];
       }
     }
 
@@ -271,7 +265,7 @@ export function BatchEditor({ item }: BatchEditorProps) {
           <div className="flex items-center gap-1.5 flex-shrink-0 border-l border-gray-200 pl-3">
             <span className="text-xs text-gray-500">Responses</span>
             <select
-              value={sharedTemplateId}
+              value={batchTemplateId}
               onChange={(e) => handleApplyTemplate(e.target.value || null)}
               className="bg-gray-50 border border-gray-300 rounded px-2 py-1 text-gray-900 text-sm max-w-[160px]"
             >

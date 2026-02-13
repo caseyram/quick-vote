@@ -18,6 +18,7 @@ export function EditorMainArea() {
         name: `Batch ${batchCount + 1}`,
         questions: [],
         timer_duration: null,
+        template_id: null,
       },
     };
     addItem(newBatch, null);

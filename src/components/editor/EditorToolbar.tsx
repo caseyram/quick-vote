@@ -103,6 +103,7 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
         name: `Batch ${batchCount + 1}`,
         questions: [],
         timer_duration: null,
+        template_id: null,
       },
     };
     addItem(newBatch, selectedItemId);
@@ -278,13 +279,11 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
 
         {/* Global response template */}
         {responseTemplates.length > 0 && (() => {
-          // Derive shared template across all questions in all batches
-          const allQuestions = items
-            .filter((itm) => itm.item_type === 'batch' && itm.batch)
-            .flatMap((itm) => itm.batch!.questions);
-          const globalShared = allQuestions.length > 0 && allQuestions[0].template_id &&
-            allQuestions.every((q) => q.template_id === allQuestions[0].template_id)
-            ? allQuestions[0].template_id
+          // Derive shared template across all batches' batch-level template_id
+          const batches = items.filter((itm) => itm.item_type === 'batch' && itm.batch);
+          const globalShared = batches.length > 0 && batches[0].batch!.template_id &&
+            batches.every((itm) => itm.batch!.template_id === batches[0].batch!.template_id)
+            ? batches[0].batch!.template_id
             : '';
 
           return (
@@ -306,7 +305,7 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
                           : {}),
                       }));
                       updateItem(itm.id, {
-                        batch: { ...itm.batch, questions: updatedQuestions },
+                        batch: { ...itm.batch, template_id: tid, questions: updatedQuestions },
                       });
                     }
                   });

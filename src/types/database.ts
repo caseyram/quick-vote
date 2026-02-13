@@ -94,6 +94,7 @@ export interface SessionBlueprintItem {
   batch?: {
     name: string;
     timer_duration?: number | null;
+    template_id?: string | null;
     questions: QuestionBlueprint[];
   };
   slide?: {
