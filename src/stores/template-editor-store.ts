@@ -19,6 +19,7 @@ export interface EditorItem {
     questions: EditorQuestion[];
     timer_duration: number | null;
     template_id: string | null;
+    cover_image_path: string | null;
   };
   slide?: {
     image_path: string;
@@ -199,6 +200,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
             name: blueprintItem.batch.name,
             timer_duration: blueprintItem.batch.timer_duration || null,
             template_id: blueprintItem.batch.template_id ?? null,
+            cover_image_path: blueprintItem.batch.cover_image_path ?? null,
             questions: blueprintItem.batch.questions.map((q) => ({
               id: nanoid(),
               text: q.text,
@@ -229,6 +231,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
           questions: [],
           timer_duration: null,
           template_id: null,
+          cover_image_path: null,
         },
       };
     });
@@ -257,6 +260,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
             name: item.batch.name,
             timer_duration: item.batch.timer_duration || null,
             template_id: item.batch.template_id ?? null,
+            cover_image_path: item.batch.cover_image_path ?? null,
             questions: item.batch.questions.map((q, qIndex) => ({
               text: q.text,
               type: q.type,
@@ -286,6 +290,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
           name: 'Untitled Question Set',
           timer_duration: null,
           template_id: null,
+          cover_image_path: null,
           questions: [],
         },
       };

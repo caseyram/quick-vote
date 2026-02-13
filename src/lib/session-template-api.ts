@@ -170,6 +170,7 @@ export function serializeSession(
         position: item.position,
         batch: {
           name: batch?.name || 'Untitled Batch',
+          cover_image_path: batch?.cover_image_path ?? null,
           questions: batchQuestions.map((q) => ({
             text: q.text,
             type: q.type,
@@ -227,6 +228,7 @@ export async function loadTemplateIntoSession(
           name: item.batch.name,
           position: item.position,
           status: 'pending',
+          cover_image_path: item.batch.cover_image_path ?? null,
         })
         .select()
         .single();

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { nanoid } from 'nanoid';
 import imageCompression from 'browser-image-compression';
+import { HexColorPicker, HexColorInput } from 'react-colorful';
 import { useTemplateEditorStore } from '../../stores/template-editor-store';
 import type { EditorItem } from '../../stores/template-editor-store';
 import { useTemplateStore } from '../../stores/template-store';
@@ -20,12 +21,14 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
     templateId,
     templateName,
     globalTemplateId,
+    backgroundColor,
     items,
     selectedItemId,
     isDirty,
     saving,
     setGlobalTemplateId,
     setTemplateName,
+    setBackgroundColor,
     addItem,
     updateItem,
     setSaving,
@@ -39,11 +42,13 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
   const [startingSession, setStartingSession] = useState(false);
   const [uploadingSlide, setUploadingSlide] = useState(false);
   const [showPreviewDropdown, setShowPreviewDropdown] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
 
   const responseTemplates = useTemplateStore((s) => s.templates);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const slideFileInputRef = useRef<HTMLInputElement>(null);
+  const colorPickerRef = useRef<HTMLDivElement>(null);
 
   // Fetch response templates on mount
   useEffect(() => {
@@ -64,6 +69,19 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
       nameInputRef.current.select();
     }
   }, [isEditingName]);
+
+  // Click-outside detection for color picker
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(event.target as Node)) {
+        setShowColorPicker(false);
+      }
+    }
+    if (showColorPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showColorPicker]);
 
   const handleNameClick = () => {
     setIsEditingName(true);
@@ -106,6 +124,7 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
         questions: [],
         timer_duration: null,
         template_id: null,
+        cover_image_path: null,
       },
     };
     addItem(newBatch, selectedItemId);

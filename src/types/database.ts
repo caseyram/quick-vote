@@ -9,6 +9,7 @@ export interface Batch {
   name: string;
   position: number;
   status: BatchStatus;
+  cover_image_path: string | null;
   created_at: string;
 }
 
@@ -97,6 +98,7 @@ export interface SessionBlueprintItem {
     name: string;
     timer_duration?: number | null;
     template_id?: string | null;
+    cover_image_path?: string | null;
     questions: QuestionBlueprint[];
   };
   slide?: {
