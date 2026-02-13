@@ -53,34 +53,6 @@ export function BatchEditor({ item }: BatchEditorProps) {
 
   const questions = item.batch.questions;
 
-  // Use batch-level template_id as the source of truth for the selector
-  const batchTemplateId = item.batch.template_id ?? '';
-
-  const handleApplyTemplate = (templateId: string | null) => {
-    if (!templateId) {
-      // Clear template — keep current type and options per question
-      const updatedQuestions = questions.map((q) => ({
-        ...q,
-        template_id: null,
-      }));
-      updateItem(item.id, {
-        batch: { ...item.batch!, template_id: null, questions: updatedQuestions },
-      });
-    } else {
-      const template = responseTemplates.find((t) => t.id === templateId);
-      if (!template) return;
-      const updatedQuestions = questions.map((q) => ({
-        ...q,
-        template_id: templateId,
-        type: 'multiple_choice' as const,
-        options: [...template.options],
-      }));
-      updateItem(item.id, {
-        batch: { ...item.batch!, template_id: templateId, questions: updatedQuestions },
-      });
-    }
-  };
-
   const handleDragStart = (event: DragStartEvent) => {
     setActiveQuestionId(event.active.id as string);
     // Auto-collapse all expanded questions to prevent glitchy drag overlays
@@ -260,22 +232,6 @@ export function BatchEditor({ item }: BatchEditorProps) {
           />
         </div>
 
-        {/* Response template selector */}
-        {responseTemplates.length > 0 && (
-          <div className="flex items-center gap-1.5 flex-shrink-0 border-l border-gray-200 pl-3">
-            <span className="text-xs text-gray-500">Responses</span>
-            <select
-              value={batchTemplateId}
-              onChange={(e) => handleApplyTemplate(e.target.value || null)}
-              className="bg-gray-50 border border-gray-300 rounded px-2 py-1 text-gray-900 text-sm max-w-[160px]"
-            >
-              <option value="">None (custom)</option>
-              {responseTemplates.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
 
       {/* Question list */}
