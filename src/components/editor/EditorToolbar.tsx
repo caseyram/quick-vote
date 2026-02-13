@@ -333,6 +333,32 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
             </select>
           </>
         )}
+
+        {/* Background color */}
+        <div className="w-px h-6 bg-gray-300" />
+        <span className="text-xs text-gray-500">Background</span>
+        <div className="relative" ref={colorPickerRef}>
+          <button
+            onClick={() => setShowColorPicker(!showColorPicker)}
+            className="w-8 h-8 rounded border-2 border-gray-300 shadow-sm cursor-pointer"
+            style={{ backgroundColor: backgroundColor || '#1a1a2e' }}
+            title="Projection background color"
+          />
+          {showColorPicker && (
+            <div className="absolute top-10 left-0 z-50 bg-white p-3 rounded-lg shadow-xl border border-gray-200">
+              <HexColorPicker
+                color={backgroundColor || '#1a1a2e'}
+                onChange={setBackgroundColor}
+              />
+              <HexColorInput
+                color={backgroundColor || '#1a1a2e'}
+                onChange={setBackgroundColor}
+                prefixed
+                className="w-full mt-2 px-2 py-1 border border-gray-300 rounded text-sm font-mono text-gray-900"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Right section: Start Session + Save Template + Preview */}
