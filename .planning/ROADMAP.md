@@ -42,7 +42,7 @@ See `.planning/milestones/` for archived details.
 
 **Milestone Goal:** Transform session creation into iterative authoring workflow with template-first editing, full preview, team-based voting, and presentation polish.
 
-#### Phase 22: Template Foundation & Authoring
+#### Phase 22: Template Foundation & Authoring (DONE)
 **Goal**: Admin can build sessions in dedicated template editor with inline editing
 **Depends on**: Phase 21
 **Requirements**: AUTH-01, AUTH-02, AUTH-06, AUTH-07, AUTH-08, AUTH-09
@@ -55,10 +55,10 @@ See `.planning/milestones/` for archived details.
 **Plans**: 4 plans
 
 Plans:
-- [ ] 22-01-PLAN.md — Editor shell, store, toolbar, sidebar with drag-reorder, and save
-- [ ] 22-02-PLAN.md — Inline batch editing with collapsed/expanded question rows and timer input
-- [ ] 22-03-PLAN.md — Edit/preview toggle, preview mode, slide lightbox, and quick session flow
-- [ ] 22-04-PLAN.md — Human verification of all AUTH requirements
+- [x] 22-01-PLAN.md — Editor shell, store, toolbar, sidebar with drag-reorder, and save
+- [x] 22-02-PLAN.md — Inline batch editing with collapsed/expanded question rows and timer input
+- [x] 22-03-PLAN.md — Edit/preview toggle, preview mode, slide lightbox, and quick session flow
+- [x] 22-04-PLAN.md — Human verification of all AUTH requirements
 
 #### Phase 23: Preview System
 **Goal**: Admin can preview projection, control, and participant views before going live
@@ -132,7 +132,7 @@ Phases execute in numeric order: 22 → 23 → 24 → 25 → 26
 | 6-10+09.1 | v1.1 | 18/18 | Shipped | 2026-01-29 |
 | 11-15 | v1.2 | 11/11 | Shipped | 2026-02-10 |
 | 16-21 | v1.3 | 12/12 | Shipped | 2026-02-11 |
-| 22. Template Foundation & Authoring | v1.4 | 0/4 | Planned | - |
+| 22. Template Foundation & Authoring | v1.4 | 4/4 | Done | 2026-02-12 |
 | 23. Preview System | v1.4 | 0/? | Not started | - |
 | 24. Presentation Polish | v1.4 | 0/? | Not started | - |
 | 25. Team-Based Voting | v1.4 | 0/? | Not started | - |
@@ -140,4 +140,4 @@ Phases execute in numeric order: 22 → 23 → 24 → 25 → 26
 
 ---
 *Created: 2026-01-27*
-*Updated: 2026-02-12 - Phase 22 planned (4 plans, 3 waves)*
+*Updated: 2026-02-12 - Phase 22 complete (4/4 plans, verified)*

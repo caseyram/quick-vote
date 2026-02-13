@@ -7,17 +7,17 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 **Core Value:** Participants can instantly vote on questions in a way that feels immersive and tactile -- not like filling out a form.
 **Stack:** Vite + React (TypeScript), Supabase (database + realtime + storage), Vercel deployment
 **Repo:** C:/code/quick-vote
-**Current focus:** v1.4 Template Authoring & Teams - Phase 22 (Template Foundation & Authoring)
+**Current focus:** v1.4 Template Authoring & Teams - Phase 23 (Preview System)
 
 ## Current Position
 
 **Milestone:** v1.4 Template Authoring & Teams
-**Phase:** 22 of 26 (Template Foundation & Authoring)
-**Plan:** 03 of 04 complete
-**Status:** In progress
-**Last activity:** 2026-02-12 — Completed 22-03 (edit/preview toggle, lightbox, quick session)
+**Phase:** 23 of 26 (Preview System)
+**Plan:** 00 of ?? complete
+**Status:** Not started
+**Last activity:** 2026-02-12 — Completed Phase 22 (Template Foundation & Authoring, 4/4 plans)
 
-Progress: [██████░░░░░░░░░░░░░] 30% (v1.4: 3 of 10-12 plans complete)
+Progress: [████████░░░░░░░░░░░] 40% (v1.4: 4 of 10-12 plans complete)
 
 ## Milestone History
 
@@ -78,6 +78,8 @@ Recent decisions:
 - (v1.3) JSONB blueprint for session templates — flexible schema, single column stores full session structure
 - [Phase 22]: Auto-collapse expanded questions on drag start to prevent glitchy overlays
 - [Phase 22]: Timer duration as number input in seconds with human-readable conversion
+- [Phase 22]: Anonymous field removed from editor UI — all votes are anonymous by default (hard-coded true in blueprint)
+- [Phase 22]: Response template selectors at 3 levels: per-question, per-batch, and global toolbar
 
 ### Known Issues
 
@@ -90,10 +92,10 @@ Recent decisions:
 ## Session Continuity
 
 **Last session:** 2026-02-12
-**Stopped at:** Completed 22-03-PLAN.md (edit/preview toggle, lightbox, quick session)
-**Next action:** Execute Plan 22-04 (template list management)
+**Stopped at:** Completed Phase 22 (all 4 plans, verified)
+**Next action:** Plan Phase 23 (Preview System)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-12 — Completed Phase 22 Plan 03*
+*Updated: 2026-02-12 — Completed Phase 22 (4/4 plans, verified)*
