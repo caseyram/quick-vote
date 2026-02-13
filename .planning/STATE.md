@@ -13,11 +13,11 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 
 **Milestone:** v1.4 Template Authoring & Teams
 **Phase:** 23 of 26 (Preview System)
-**Plan:** 00 of ?? complete
-**Status:** Not started
-**Last activity:** 2026-02-12 — Completed Phase 22 (Template Foundation & Authoring, 4/4 plans)
+**Plan:** 01 of 03 complete
+**Status:** In progress
+**Last activity:** 2026-02-13 — Completed Phase 23 Plan 01 (Preview Overlay Foundation)
 
-Progress: [████████░░░░░░░░░░░] 40% (v1.4: 4 of 10-12 plans complete)
+Progress: [█████████░░░░░░░░░░░] 42% (v1.4: 5 of 12 plans complete)
 
 ## Milestone History
 
@@ -58,7 +58,8 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 
 **v1.4 Target (Phases 22-26):**
 - Requirements: 25 total
-- Estimated plans: 10-12 (2-2.5/phase avg)
+- Estimated plans: 12 total
+- Completed: 5 (Phase 22: 4, Phase 23: 1)
 - Research flags: Phase 25 (team aggregation RPC), Phase 26 (multi-select DnD)
 
 ## Accumulated Context
@@ -68,7 +69,9 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 See PROJECT.md for full decision log.
 
 Recent decisions:
-- (v1.4) Use URL search params for edit/preview mode — enables deep-linking to preview mode, no additional state management needed
+- [Phase 23-01]: Fixed deterministic mock vote distributions (no randomness) for consistent preview
+- [Phase 23-01]: Dropdown pattern for Preview All vs Preview from Here (better UX than two separate buttons)
+- [Phase 23-01]: Light theme for projection panel to match live presentation appearance
 - (v1.4) Install yet-another-react-lightbox for image viewing — battle-tested library, minimal setup required
 - (v1.4) Restructure Home page with three session creation paths — Create New (template editor), Quick Session (direct), New from Template (copy)
 - (v1.4) Add Start Session button alongside Save Template — separate one-off session launch from template persistence
@@ -91,11 +94,11 @@ Recent decisions:
 
 ## Session Continuity
 
-**Last session:** 2026-02-12
-**Stopped at:** Completed Phase 22 (all 4 plans, verified)
-**Next action:** Plan Phase 23 (Preview System)
+**Last session:** 2026-02-13
+**Stopped at:** Completed Phase 23 Plan 01 (Preview Overlay Foundation)
+**Next action:** Execute Phase 23 Plan 02 (Admin Controls Panel)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-12 — Completed Phase 22 (4/4 plans, verified)*
+*Updated: 2026-02-13 — Completed Phase 23 Plan 01 (Preview Overlay Foundation)*
