@@ -1,4 +1,4 @@
-import { useState, useId } from 'react';
+import { useState, useId, useRef } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -13,13 +13,17 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { nanoid } from 'nanoid';
+import imageCompression from 'browser-image-compression';
 import { useTemplateEditorStore } from '../../stores/template-editor-store';
 import type { EditorItem } from '../../stores/template-editor-store';
+import { uploadSlideImage } from '../../lib/slide-api';
 import { SidebarSequenceItem } from './SidebarSequenceItem';
 
 export function EditorSidebar() {
   const { items, selectedItemId, reorderItems, addItem } = useTemplateEditorStore();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [uploadingSlide, setUploadingSlide] = useState(false);
+  const slideFileInputRef = useRef<HTMLInputElement>(null);
   const dndId = useId();
 
   const sensors = useSensors(
@@ -64,21 +68,56 @@ export function EditorSidebar() {
   };
 
   const handleAddSlide = () => {
-    const newSlide: EditorItem = {
-      id: nanoid(),
-      item_type: 'slide',
-      slide: {
-        image_path: '',
-        caption: null,
-      },
-    };
-    addItem(newSlide, null);
+    slideFileInputRef.current?.click();
   };
+
+  const handleSlideFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingSlide(true);
+    try {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        fileType: 'image/webp',
+        initialQuality: 0.85,
+        preserveExif: false,
+      });
+
+      const imagePath = await uploadSlideImage('templates', compressed);
+
+      const newSlide: EditorItem = {
+        id: nanoid(),
+        item_type: 'slide',
+        slide: { image_path: imagePath, caption: null },
+      };
+      addItem(newSlide, null);
+    } catch (err) {
+      console.error('Failed to upload slide image:', err);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploadingSlide(false);
+      if (slideFileInputRef.current) slideFileInputRef.current.value = '';
+    }
+  };
+
+  const slideInput = (
+    <input
+      ref={slideFileInputRef}
+      type="file"
+      accept="image/jpeg,image/png,image/webp,image/gif"
+      onChange={handleSlideFileSelect}
+      className="hidden"
+    />
+  );
 
   // Empty state
   if (items.length === 0) {
     return (
       <div className="w-72 flex-shrink-0 bg-white border-r border-gray-200 overflow-y-auto p-3 flex flex-col items-center justify-center space-y-3">
+        {slideInput}
         <p className="text-gray-500 text-sm text-center">
           Add a question set or slide to get started
         </p>
@@ -91,9 +130,10 @@ export function EditorSidebar() {
           </button>
           <button
             onClick={handleAddSlide}
-            className="w-full px-4 py-2 text-sm font-medium bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded transition-colors"
+            disabled={uploadingSlide}
+            className="w-full px-4 py-2 text-sm font-medium bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            + Add Slide
+            {uploadingSlide ? 'Uploading...' : '+ Add Slide'}
           </button>
         </div>
       </div>
@@ -102,6 +142,7 @@ export function EditorSidebar() {
 
   return (
     <div className="w-72 flex-shrink-0 bg-white border-r border-gray-200 overflow-y-auto p-3">
+      {slideInput}
       <DndContext
         id={dndId}
         sensors={sensors}
@@ -133,9 +174,10 @@ export function EditorSidebar() {
         </button>
         <button
           onClick={handleAddSlide}
-          className="flex-1 px-3 py-1.5 text-xs font-medium bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded transition-colors"
+          disabled={uploadingSlide}
+          className="flex-1 px-3 py-1.5 text-xs font-medium bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          + Slide
+          {uploadingSlide ? '...' : '+ Slide'}
         </button>
       </div>
     </div>
