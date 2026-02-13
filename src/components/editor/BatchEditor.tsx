@@ -117,6 +117,7 @@ export function BatchEditor({ item }: BatchEditorProps) {
       template_id: null,
     };
 
+    setCollapseSignal((prev) => prev + 1);
     setNewQuestionId(id);
     updateItem(item.id, {
       batch: {
