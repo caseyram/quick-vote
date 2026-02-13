@@ -290,6 +290,7 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
           return (
             <>
               <div className="w-px h-6 bg-gray-300" />
+              <span className="text-xs text-gray-500">Responses</span>
               <select
                 value={globalShared}
                 onChange={(e) => {
