@@ -68,10 +68,12 @@ Plans:
   1. Preview mode displays presenter projection view as it would appear live
   2. Preview mode displays presenter control view with navigation
   3. Preview mode displays participant voting view with mock interactions
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 23-01: TBD
+- [ ] 23-01-PLAN.md — Preview overlay shell, mock data, projection panel, toolbar entry points
+- [ ] 23-02-PLAN.md — Admin controls panel, participant view panel, full integration
+- [ ] 23-03-PLAN.md — Human verification of AUTH-03, AUTH-04, AUTH-05
 
 #### Phase 24: Presentation Polish
 **Goal**: Seamless slide transitions, branded backgrounds, and batch cover images
@@ -133,7 +135,7 @@ Phases execute in numeric order: 22 → 23 → 24 → 25 → 26
 | 11-15 | v1.2 | 11/11 | Shipped | 2026-02-10 |
 | 16-21 | v1.3 | 12/12 | Shipped | 2026-02-11 |
 | 22. Template Foundation & Authoring | v1.4 | 4/4 | Done | 2026-02-12 |
-| 23. Preview System | v1.4 | 0/? | Not started | - |
+| 23. Preview System | v1.4 | 0/3 | Not started | - |
 | 24. Presentation Polish | v1.4 | 0/? | Not started | - |
 | 25. Team-Based Voting | v1.4 | 0/? | Not started | - |
 | 26. Sequence & Results Enhancements | v1.4 | 0/? | Not started | - |
