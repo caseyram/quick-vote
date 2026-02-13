@@ -31,7 +31,6 @@ export function BatchEditor({ item }: BatchEditorProps) {
   const [editedName, setEditedName] = useState(item.batch?.name || '');
   const [collapseSignal, setCollapseSignal] = useState(0);
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
-  const [batchTemplateId, setBatchTemplateId] = useState('');
   const [newQuestionId, setNewQuestionId] = useState<string | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,6 +52,37 @@ export function BatchEditor({ item }: BatchEditorProps) {
   if (!item.batch) return null;
 
   const questions = item.batch.questions;
+
+  // Derive shared template: if all questions use the same template, show it as active
+  const sharedTemplateId = questions.length > 0 && questions[0].template_id &&
+    questions.every((q) => q.template_id === questions[0].template_id)
+    ? questions[0].template_id
+    : '';
+
+  const handleApplyTemplate = (templateId: string | null) => {
+    if (!templateId) {
+      // Clear template — keep current type and options per question
+      const updatedQuestions = questions.map((q) => ({
+        ...q,
+        template_id: null,
+      }));
+      updateItem(item.id, {
+        batch: { ...item.batch!, questions: updatedQuestions },
+      });
+    } else {
+      const template = responseTemplates.find((t) => t.id === templateId);
+      if (!template) return;
+      const updatedQuestions = questions.map((q) => ({
+        ...q,
+        template_id: templateId,
+        type: 'multiple_choice' as const,
+        options: [...template.options],
+      }));
+      updateItem(item.id, {
+        batch: { ...item.batch!, questions: updatedQuestions },
+      });
+    }
+  };
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveQuestionId(event.active.id as string);
@@ -240,35 +270,15 @@ export function BatchEditor({ item }: BatchEditorProps) {
         {responseTemplates.length > 0 && (
           <div className="flex items-center gap-1.5 flex-shrink-0 border-l border-gray-200 pl-3">
             <select
-              value={batchTemplateId}
-              onChange={(e) => setBatchTemplateId(e.target.value)}
+              value={sharedTemplateId}
+              onChange={(e) => handleApplyTemplate(e.target.value || null)}
               className="bg-gray-50 border border-gray-300 rounded px-2 py-1 text-gray-900 text-sm max-w-[160px]"
             >
-              <option value="">Apply template...</option>
+              <option value="">None (custom)</option>
               {responseTemplates.map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
-            <button
-              disabled={!batchTemplateId}
-              onClick={() => {
-                const template = responseTemplates.find((t) => t.id === batchTemplateId);
-                if (!template) return;
-                const updatedQuestions = questions.map((q) => ({
-                  ...q,
-                  template_id: batchTemplateId,
-                  type: 'multiple_choice' as const,
-                  options: [...template.options],
-                }));
-                updateItem(item.id, {
-                  batch: { ...item.batch!, questions: updatedQuestions },
-                });
-                setBatchTemplateId('');
-              }}
-              className="px-2 py-1 text-xs font-medium bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Apply
-            </button>
           </div>
         )}
       </div>
