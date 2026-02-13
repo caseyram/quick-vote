@@ -19,7 +19,6 @@ import type { EditorItem, EditorQuestion } from '../../stores/template-editor-st
 import { useTemplateStore } from '../../stores/template-store';
 import { fetchTemplates } from '../../lib/template-api';
 import { QuestionRow } from './QuestionRow';
-import { DurationInput } from '../shared/DurationInput';
 
 interface BatchEditorProps {
   item: EditorItem;
@@ -164,93 +163,96 @@ export function BatchEditor({ item }: BatchEditorProps) {
     : null;
 
   return (
-    <div className="space-y-6">
-      {/* Batch header */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            {isEditingName ? (
-              <input
-                ref={nameInputRef}
-                type="text"
-                value={editedName}
-                onChange={(e) => setEditedName(e.target.value)}
-                onBlur={handleSaveName}
-                onKeyDown={handleNameKeyDown}
-                className="text-2xl font-semibold text-gray-900 bg-gray-50 border border-gray-300 rounded px-2 py-1 flex-1"
-              />
-            ) : (
-              <h2
-                onClick={handleStartEditName}
-                className="text-2xl font-semibold text-gray-900 cursor-pointer hover:text-indigo-600"
-              >
-                {item.batch.name}
-              </h2>
-            )}
-          </div>
-          <p className="text-sm text-gray-500">
-            {questions.length} {questions.length === 1 ? 'question' : 'questions'}
-          </p>
-        </div>
-
-        {/* Response template for all questions */}
-        {responseTemplates.length > 0 && (
-          <div className="pt-4 border-t border-gray-200">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Apply Template to All Questions
-            </label>
-            <div className="flex gap-2">
-              <select
-                value={batchTemplateId}
-                onChange={(e) => setBatchTemplateId(e.target.value)}
-                className="flex-1 bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm"
-              >
-                <option value="">Select a template...</option>
-                {responseTemplates.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-              <button
-                disabled={!batchTemplateId}
-                onClick={() => {
-                  const template = responseTemplates.find((t) => t.id === batchTemplateId);
-                  if (!template) return;
-                  const updatedQuestions = questions.map((q) => ({
-                    ...q,
-                    template_id: batchTemplateId,
-                    type: 'multiple_choice' as const,
-                    options: [...template.options],
-                  }));
-                  updateItem(item.id, {
-                    batch: { ...item.batch!, questions: updatedQuestions },
-                  });
-                  setBatchTemplateId('');
-                }}
-                className="px-3 py-2 text-sm font-medium bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Apply
-              </button>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">Sets all questions in this batch to the selected response template</p>
-          </div>
+    <div className="space-y-3">
+      {/* Batch toolbar */}
+      <div className="bg-white rounded-lg border border-gray-200 px-4 py-2.5 flex items-center gap-3">
+        {/* Batch name */}
+        {isEditingName ? (
+          <input
+            ref={nameInputRef}
+            type="text"
+            value={editedName}
+            onChange={(e) => setEditedName(e.target.value)}
+            onBlur={handleSaveName}
+            onKeyDown={handleNameKeyDown}
+            className="text-lg font-semibold text-gray-900 bg-gray-50 border border-gray-300 rounded px-2 py-0.5 min-w-0"
+          />
+        ) : (
+          <h2
+            onClick={handleStartEditName}
+            className="text-lg font-semibold text-gray-900 cursor-pointer hover:text-indigo-600 truncate"
+          >
+            {item.batch.name}
+          </h2>
         )}
 
-        {/* Batch timer duration */}
-        <div className="pt-4 border-t border-gray-200">
-          <DurationInput
-            value={item.batch.timer_duration || null}
-            onChange={(value) => {
+        {/* Question count badge */}
+        <span className="flex-shrink-0 text-xs text-gray-500 bg-gray-100 rounded-full px-2 py-0.5">
+          {questions.length} {questions.length === 1 ? 'Q' : 'Qs'}
+        </span>
+
+        <div className="flex-1" />
+
+        {/* Timer */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <input
+            type="number"
+            min="0"
+            step="1"
+            value={item.batch.timer_duration || ''}
+            onChange={(e) => {
+              const val = e.target.value;
               updateItem(item.id, {
                 batch: {
                   ...item.batch!,
-                  timer_duration: value,
+                  timer_duration: val === '' || val === '0' ? null : parseInt(val) || null,
                 },
               });
             }}
-            label="Batch Timer (seconds)"
-            placeholder="No timer"
+            placeholder="Timer"
+            className="w-20 bg-gray-50 border border-gray-300 rounded px-2 py-1 text-gray-900 text-sm"
+            title="Batch timer (seconds)"
           />
         </div>
+
+        {/* Response template selector */}
+        {responseTemplates.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-shrink-0 border-l border-gray-200 pl-3">
+            <select
+              value={batchTemplateId}
+              onChange={(e) => setBatchTemplateId(e.target.value)}
+              className="bg-gray-50 border border-gray-300 rounded px-2 py-1 text-gray-900 text-sm max-w-[160px]"
+            >
+              <option value="">Apply template...</option>
+              {responseTemplates.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            <button
+              disabled={!batchTemplateId}
+              onClick={() => {
+                const template = responseTemplates.find((t) => t.id === batchTemplateId);
+                if (!template) return;
+                const updatedQuestions = questions.map((q) => ({
+                  ...q,
+                  template_id: batchTemplateId,
+                  type: 'multiple_choice' as const,
+                  options: [...template.options],
+                }));
+                updateItem(item.id, {
+                  batch: { ...item.batch!, questions: updatedQuestions },
+                });
+                setBatchTemplateId('');
+              }}
+              className="px-2 py-1 text-xs font-medium bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Apply
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Question list */}
