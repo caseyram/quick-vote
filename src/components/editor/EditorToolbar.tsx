@@ -19,10 +19,12 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
   const {
     templateId,
     templateName,
+    globalTemplateId,
     items,
     selectedItemId,
     isDirty,
     saving,
+    setGlobalTemplateId,
     setTemplateName,
     addItem,
     updateItem,
@@ -278,48 +280,40 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
         />
 
         {/* Global response template */}
-        {responseTemplates.length > 0 && (() => {
-          // Derive shared template across all batches' batch-level template_id
-          const batches = items.filter((itm) => itm.item_type === 'batch' && itm.batch);
-          const globalShared = batches.length > 0 && batches[0].batch!.template_id &&
-            batches.every((itm) => itm.batch!.template_id === batches[0].batch!.template_id)
-            ? batches[0].batch!.template_id
-            : '';
-
-          return (
-            <>
-              <div className="w-px h-6 bg-gray-300" />
-              <span className="text-xs text-gray-500">Responses</span>
-              <select
-                value={globalShared}
-                onChange={(e) => {
-                  const tid = e.target.value || null;
-                  const template = tid ? responseTemplates.find((t) => t.id === tid) : null;
-                  items.forEach((itm) => {
-                    if (itm.item_type === 'batch' && itm.batch) {
-                      const updatedQuestions = itm.batch.questions.map((q) => ({
-                        ...q,
-                        template_id: tid,
-                        ...(template
-                          ? { type: 'multiple_choice' as const, options: [...template.options] }
-                          : {}),
-                      }));
-                      updateItem(itm.id, {
-                        batch: { ...itm.batch, template_id: tid, questions: updatedQuestions },
-                      });
-                    }
-                  });
-                }}
-                className="bg-gray-50 border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-700"
-              >
-                <option value="">None (custom)</option>
-                {responseTemplates.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </>
-          );
-        })()}
+        {responseTemplates.length > 0 && (
+          <>
+            <div className="w-px h-6 bg-gray-300" />
+            <span className="text-xs text-gray-500">Responses</span>
+            <select
+              value={globalTemplateId ?? ''}
+              onChange={(e) => {
+                const tid = e.target.value || null;
+                setGlobalTemplateId(tid);
+                const template = tid ? responseTemplates.find((t) => t.id === tid) : null;
+                items.forEach((itm) => {
+                  if (itm.item_type === 'batch' && itm.batch) {
+                    const updatedQuestions = itm.batch.questions.map((q) => ({
+                      ...q,
+                      template_id: tid,
+                      ...(template
+                        ? { type: 'multiple_choice' as const, options: [...template.options] }
+                        : {}),
+                    }));
+                    updateItem(itm.id, {
+                      batch: { ...itm.batch, template_id: tid, questions: updatedQuestions },
+                    });
+                  }
+                });
+              }}
+              className="bg-gray-50 border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-700"
+            >
+              <option value="">None (custom)</option>
+              {responseTemplates.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
 
       {/* Right section: Start Session + Save Template + Preview */}

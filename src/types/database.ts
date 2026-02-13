@@ -85,6 +85,7 @@ export interface SessionTemplate {
 
 export interface SessionBlueprint {
   version: 1;
+  globalTemplateId?: string | null;
   sessionItems: SessionBlueprintItem[];
 }
 

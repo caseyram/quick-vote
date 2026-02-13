@@ -29,12 +29,14 @@ export interface EditorItem {
 interface TemplateEditorState {
   templateId: string | null;
   templateName: string;
+  globalTemplateId: string | null;
   items: EditorItem[];
   selectedItemId: string | null;
   isDirty: boolean;
   saving: boolean;
   loading: boolean;
 
+  setGlobalTemplateId: (id: string | null) => void;
   setTemplateName: (name: string) => void;
   setItems: (items: EditorItem[]) => void;
   addItem: (item: EditorItem, afterItemId: string | null) => void;
@@ -54,11 +56,15 @@ interface TemplateEditorState {
 export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) => ({
   templateId: null,
   templateName: 'Untitled Template',
+  globalTemplateId: null,
   items: [],
   selectedItemId: null,
   isDirty: false,
   saving: false,
   loading: false,
+
+  setGlobalTemplateId: (id) =>
+    set({ globalTemplateId: id, isDirty: true }),
 
   setTemplateName: (name) =>
     set({
@@ -71,21 +77,26 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
 
   addItem: (item, afterItemId) =>
     set((state) => {
+      // Auto-inherit globalTemplateId for new batch items
+      const finalItem = item.item_type === 'batch' && item.batch && state.globalTemplateId && !item.batch.template_id
+        ? { ...item, batch: { ...item.batch, template_id: state.globalTemplateId } }
+        : item;
+
       let newItems: EditorItem[];
 
       if (afterItemId === null) {
         // Add at end
-        newItems = [...state.items, item];
+        newItems = [...state.items, finalItem];
       } else {
         // Insert after specified item
         const afterIndex = state.items.findIndex((i) => i.id === afterItemId);
         if (afterIndex === -1) {
           // If item not found, add at end
-          newItems = [...state.items, item];
+          newItems = [...state.items, finalItem];
         } else {
           newItems = [
             ...state.items.slice(0, afterIndex + 1),
-            item,
+            finalItem,
             ...state.items.slice(afterIndex + 1),
           ];
         }
@@ -161,6 +172,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
     set({
       templateId: null,
       templateName: 'Untitled Template',
+      globalTemplateId: null,
       items: [],
       selectedItemId: null,
       isDirty: false,
@@ -217,6 +229,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
     set({
       templateId,
       templateName: name,
+      globalTemplateId: blueprint.globalTemplateId ?? null,
       items: editorItems,
       selectedItemId: editorItems[0]?.id ?? null,
       isDirty: false,
@@ -272,6 +285,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
 
     return {
       version: 1 as const,
+      globalTemplateId: state.globalTemplateId ?? null,
       sessionItems: blueprintItems,
     };
   },
