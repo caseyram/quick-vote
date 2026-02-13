@@ -2,15 +2,17 @@ import { useState, useRef, useEffect } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { EditorQuestion } from '../../stores/template-editor-store';
+import type { ResponseTemplate } from '../../types/database';
 
 interface QuestionRowProps {
   question: EditorQuestion;
   onUpdate: (updates: Partial<EditorQuestion>) => void;
   onDelete: () => void;
   collapseSignal: number;
+  responseTemplates: ResponseTemplate[];
 }
 
-export function QuestionRow({ question, onUpdate, onDelete, collapseSignal }: QuestionRowProps) {
+export function QuestionRow({ question, onUpdate, onDelete, collapseSignal, responseTemplates }: QuestionRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -60,8 +62,25 @@ export function QuestionRow({ question, onUpdate, onDelete, collapseSignal }: Qu
   const handleTypeChange = (type: 'agree_disagree' | 'multiple_choice') => {
     onUpdate({
       type,
-      options: type === 'multiple_choice' ? (question.options || ['Option 1', 'Option 2']) : null
+      options: type === 'multiple_choice' ? (question.options || ['Option 1', 'Option 2']) : null,
+      template_id: null, // Clear template when manually changing type
     });
+  };
+
+  const handleTemplateChange = (templateId: string | null) => {
+    if (!templateId) {
+      // Clearing template — keep current type and options
+      onUpdate({ template_id: null });
+      return;
+    }
+    const template = responseTemplates.find((t) => t.id === templateId);
+    if (template) {
+      onUpdate({
+        template_id: templateId,
+        type: 'multiple_choice',
+        options: [...template.options],
+      });
+    }
   };
 
   const handleOptionChange = (index: number, value: string) => {
@@ -161,23 +180,44 @@ export function QuestionRow({ question, onUpdate, onDelete, collapseSignal }: Qu
         />
       </div>
 
-      {/* Response type */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Response Type
-        </label>
-        <select
-          value={question.type}
-          onChange={(e) => handleTypeChange(e.target.value as 'agree_disagree' | 'multiple_choice')}
-          className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm"
-        >
-          <option value="agree_disagree">Agree/Disagree</option>
-          <option value="multiple_choice">Multiple Choice</option>
-        </select>
-      </div>
+      {/* Response template */}
+      {responseTemplates.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Response Template
+          </label>
+          <select
+            value={question.template_id ?? ''}
+            onChange={(e) => handleTemplateChange(e.target.value || null)}
+            className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm"
+          >
+            <option value="">None (custom)</option>
+            {responseTemplates.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
-      {/* Options (if multiple choice) */}
-      {question.type === 'multiple_choice' && (
+      {/* Response type (only show when no template selected) */}
+      {!question.template_id && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Response Type
+          </label>
+          <select
+            value={question.type}
+            onChange={(e) => handleTypeChange(e.target.value as 'agree_disagree' | 'multiple_choice')}
+            className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm"
+          >
+            <option value="agree_disagree">Agree/Disagree</option>
+            <option value="multiple_choice">Multiple Choice</option>
+          </select>
+        </div>
+      )}
+
+      {/* Options (if multiple choice and no template) */}
+      {question.type === 'multiple_choice' && !question.template_id && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Options
@@ -212,21 +252,23 @@ export function QuestionRow({ question, onUpdate, onDelete, collapseSignal }: Qu
         </div>
       )}
 
-      {/* Anonymous toggle */}
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          id={`anonymous-${question.id}`}
-          checked={question.anonymous}
-          onChange={(e) => onUpdate({ anonymous: e.target.checked })}
-          className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-        />
-        <label htmlFor={`anonymous-${question.id}`} className="text-sm text-gray-700">
-          Anonymous responses
-        </label>
-      </div>
+      {/* Template options preview (read-only when template selected) */}
+      {question.type === 'multiple_choice' && question.template_id && question.options && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Options <span className="text-gray-400 font-normal">(from template)</span>
+          </label>
+          <div className="space-y-1">
+            {question.options.map((option, index) => (
+              <div key={index} className="px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg">
+                {option}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-      {/* Timer override - placeholder for Task 2 */}
+      {/* Timer override */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Question Timer Override (seconds)

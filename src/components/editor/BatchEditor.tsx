@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { nanoid } from 'nanoid';
 import {
   DndContext,
@@ -6,8 +6,8 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
-  DragStartEvent,
+  type DragEndEvent,
+  type DragStartEvent,
   DragOverlay,
 } from '@dnd-kit/core';
 import {
@@ -16,6 +16,8 @@ import {
 } from '@dnd-kit/sortable';
 import { useTemplateEditorStore } from '../../stores/template-editor-store';
 import type { EditorItem, EditorQuestion } from '../../stores/template-editor-store';
+import { useTemplateStore } from '../../stores/template-store';
+import { fetchTemplates } from '../../lib/template-api';
 import { QuestionRow } from './QuestionRow';
 import { DurationInput } from '../shared/DurationInput';
 
@@ -25,11 +27,20 @@ interface BatchEditorProps {
 
 export function BatchEditor({ item }: BatchEditorProps) {
   const { updateItem } = useTemplateEditorStore();
+  const responseTemplates = useTemplateStore((s) => s.templates);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(item.batch?.name || '');
   const [collapseSignal, setCollapseSignal] = useState(0);
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
+  const [batchTemplateId, setBatchTemplateId] = useState('');
   const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch response templates on mount
+  useEffect(() => {
+    if (responseTemplates.length === 0) {
+      fetchTemplates().catch(console.error);
+    }
+  }, [responseTemplates.length]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -100,7 +111,6 @@ export function BatchEditor({ item }: BatchEditorProps) {
       text: '',
       type: 'agree_disagree',
       options: null,
-      anonymous: false,
       timer_duration: null,
       template_id: null,
     };
@@ -179,6 +189,48 @@ export function BatchEditor({ item }: BatchEditorProps) {
           </p>
         </div>
 
+        {/* Response template for all questions */}
+        {responseTemplates.length > 0 && (
+          <div className="pt-4 border-t border-gray-200">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Apply Template to All Questions
+            </label>
+            <div className="flex gap-2">
+              <select
+                value={batchTemplateId}
+                onChange={(e) => setBatchTemplateId(e.target.value)}
+                className="flex-1 bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm"
+              >
+                <option value="">Select a template...</option>
+                {responseTemplates.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+              <button
+                disabled={!batchTemplateId}
+                onClick={() => {
+                  const template = responseTemplates.find((t) => t.id === batchTemplateId);
+                  if (!template) return;
+                  const updatedQuestions = questions.map((q) => ({
+                    ...q,
+                    template_id: batchTemplateId,
+                    type: 'multiple_choice' as const,
+                    options: [...template.options],
+                  }));
+                  updateItem(item.id, {
+                    batch: { ...item.batch!, questions: updatedQuestions },
+                  });
+                  setBatchTemplateId('');
+                }}
+                className="px-3 py-2 text-sm font-medium bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Apply
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Sets all questions in this batch to the selected response template</p>
+          </div>
+        )}
+
         {/* Batch timer duration */}
         <div className="pt-4 border-t border-gray-200">
           <DurationInput
@@ -216,6 +268,7 @@ export function BatchEditor({ item }: BatchEditorProps) {
                 onUpdate={(updates) => handleUpdateQuestion(question.id, updates)}
                 onDelete={() => handleDeleteQuestion(question.id)}
                 collapseSignal={collapseSignal}
+                responseTemplates={responseTemplates}
               />
             ))}
           </SortableContext>

@@ -23,14 +23,6 @@ DECLARE
   opt_count INT;
   opt_index INT;
   inserted INT := 0;
-  names TEXT[] := ARRAY[
-    'Alice', 'Bob', 'Charlie', 'Diana', 'Ethan',
-    'Fiona', 'George', 'Hannah', 'Isaac', 'Julia',
-    'Kevin', 'Laura', 'Marcus', 'Nina', 'Oscar',
-    'Priya', 'Quinn', 'Rachel', 'Sam', 'Tina',
-    'Uma', 'Victor', 'Wendy', 'Xavier', 'Yara', 'Zane',
-    'Aiden', 'Bella', 'Caleb', 'Delia'
-  ];
   reasons_pool TEXT[] := ARRAY[
     'I feel strongly about this',
     'Based on my experience',
@@ -92,7 +84,7 @@ BEGIN
       p_session_id,
       fake_pid,
       vote_value,
-      names[1 + floor(random() * array_length(names, 1))::int],
+      NULL,
       false,
       vote_reason
     );

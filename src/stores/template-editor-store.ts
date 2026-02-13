@@ -7,7 +7,6 @@ export interface EditorQuestion {
   text: string;
   type: VoteType;
   options: string[] | null;
-  anonymous: boolean;
   timer_duration: number | null;
   template_id: string | null;
 }

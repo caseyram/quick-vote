@@ -73,21 +73,12 @@ export function PreviewMode() {
                           <div className="flex items-center gap-2">
                             <span className={`
                               inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                              ${question.type === 'yes_no' ? 'bg-green-100 text-green-800' : ''}
-                              ${question.type === 'thumbs' ? 'bg-blue-100 text-blue-800' : ''}
-                              ${question.type === 'scale_1_10' ? 'bg-purple-100 text-purple-800' : ''}
+                              ${question.type === 'agree_disagree' ? 'bg-green-100 text-green-800' : ''}
                               ${question.type === 'multiple_choice' ? 'bg-yellow-100 text-yellow-800' : ''}
                             `}>
-                              {question.type === 'yes_no' && 'Yes/No'}
-                              {question.type === 'thumbs' && 'Thumbs'}
-                              {question.type === 'scale_1_10' && 'Scale 1-10'}
+                              {question.type === 'agree_disagree' && 'Agree/Disagree'}
                               {question.type === 'multiple_choice' && 'Multiple Choice'}
                             </span>
-                            {question.anonymous && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                                Anonymous
-                              </span>
-                            )}
                           </div>
                           {question.type === 'multiple_choice' && question.options && question.options.length > 0 && (
                             <div className="mt-2 space-y-1">

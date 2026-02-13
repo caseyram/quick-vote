@@ -4,6 +4,8 @@ import { nanoid } from 'nanoid';
 import imageCompression from 'browser-image-compression';
 import { useTemplateEditorStore } from '../../stores/template-editor-store';
 import type { EditorItem } from '../../stores/template-editor-store';
+import { useTemplateStore } from '../../stores/template-store';
+import { fetchTemplates } from '../../lib/template-api';
 import { saveSessionTemplate, overwriteSessionTemplate, loadTemplateIntoSession } from '../../lib/session-template-api';
 import { uploadSlideImage } from '../../lib/slide-api';
 import { SegmentedControl } from './SegmentedControl';
@@ -21,6 +23,7 @@ export function EditorToolbar() {
     saving,
     setTemplateName,
     addItem,
+    updateItem,
     setSaving,
     markClean,
     toBlueprint,
@@ -29,11 +32,21 @@ export function EditorToolbar() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(templateName);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [startingSession, setStartingSession] = useState(false);
+  const [uploadingSlide, setUploadingSlide] = useState(false);
+  const [globalTemplateId, setGlobalTemplateId] = useState('');
+
+  const responseTemplates = useTemplateStore((s) => s.templates);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const slideFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch response templates on mount
+  useEffect(() => {
+    if (responseTemplates.length === 0) {
+      fetchTemplates().catch(console.error);
+    }
+  }, [responseTemplates.length]);
 
   // Read mode from URL search params
   const mode = searchParams.get('mode') || 'edit';
@@ -97,29 +110,15 @@ export function EditorToolbar() {
   };
 
   const handleAddSlide = () => {
-    const newSlide: EditorItem = {
-      id: nanoid(),
-      item_type: 'slide',
-      slide: {
-        image_path: '',
-        caption: null,
-      },
-    };
-    addItem(newSlide, selectedItemId);
+    slideFileInputRef.current?.click();
   };
 
-  const handleUploadImageClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSlideFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploadingImage(true);
-
+    setUploadingSlide(true);
     try {
-      // Compress image
       const compressed = await imageCompression(file, {
         maxSizeMB: 1,
         maxWidthOrHeight: 1920,
@@ -129,31 +128,20 @@ export function EditorToolbar() {
         preserveExif: false,
       });
 
-      // Upload to Supabase storage
-      // Use a temporary session ID for template images
-      const tempSessionId = 'templates';
-      const imagePath = await uploadSlideImage(tempSessionId, compressed);
+      const imagePath = await uploadSlideImage('templates', compressed);
 
-      // Create new slide item with uploaded image
       const newSlide: EditorItem = {
         id: nanoid(),
         item_type: 'slide',
-        slide: {
-          image_path: imagePath,
-          caption: null,
-        },
+        slide: { image_path: imagePath, caption: null },
       };
       addItem(newSlide, selectedItemId);
-
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     } catch (err) {
-      console.error('Failed to upload image:', err);
+      console.error('Failed to upload slide image:', err);
       alert('Failed to upload image. Please try again.');
     } finally {
-      setUploadingImage(false);
+      setUploadingSlide(false);
+      if (slideFileInputRef.current) slideFileInputRef.current.value = '';
     }
   };
 
@@ -284,24 +272,59 @@ export function EditorToolbar() {
         </button>
         <button
           onClick={handleAddSlide}
-          className="px-3 py-1.5 text-sm font-medium bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded transition-colors"
-        >
-          + Add Slide
-        </button>
-        <button
-          onClick={handleUploadImageClick}
-          disabled={uploadingImage}
+          disabled={uploadingSlide}
           className="px-3 py-1.5 text-sm font-medium bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {uploadingImage ? 'Uploading...' : 'Upload Image'}
+          {uploadingSlide ? 'Uploading...' : '+ Add Slide'}
         </button>
         <input
-          ref={fileInputRef}
+          ref={slideFileInputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
-          onChange={handleFileSelect}
+          onChange={handleSlideFileSelect}
           className="hidden"
         />
+
+        {/* Separator */}
+        {responseTemplates.length > 0 && (
+          <>
+            <div className="w-px h-6 bg-gray-300" />
+            <select
+              value={globalTemplateId}
+              onChange={(e) => setGlobalTemplateId(e.target.value)}
+              className="bg-gray-50 border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-700"
+            >
+              <option value="">Response template...</option>
+              {responseTemplates.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            <button
+              disabled={!globalTemplateId}
+              onClick={() => {
+                const template = responseTemplates.find((t) => t.id === globalTemplateId);
+                if (!template) return;
+                items.forEach((itm) => {
+                  if (itm.item_type === 'batch' && itm.batch) {
+                    const updatedQuestions = itm.batch.questions.map((q) => ({
+                      ...q,
+                      template_id: globalTemplateId,
+                      type: 'multiple_choice' as const,
+                      options: [...template.options],
+                    }));
+                    updateItem(itm.id, {
+                      batch: { ...itm.batch, questions: updatedQuestions },
+                    });
+                  }
+                });
+                setGlobalTemplateId('');
+              }}
+              className="px-2 py-1.5 text-xs font-medium bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              Apply All
+            </button>
+          </>
+        )}
       </div>
 
       {/* Right section: Start Session + Save Template + Edit/Preview toggle */}

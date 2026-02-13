@@ -16,6 +16,10 @@ export default function TemplateEditorPage() {
   // Read mode from URL search params
   const mode = searchParams.get('mode') || 'edit';
 
+  // Only load template on mount or when the template ID changes
+  // Do NOT depend on searchParams — mode/from changes should not re-trigger loading
+  const fromTemplate = searchParams.get('from') === 'template';
+
   useEffect(() => {
     async function loadTemplate() {
       if (!id || id === 'new') {
@@ -38,29 +42,24 @@ export default function TemplateEditorPage() {
 
         const template = data as SessionTemplate;
 
-        // Check if loading from template (copy mode)
-        const isFromTemplate = searchParams.get('from') === 'template';
-
-        if (isFromTemplate) {
+        if (fromTemplate) {
           // Load as a copy (no template ID, so it saves as new)
           loadFromBlueprint(null, `${template.name} (Copy)`, template.blueprint);
           // Clear the from parameter after loading
-          const newParams = new URLSearchParams(searchParams);
-          newParams.delete('from');
-          window.history.replaceState({}, '', `${window.location.pathname}?${newParams}`);
+          window.history.replaceState({}, '', window.location.pathname);
         } else {
           // Load for editing (preserves template ID)
           loadFromBlueprint(template.id, template.name, template.blueprint);
         }
       } catch (err) {
         console.error('Failed to load template:', err);
-        // TODO: Show error UI
         reset();
       }
     }
 
     loadTemplate();
-  }, [id, reset, loadFromBlueprint, searchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   // Warn before unload if unsaved changes
   useEffect(() => {
