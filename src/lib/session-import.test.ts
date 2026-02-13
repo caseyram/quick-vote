@@ -19,7 +19,7 @@ describe('session-import', () => {
       ];
 
       const batches: Batch[] = [
-        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '' },
+        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '', cover_image_path: null },
       ];
 
       const result = exportSessionData(questions, batches, 'Test Session');
@@ -66,7 +66,7 @@ describe('session-import', () => {
       ];
 
       const batches: Batch[] = [
-        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '' },
+        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '', cover_image_path: null },
       ];
 
       const result = exportSessionData(questions, batches);
@@ -92,7 +92,7 @@ describe('session-import', () => {
       ];
 
       const batches: Batch[] = [
-        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '' },
+        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '', cover_image_path: null },
       ];
 
       const result = exportSessionData(questions, batches);
@@ -118,8 +118,8 @@ describe('session-import', () => {
       ];
 
       const batches: Batch[] = [
-        { id: 'b2', session_id: 's1', name: 'Batch 2', position: 1, status: 'pending', created_at: '' },
-        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '' },
+        { id: 'b2', session_id: 's1', name: 'Batch 2', position: 1, status: 'pending', created_at: '', cover_image_path: null },
+        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '', cover_image_path: null },
       ];
 
       const result = exportSessionData(questions, batches);
@@ -155,7 +155,7 @@ describe('session-import', () => {
       ];
 
       const batches: Batch[] = [
-        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '' },
+        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '', cover_image_path: null },
       ];
 
       const result = exportSessionData(questions, batches);
@@ -195,7 +195,7 @@ describe('session-import', () => {
       ];
 
       const batches: Batch[] = [
-        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '' },
+        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '', cover_image_path: null },
       ];
 
       const templates = [
@@ -221,7 +221,7 @@ describe('session-import', () => {
       ];
 
       const batches: Batch[] = [
-        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '' },
+        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '', cover_image_path: null },
       ];
 
       const result = exportSessionData(questions, batches, 'Test', []);
@@ -241,7 +241,7 @@ describe('session-import', () => {
       ];
 
       const batches: Batch[] = [
-        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '' },
+        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '', cover_image_path: null },
       ];
 
       const result = exportSessionData(questions, batches, 'Test');
@@ -260,7 +260,7 @@ describe('session-import', () => {
       ];
 
       const batches: Batch[] = [
-        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '' },
+        { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '', cover_image_path: null },
       ];
 
       const templates = [

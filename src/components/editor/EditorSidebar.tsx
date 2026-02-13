@@ -62,6 +62,7 @@ export function EditorSidebar() {
         questions: [],
         timer_duration: null,
         template_id: null,
+        cover_image_path: null,
       },
     };
     addItem(newBatch, null);

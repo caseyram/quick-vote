@@ -29,8 +29,8 @@ vi.mock('./QuestionForm', () => ({
 
 describe('BatchList', () => {
   const defaultBatches: Batch[] = [
-    { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', created_at: '' },
-    { id: 'b2', session_id: 's1', name: 'Batch 2', position: 2, status: 'pending', created_at: '' },
+    { id: 'b1', session_id: 's1', name: 'Batch 1', position: 0, status: 'pending', cover_image_path: null, created_at: '' },
+    { id: 'b2', session_id: 's1', name: 'Batch 2', position: 2, status: 'pending', cover_image_path: null, created_at: '' },
   ];
 
   const defaultQuestions: Question[] = [

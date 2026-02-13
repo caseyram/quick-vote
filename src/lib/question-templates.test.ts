@@ -36,6 +36,7 @@ function makeBatch(overrides: Partial<Batch> = {}): Batch {
     status: 'pending',
     created_at: new Date().toISOString(),
     ...overrides,
+    cover_image_path: overrides.cover_image_path ?? null,
   };
 }
 

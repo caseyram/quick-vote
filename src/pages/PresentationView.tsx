@@ -348,14 +348,45 @@ export default function PresentationView() {
               caption={currentItem.slide_caption}
             />
           ) : currentItem?.item_type === 'batch' && currentItem.batch_id ? (
-            <BatchResultsProjection
-              batchId={currentItem.batch_id}
-              batchName={batches.find((b) => b.id === currentItem.batch_id)?.name ?? 'Untitled Batch'}
-              questions={useSessionStore.getState().questions}
-              sessionVotes={sessionVotes}
-              revealedQuestions={revealedQuestions}
-              highlightedReason={highlightedReason}
-            />
+            (() => {
+              const currentBatch = batches.find((b) => b.id === currentItem.batch_id);
+              const showCover = currentBatch?.cover_image_path && revealedQuestions.size === 0;
+              return (
+                <AnimatePresence mode="wait">
+                  {showCover ? (
+                    <motion.div
+                      key="batch-cover"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.4 }}
+                      className="w-full h-full"
+                    >
+                      <SlideDisplay imagePath={currentBatch!.cover_image_path!} caption={null} />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="batch-results"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.4 }}
+                      className="w-full h-full"
+                    >
+                      <BatchResultsProjection
+                        batchId={currentItem.batch_id!}
+                        batchName={currentBatch?.name ?? 'Untitled Batch'}
+                        questions={useSessionStore.getState().questions}
+                        sessionVotes={sessionVotes}
+                        revealedQuestions={revealedQuestions}
+                        highlightedReason={highlightedReason}
+                        backgroundColor="#1a1a2e"
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              );
+            })()
           ) : (
             <div className="flex items-center justify-center h-full">
               <p className="text-2xl text-gray-500">Waiting for presentation to start...</p>

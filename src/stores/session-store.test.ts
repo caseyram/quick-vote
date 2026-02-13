@@ -59,6 +59,7 @@ function makeBatch(overrides: Partial<Batch> = {}): Batch {
     name: 'Test Batch',
     position: 0,
     status: 'pending',
+    cover_image_path: null,
     created_at: new Date().toISOString(),
     ...overrides,
   };
