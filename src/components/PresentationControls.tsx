@@ -191,6 +191,23 @@ export function PresentationControls({
     });
   }
 
+  function handleRevealBatch(questionIds: string[]) {
+    const allRevealed = questionIds.every((id) => revealedQuestions.has(id));
+    setRevealedQuestions((prev) => {
+      const next = new Set(prev);
+      questionIds.forEach((id) => (allRevealed ? next.delete(id) : next.add(id)));
+      return next;
+    });
+
+    questionIds.forEach((questionId) => {
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'result_reveal',
+        payload: { questionId, revealed: !allRevealed },
+      });
+    });
+  }
+
   function handleHighlightReason(questionId: string, reasonId: string) {
     const isSameReason = highlightedReasonId === reasonId;
     const newReasonId = isSameReason ? null : reasonId;
@@ -291,6 +308,7 @@ export function PresentationControls({
                 highlightedReasonId={highlightedReasonId}
                 currentBatchQuestionIndex={currentBatchQuestionIndex}
                 onSetCurrentBatchQuestionIndex={setCurrentBatchQuestionIndex}
+                onRevealBatch={handleRevealBatch}
                 onRevealQuestion={handleRevealQuestion}
                 onHighlightReason={handleHighlightReason}
                 hasSeparateProjection={showNextPreview}
@@ -601,6 +619,7 @@ function BatchControlPanel({
   highlightedReasonId,
   currentBatchQuestionIndex,
   onSetCurrentBatchQuestionIndex,
+  onRevealBatch,
   onRevealQuestion,
   onHighlightReason,
   hasSeparateProjection,
@@ -612,6 +631,7 @@ function BatchControlPanel({
   highlightedReasonId: string | null;
   currentBatchQuestionIndex: number;
   onSetCurrentBatchQuestionIndex: (index: number) => void;
+  onRevealBatch: (questionIds: string[]) => void;
   onRevealQuestion: (questionId: string) => void;
   onHighlightReason: (questionId: string, reasonId: string) => void;
   hasSeparateProjection: boolean;
@@ -678,49 +698,56 @@ function BatchControlPanel({
     }
   });
 
-  const isRevealed = revealedQuestions.has(currentQuestion.id);
+  const batchQuestionIds = batchQuestions.map((q) => q.id);
+  const allRevealed = batchQuestionIds.every((id) => revealedQuestions.has(id));
+  const totalBatchVotes = batchQuestionIds.reduce(
+    (sum, id) => sum + (sessionVotes[id]?.length ?? 0),
+    0,
+  );
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex gap-2 mb-4 overflow-x-auto">
-        {batchQuestions.map((q, idx) => (
+      <div className="flex items-center gap-3 mb-4">
+        <div className="flex gap-2 overflow-x-auto">
+          {batchQuestions.map((q, idx) => (
+            <button
+              key={q.id}
+              onClick={() => onSetCurrentBatchQuestionIndex(idx)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                idx === currentBatchQuestionIndex
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Q{idx + 1}
+            </button>
+          ))}
+        </div>
+        <div className="ml-auto flex items-center gap-3">
+          <span className="text-sm text-gray-500">{totalBatchVotes} vote{totalBatchVotes !== 1 ? 's' : ''}</span>
           <button
-            key={q.id}
-            onClick={() => onSetCurrentBatchQuestionIndex(idx)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-              idx === currentBatchQuestionIndex
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Q{idx + 1}
-          </button>
-        ))}
-      </div>
-
-      <div className="border rounded-lg bg-white p-4 mb-3">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">{currentQuestion.text}</h3>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => onRevealQuestion(currentQuestion.id)}
+            onClick={() => onRevealBatch(batchQuestionIds)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              isRevealed
+              allRevealed
                 ? 'bg-green-600 text-white hover:bg-green-700'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
-            {isRevealed
+            {allRevealed
               ? (hasSeparateProjection ? 'Revealed to Audience' : 'Results Shown')
               : (hasSeparateProjection ? 'Reveal to Audience' : 'Show Results')}
           </button>
-          <span className="text-sm text-gray-500">{questionVotes.length} vote{questionVotes.length !== 1 ? 's' : ''}</span>
         </div>
+      </div>
+
+      <div className="border rounded-lg bg-white p-4 mb-3">
+        <h3 className="text-lg font-semibold text-gray-900">{currentQuestion.text}</h3>
       </div>
 
       <div className="flex-1 flex gap-4 min-h-0">
         {/* Chart area */}
         <div className="flex-1 bg-gray-50 rounded-lg p-4 flex items-center justify-center min-w-0">
-          {!hasSeparateProjection && !isRevealed ? (
+          {!hasSeparateProjection && !allRevealed ? (
             <div className="text-center">
               <p className="text-gray-400 text-lg mb-2">Waiting for responses...</p>
               <p className="text-gray-500 text-3xl font-bold">{questionVotes.length}</p>
@@ -739,7 +766,7 @@ function BatchControlPanel({
         </div>
 
         {/* Reasons panel (scrollable, right side) — only when results are shown */}
-        {(hasSeparateProjection || isRevealed) && Object.keys(reasonsByOption).length > 0 && (
+        {(hasSeparateProjection || allRevealed) && Object.keys(reasonsByOption).length > 0 && (
           <div className="w-80 shrink-0 flex flex-col min-h-0 border rounded-lg bg-white">
             <h4 className="text-sm font-semibold text-gray-700 p-3 pb-2 shrink-0 border-b border-gray-100">Reasons</h4>
             <div className="flex-1 overflow-y-auto p-3 pt-2 space-y-3">

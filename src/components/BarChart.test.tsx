@@ -37,7 +37,7 @@ describe('BarChart', () => {
 
   it('renders with large size', () => {
     const { container } = render(<BarChart data={sampleData} size="large" />);
-    expect(container.innerHTML).toContain('gap-8');
+    expect(container.innerHTML).toContain('gap: 0 2rem');
   });
 
   it('renders with fill size', () => {

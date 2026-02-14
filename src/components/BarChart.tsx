@@ -56,35 +56,45 @@ export function BarChart({ data, totalVotes, size = 'default', theme = 'dark', b
     ? { height: '100%' }
     : { height: isLarge ? 400 : 300 };
 
+  const colTemplate = data.length > 0
+    ? `repeat(${data.length}, minmax(0, ${isLarge ? '200px' : '120px'}))`
+    : 'none';
+
   return (
     <div className={isFill ? 'h-full flex flex-col' : ''}>
       <div
-        className={`flex items-end justify-center ${isLarge ? 'gap-8' : 'gap-6'} ${isFill ? 'flex-1 min-h-0' : ''}`}
-        style={isFill ? undefined : heightStyle}
+        className={`grid justify-center ${isFill ? 'flex-1 min-h-0' : ''}`}
+        style={{
+          gridTemplateColumns: colTemplate,
+          gridTemplateRows: 'auto 1fr auto',
+          gap: `0 ${isLarge ? '2rem' : '1.5rem'}`,
+          ...(isFill ? undefined : heightStyle),
+        }}
       >
+        {/* Row 1: counts */}
         {data.map((item) => (
-          <div
-            key={item.label}
-            className="flex flex-col items-center h-full"
-            style={{ flex: '1 1 0', minWidth: 0, maxWidth: isLarge ? 200 : 120 }}
-          >
-            <div className={`${countClass} mb-1 whitespace-nowrap`}>
-              {item.count} ({item.percentage}%)
-            </div>
-            <div className="w-full flex-1 flex items-end">
-              <div
-                className={`w-full ${isLarge ? 'rounded-t-xl' : 'rounded-t-lg'}`}
-                style={{
-                  height: `${item.percentage}%`,
-                  backgroundColor: item.color,
-                  transition: 'height 0.5s ease-out',
-                  minHeight: item.count > 0 ? '4px' : '0px',
-                }}
-              />
-            </div>
-            <div className={`${labelClass} text-center mt-2 w-full break-words`}>
-              {item.label}
-            </div>
+          <div key={`count-${item.label}`} className={`${countClass} text-center whitespace-nowrap mb-1`}>
+            {item.count} ({item.percentage}%)
+          </div>
+        ))}
+        {/* Row 2: bars */}
+        {data.map((item) => (
+          <div key={`bar-${item.label}`} className="flex items-end">
+            <div
+              className={`w-full ${isLarge ? 'rounded-t-xl' : 'rounded-t-lg'}`}
+              style={{
+                height: `${item.percentage}%`,
+                backgroundColor: item.color,
+                transition: 'height 0.5s ease-out',
+                minHeight: item.count > 0 ? '4px' : '0px',
+              }}
+            />
+          </div>
+        ))}
+        {/* Row 3: labels (grid row auto-sizes to tallest label) */}
+        {data.map((item) => (
+          <div key={`label-${item.label}`} className={`${labelClass} text-center mt-2 break-words`}>
+            {item.label}
           </div>
         ))}
       </div>
