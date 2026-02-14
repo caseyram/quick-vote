@@ -11,6 +11,8 @@ import { ParticipantCount } from '../components/ParticipantCount';
 import VoteAgreeDisagree from '../components/VoteAgreeDisagree';
 import VoteMultipleChoice from '../components/VoteMultipleChoice';
 import { BatchVotingCarousel } from '../components/BatchVotingCarousel';
+import { TeamPicker } from '../components/TeamPicker';
+import { TeamBadge } from '../components/TeamBadge';
 import { fetchTemplates } from '../lib/template-api';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Session, Question, SessionStatus } from '../types/database';
@@ -42,6 +44,11 @@ export default function ParticipantSession() {
   const [nameInput, setNameInput] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [waitingMessage, setWaitingMessage] = useState('Waiting for next question...');
+
+  // Team state
+  const [participantTeam, setParticipantTeam] = useState<string | null>(null);
+  const [teamLocked, setTeamLocked] = useState(false);
+  const [showTeamJoinedToast, setShowTeamJoinedToast] = useState(false);
 
   // Refs for mutable state accessible from Broadcast callbacks (avoid stale closures)
   const viewRef = useRef<ParticipantView>('loading');
@@ -359,10 +366,10 @@ export default function ParticipantSession() {
       // Load templates for template-aware rendering
       fetchTemplates().catch(console.error);
 
-      // Fetch session (explicit columns, NO admin_token, include timer_expires_at)
+      // Fetch session (include teams column)
       const { data: sessionData, error: sessionError } = await supabase
         .from('sessions')
-        .select('id, session_id, title, status, reasons_enabled, test_mode, timer_expires_at, created_at, default_template_id')
+        .select('id, session_id, title, status, reasons_enabled, test_mode, timer_expires_at, created_at, default_template_id, teams')
         .eq('session_id', sessionId)
         .single();
 
@@ -379,8 +386,50 @@ export default function ParticipantSession() {
         ...sessionData,
         admin_token: '',
         created_by: '',
+        teams: sessionData.teams || [],
       };
       setSession(sessionForStore);
+
+      // --- Team initialization logic ---
+      // 1. Check for auto-assign from URL param
+      const searchParams = new URLSearchParams(window.location.search);
+      const autoAssignTeam = searchParams.get('team');
+
+      // 2. Check if participant already has votes (team is locked after first vote)
+      const { data: existingVotes } = await supabase
+        .from('votes')
+        .select('team_id')
+        .eq('session_id', sessionId)
+        .eq('participant_id', uid)
+        .limit(1);
+
+      if (!cancelled && existingVotes && existingVotes.length > 0) {
+        // Participant has voted - team is locked
+        const lockedTeam = existingVotes[0].team_id;
+        setParticipantTeam(lockedTeam);
+        setTeamLocked(true);
+        // Store in sessionStorage
+        if (lockedTeam) {
+          sessionStorage.setItem(`quickvote-team-${sessionId}`, lockedTeam);
+        }
+      } else {
+        // No votes yet - check for team assignment
+        // 3. Check sessionStorage for existing team assignment
+        const storedTeam = sessionStorage.getItem(`quickvote-team-${sessionId}`);
+
+        if (autoAssignTeam && sessionForStore.teams.includes(autoAssignTeam)) {
+          // Auto-assign from URL param
+          setParticipantTeam(autoAssignTeam);
+          sessionStorage.setItem(`quickvote-team-${sessionId}`, autoAssignTeam);
+          // Show brief toast
+          setShowTeamJoinedToast(true);
+          setTimeout(() => setShowTeamJoinedToast(false), 2000);
+        } else if (storedTeam && sessionForStore.teams.includes(storedTeam)) {
+          // Restore from sessionStorage
+          setParticipantTeam(storedTeam);
+        }
+        // else: no team assigned yet - will show picker if session has teams
+      }
 
       // If session is active, check for active batch or question
       let question: Question | null = null;
@@ -505,6 +554,13 @@ export default function ParticipantSession() {
     setNamePromptVisible(false);
   }
 
+  // Handle team selection
+  function handleJoinTeam(teamName: string) {
+    if (!sessionId) return;
+    setParticipantTeam(teamName);
+    sessionStorage.setItem(`quickvote-team-${sessionId}`, teamName);
+  }
+
   // Check if name prompt should show before voting on named questions
   const shouldPromptName =
     view === 'voting' &&
@@ -522,6 +578,28 @@ export default function ParticipantSession() {
   }, [shouldPromptName]);
 
   // ---------- RENDER ----------
+
+  // Team picker gate - show before any other view if session has teams and participant hasn't joined
+  const needsTeamPicker =
+    session?.teams &&
+    session.teams.length > 0 &&
+    !participantTeam &&
+    !teamLocked &&
+    view !== 'loading' &&
+    view !== 'error';
+
+  if (needsTeamPicker) {
+    return (
+      <>
+        <TeamPicker teams={session!.teams} onJoinTeam={handleJoinTeam} />
+        {showTeamJoinedToast && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50">
+            Joined {participantTeam}!
+          </div>
+        )}
+      </>
+    );
+  }
 
   // Loading state
   if (view === 'loading') {
@@ -549,6 +627,7 @@ export default function ParticipantSession() {
     return (
       <div className="min-h-dvh bg-gray-950 flex flex-col">
         <ConnectionPill status={connectionStatus} />
+        {participantTeam && <TeamBadge teamName={participantTeam} />}
         <div className="flex-1 flex flex-col items-center justify-center px-4">
           <h1 className="text-3xl font-bold text-white mb-4 text-center">
             {session?.title ?? 'Session'}
@@ -565,6 +644,7 @@ export default function ParticipantSession() {
     return (
       <div className="min-h-dvh bg-gray-950 flex flex-col">
         <ConnectionPill status={connectionStatus} />
+        {participantTeam && <TeamBadge teamName={participantTeam} />}
         <div className="flex-1 flex items-center justify-center px-4">
           <div className="text-center space-y-4">
             <h1 className="text-2xl font-bold text-white">{session?.title ?? 'Session'}</h1>
@@ -581,6 +661,7 @@ export default function ParticipantSession() {
     return (
       <div className="min-h-dvh bg-gray-950 flex flex-col">
         <ConnectionPill status={connectionStatus} />
+        {participantTeam && <TeamBadge teamName={participantTeam} />}
         <div className="flex-1 py-8 px-4">
           <div className="max-w-lg mx-auto space-y-6">
             <h1 className="text-3xl font-bold text-white text-center">
@@ -615,6 +696,7 @@ export default function ParticipantSession() {
     return (
       <div className="min-h-dvh bg-gray-950 flex flex-col">
         <ConnectionPill status={connectionStatus} />
+        {participantTeam && <TeamBadge teamName={participantTeam} />}
         {/* Timer at top when running */}
         {isRunning && (
           <div className="flex justify-center px-4 py-2 shrink-0">
@@ -632,6 +714,7 @@ export default function ParticipantSession() {
             displayName={participantName || null}
             reasonsEnabled={session?.reasons_enabled ?? false}
             onComplete={handleBatchComplete}
+            teamId={participantTeam}
           />
         </div>
       </div>
@@ -676,6 +759,7 @@ export default function ParticipantSession() {
       <div className="min-h-dvh bg-gray-950 flex flex-col">
         {/* Connection pill - always visible in top-right */}
         <ConnectionPill status={connectionStatus} />
+        {participantTeam && <TeamBadge teamName={participantTeam} />}
 
         {/* Minimal top bar - only timer when active, no header/nav */}
         {isRunning && (
@@ -710,6 +794,7 @@ export default function ParticipantSession() {
                       setView('waiting');
                       setWaitingMessage('Vote submitted! Waiting for results...');
                     }}
+                    teamId={participantTeam}
                   />
                 ) : (
                   <VoteMultipleChoice
@@ -722,6 +807,7 @@ export default function ParticipantSession() {
                       setView('waiting');
                       setWaitingMessage('Vote submitted! Waiting for results...');
                     }}
+                    teamId={participantTeam}
                   />
                 )}
               </motion.div>

@@ -20,6 +20,7 @@ interface VoteAgreeDisagreeProps {
   onSelectionChange?: (selection: string | null, reason?: string) => void;
   initialSelection?: string | null;
   initialReason?: string;
+  teamId?: string | null;
 }
 
 export default function VoteAgreeDisagree({
@@ -33,6 +34,7 @@ export default function VoteAgreeDisagree({
   onSelectionChange,
   initialSelection = null,
   initialReason = '',
+  teamId = null,
 }: VoteAgreeDisagreeProps) {
   const haptic = useHaptic();
   const { setCurrentVote, submitting, setSubmitting } = useSessionStore();
@@ -104,6 +106,7 @@ export default function VoteAgreeDisagree({
         value: pendingSelection,
         locked_in: false,
         display_name: question.anonymous ? null : displayName,
+        team_id: teamId,
       };
       if (reasonsEnabled) {
         payload.reason = reason.trim() || null;

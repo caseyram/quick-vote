@@ -12,6 +12,7 @@ interface BatchVotingCarouselProps {
   displayName: string | null;
   reasonsEnabled: boolean;
   onComplete: () => void;
+  teamId?: string | null;
 }
 
 interface PendingVote {
@@ -38,6 +39,7 @@ export function BatchVotingCarousel({
   displayName,
   reasonsEnabled,
   onComplete,
+  teamId = null,
 }: BatchVotingCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -143,6 +145,7 @@ export function BatchVotingCarousel({
           reason: vote.reason?.trim() || null,
           locked_in: false,
           display_name: question?.anonymous ? null : displayName,
+          team_id: teamId,
         };
       });
 
