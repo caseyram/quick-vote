@@ -50,6 +50,16 @@ export function BatchResultsProjection({
     ? batchQuestions.find((q) => q.id === currentQuestionId)
     : null;
 
+  // Auto-scroll reasons panel to keep highlighted item visible
+  // (must be before early return to satisfy Rules of Hooks)
+  useEffect(() => {
+    if (!highlightedReason?.reasonId || !scrollContainerRef.current) return;
+    const el = scrollContainerRef.current.querySelector(
+      `[data-reason-id="${highlightedReason.reasonId}"]`,
+    );
+    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [highlightedReason?.reasonId]);
+
   // If no questions revealed, show batch name with "Results ready"
   if (!currentQuestion) {
     return (
@@ -128,16 +138,6 @@ export function BatchResultsProjection({
   });
 
   const hasReasons = Object.keys(reasonsByOption).length > 0;
-
-  // Auto-scroll reasons panel to keep highlighted item visible
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useEffect(() => {
-    if (!highlightedReason?.reasonId || !scrollContainerRef.current) return;
-    const el = scrollContainerRef.current.querySelector(
-      `[data-reason-id="${highlightedReason.reasonId}"]`,
-    );
-    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [highlightedReason?.reasonId]);
 
   return (
     <div className="flex flex-col h-full p-8">
