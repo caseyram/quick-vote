@@ -706,6 +706,10 @@ export default function ParticipantSession() {
                     participantId={participantId}
                     displayName={participantName || null}
                     reasonsEnabled={session?.reasons_enabled ?? false}
+                    onVoteSubmit={() => {
+                      setView('waiting');
+                      setWaitingMessage('Vote submitted! Waiting for results...');
+                    }}
                   />
                 ) : (
                   <VoteMultipleChoice
@@ -714,6 +718,10 @@ export default function ParticipantSession() {
                     participantId={participantId}
                     displayName={participantName || null}
                     reasonsEnabled={session?.reasons_enabled ?? false}
+                    onVoteSubmit={() => {
+                      setView('waiting');
+                      setWaitingMessage('Vote submitted! Waiting for results...');
+                    }}
                   />
                 )}
               </motion.div>

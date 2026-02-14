@@ -65,6 +65,31 @@ export function PresentationControls({
       'QuickVotePresentation',
       'width=1920,height=1080,menubar=no,toolbar=no,location=no,status=no'
     );
+
+    // Re-broadcast current active item after delay so the projection window
+    // has time to connect its realtime channel and pick up the current state
+    setTimeout(() => {
+      const state = useSessionStore.getState();
+      const activeId = state.activeSessionItemId;
+      if (!activeId) return;
+
+      const item = state.sessionItems.find((i) => i.id === activeId);
+      if (!item) return;
+
+      if (item.item_type === 'slide') {
+        channelRef.current?.send({
+          type: 'broadcast',
+          event: 'slide_activated',
+          payload: { itemId: item.id, direction: null },
+        });
+      } else if (item.item_type === 'batch' && item.batch_id) {
+        channelRef.current?.send({
+          type: 'broadcast',
+          event: 'batch_activated',
+          payload: { batchId: item.batch_id },
+        });
+      }
+    }, 3000);
   }
 
   function handleQrToggle(mode: QRMode) {

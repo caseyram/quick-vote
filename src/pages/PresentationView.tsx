@@ -6,11 +6,13 @@ import { useSessionStore } from '../stores/session-store';
 import { useRealtimeChannel } from '../hooks/use-realtime-channel';
 import type { ConnectionStatus } from '../hooks/use-realtime-channel';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import type { Vote } from '../types/database';
+import type { Question, Vote } from '../types/database';
 import { SlideDisplay } from '../components/SlideDisplay';
 import { QROverlay, type QRMode } from '../components/QROverlay';
 import { KeyboardShortcutHelp } from '../components/KeyboardShortcutHelp';
 import { BatchResultsProjection } from '../components/BatchResultsProjection';
+import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../components/BarChart';
+import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation';
 import { getTextColor } from '../lib/color-contrast';
 
 export default function PresentationView() {
@@ -34,6 +36,8 @@ export default function PresentationView() {
   const [sessionVotes, setSessionVotes] = useState<Record<string, Vote[]>>({});
   const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(new Set());
   const [highlightedReason, setHighlightedReason] = useState<{ questionId: string; reasonId: string } | null>(null);
+  const [activeInlineQuestion, setActiveInlineQuestion] = useState<Question | null>(null);
+  const [inlineVotingClosed, setInlineVotingClosed] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const prevConnectionStatus = useRef<ConnectionStatus>('connecting');
 
@@ -97,6 +101,43 @@ export default function PresentationView() {
         useSessionStore.getState().setSessionItems(itemsData);
       }
 
+      // Sync active state from DB so projection picks up current item on mount
+      // (handles case where projection opens after admin already activated something)
+      if (!cancelled) {
+        // Check for active batch
+        const { data: activeBatch } = await supabase
+          .from('batches')
+          .select('*')
+          .eq('session_id', sessionId)
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (activeBatch && !cancelled) {
+          useSessionStore.getState().setActiveBatchId(activeBatch.id);
+          const batchItem = itemsData?.find(
+            (item: any) => item.item_type === 'batch' && item.batch_id === activeBatch.id
+          );
+          if (batchItem) {
+            useSessionStore.getState().setActiveSessionItemId(batchItem.id);
+          }
+        }
+
+        // Check for active inline question (Go Live quick question)
+        if (!activeBatch) {
+          const { data: activeQ } = await supabase
+            .from('questions')
+            .select('*')
+            .eq('session_id', sessionId)
+            .eq('status', 'active')
+            .maybeSingle();
+
+          if (activeQ && !cancelled) {
+            setActiveInlineQuestion(activeQ);
+            setInlineVotingClosed(false);
+          }
+        }
+      }
+
       setLoading(false);
     }
 
@@ -113,12 +154,14 @@ export default function PresentationView() {
     channel.on('broadcast', { event: 'slide_activated' }, ({ payload }: any) => {
       useSessionStore.getState().setActiveSessionItemId(payload.itemId);
       useSessionStore.getState().setNavigationDirection(payload.direction ?? 'forward');
+      setActiveInlineQuestion(null); // Clear any inline question
     });
 
     // Listen for batch activations - also reset reveal state
     channel.on('broadcast', { event: 'batch_activated' }, ({ payload }: any) => {
       setRevealedQuestions(new Set());
       setHighlightedReason(null);
+      setActiveInlineQuestion(null); // Clear any inline question
 
       useSessionStore.getState().setActiveBatchId(payload.batchId);
       // Find the corresponding session_item for this batch
@@ -129,6 +172,26 @@ export default function PresentationView() {
       if (batchItem) {
         useSessionStore.getState().setActiveSessionItemId(batchItem.id);
       }
+    });
+
+    // Listen for inline question activation (Go Live quick question)
+    channel.on('broadcast', { event: 'question_activated' }, async ({ payload }: any) => {
+      const { questionId } = payload;
+      const { data } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('id', questionId)
+        .single();
+
+      if (data) {
+        setActiveInlineQuestion(data);
+        setInlineVotingClosed(false);
+      }
+    });
+
+    // Listen for voting closed on inline question
+    channel.on('broadcast', { event: 'voting_closed' }, () => {
+      setInlineVotingClosed(true);
     });
 
     // Listen for session status changes
@@ -342,7 +405,43 @@ export default function PresentationView() {
             transition={{ duration: 0.4, ease: [0.4, 0.0, 0.2, 1] }}
             className="w-full h-full absolute inset-0"
           >
-          {currentItem?.item_type === 'slide' && currentItem.slide_image_path ? (
+          {activeInlineQuestion ? (
+            <div className="flex flex-col items-center justify-center h-full px-12">
+              <h2 className={`text-4xl font-bold mb-8 text-center ${textColorClass}`}>
+                {activeInlineQuestion.text}
+              </h2>
+              {inlineVotingClosed && sessionVotes[activeInlineQuestion.id] ? (
+                (() => {
+                  const votes = sessionVotes[activeInlineQuestion.id] || [];
+                  const aggregated = aggregateVotes(votes);
+                  const barData = buildConsistentBarData(activeInlineQuestion, aggregated);
+                  const chartData = barData.map((item, index) => {
+                    let color: string;
+                    if (activeInlineQuestion.type === 'agree_disagree') {
+                      const colorMap: Record<string, string> = {
+                        Agree: AGREE_DISAGREE_COLORS.agree,
+                        Sometimes: AGREE_DISAGREE_COLORS.sometimes,
+                        Disagree: AGREE_DISAGREE_COLORS.disagree,
+                      };
+                      color = colorMap[item.value] || MULTI_CHOICE_COLORS[0];
+                    } else {
+                      color = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
+                    }
+                    return { label: item.value, count: item.count, percentage: item.percentage, color };
+                  });
+                  return (
+                    <div className="w-full max-w-2xl">
+                      <BarChart data={chartData} totalVotes={votes.length} size="large" />
+                    </div>
+                  );
+                })()
+              ) : (
+                <p className={`text-xl opacity-50 ${textColorClass}`}>
+                  Voting in progress...
+                </p>
+              )}
+            </div>
+          ) : currentItem?.item_type === 'slide' && currentItem.slide_image_path ? (
             <SlideDisplay
               imagePath={currentItem.slide_image_path}
               caption={currentItem.slide_caption}
