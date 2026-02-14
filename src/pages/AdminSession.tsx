@@ -1294,30 +1294,11 @@ export default function AdminSession() {
       {!isActive && <AdminControlBar
         status={session.status}
         participantCount={participantCount}
-        questions={questions}
-        activeQuestion={activeQuestion ?? null}
-        countdownRemaining={countdownRemaining}
-        countdownRunning={countdownRunning}
         transitioning={transitioning}
         onStartSession={handleStartSession}
         onBeginVoting={handleBeginVoting}
-        onEndSession={handleEndSession}
         onCopyLink={handleCopyLink}
         copied={copied}
-        onActivateQuestion={handleActivateQuestion}
-        onCloseVoting={handleCloseVotingInternal}
-        onQuickQuestion={handleQuickQuestion}
-        quickQuestionLoading={quickQuestionLoading}
-        // Batch props
-        pendingBatchId={pendingBatchId}
-        onCloseBatch={() => {
-          if (activeBatchId) {
-            handleCloseBatch(activeBatchId);
-          }
-        }}
-        // Existing batches from draft mode
-        batches={batches}
-        onActivateBatch={handleActivateBatch}
       />}
 
       {/* Bulk Apply Confirmation Dialog */}
