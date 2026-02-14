@@ -168,46 +168,44 @@ export function BatchResultsProjection({
 
       {/* Chart + Reasons list layout */}
       <div className="flex-1 flex gap-8 min-h-0">
-        {/* Chart section with highlighted reason above */}
-        <div className={`flex flex-col min-h-0 ${hasReasons ? 'flex-1' : 'w-full'}`}>
-          {/* Highlighted reason above chart */}
-          {highlightedReasonData && (
-            <div className="shrink-0 flex justify-center mb-4">
-              <div
-                className={`${cardBg} backdrop-blur rounded-lg p-5 max-w-2xl w-full text-center`}
-                style={{
-                  borderLeft: `5px solid ${getReasonColor(highlightedReasonData.value)}`,
-                }}
-              >
-                <p className={`${headingColor} text-xl leading-relaxed`}>
-                  &ldquo;{highlightedReasonData.reason || 'No reason provided'}&rdquo;
-                </p>
-                <div className="flex items-center justify-center gap-2 mt-2">
-                  {highlightedReasonData.display_name && (
-                    <span className={`text-sm ${subTextColor}`}>— {highlightedReasonData.display_name}</span>
-                  )}
-                  <span
-                    className="text-xs font-medium px-2 py-0.5 rounded"
-                    style={{
-                      backgroundColor: getReasonColor(highlightedReasonData.value) + '30',
-                      color: textMode === 'light' ? '#fff' : getReasonColor(highlightedReasonData.value),
-                    }}
-                  >
-                    {highlightedReasonData.value}
-                  </span>
+        {/* Chart section with highlighted reason just above the bars */}
+        <div className={`flex-1 flex items-center justify-center min-h-0`}>
+          <div className="w-full max-w-2xl">
+            {/* Highlighted reason immediately above chart */}
+            {highlightedReasonData && (
+              <div className="flex justify-center mb-4">
+                <div
+                  className={`${cardBg} backdrop-blur rounded-lg p-5 max-w-2xl w-full text-center`}
+                  style={{
+                    borderLeft: `5px solid ${getReasonColor(highlightedReasonData.value)}`,
+                  }}
+                >
+                  <p className={`${headingColor} text-xl leading-relaxed`}>
+                    &ldquo;{highlightedReasonData.reason || 'No reason provided'}&rdquo;
+                  </p>
+                  <div className="flex items-center justify-center gap-2 mt-2">
+                    {highlightedReasonData.display_name && (
+                      <span className={`text-sm ${subTextColor}`}>— {highlightedReasonData.display_name}</span>
+                    )}
+                    <span
+                      className="text-xs font-medium px-2 py-0.5 rounded"
+                      style={{
+                        backgroundColor: getReasonColor(highlightedReasonData.value) + '30',
+                        color: textMode === 'light' ? '#fff' : getReasonColor(highlightedReasonData.value),
+                      }}
+                    >
+                      {highlightedReasonData.value}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-          <div className="flex-1 flex items-center justify-center min-h-0">
-            <div className="w-full max-w-2xl">
-              <BarChart
-                data={adaptedChartData}
-                totalVotes={questionVotes.length}
-                size="large"
-                backgroundColor={bgColor}
-              />
-            </div>
+            )}
+            <BarChart
+              data={adaptedChartData}
+              totalVotes={questionVotes.length}
+              size="large"
+              backgroundColor={bgColor}
+            />
           </div>
         </div>
 
