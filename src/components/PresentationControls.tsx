@@ -821,25 +821,6 @@ function BatchControlPanel({
       <div className="flex-1 flex gap-4 min-h-0">
         {/* Chart + highlighted reason column */}
         <div className="flex-1 flex flex-col gap-3 min-w-0 min-h-0">
-          <div className="flex-1 bg-gray-50 rounded-lg p-4 flex items-center justify-center min-h-0">
-            {!hasSeparateProjection && !allRevealed ? (
-              <div className="text-center">
-                <p className="text-gray-400 text-lg mb-2">Waiting for responses...</p>
-                <p className="text-gray-500 text-3xl font-bold">{questionVotes.length}</p>
-                <p className="text-gray-400 text-sm mt-1">vote{questionVotes.length !== 1 ? 's' : ''} received</p>
-              </div>
-            ) : (
-              <div className="w-full">
-                <BarChart
-                  data={chartData}
-                  totalVotes={questionVotes.length}
-                  size="default"
-                  theme="light"
-                />
-              </div>
-            )}
-          </div>
-
           {/* Highlighted reason display */}
           {highlightedVote && (
             <div className="shrink-0 flex justify-center">
@@ -871,6 +852,25 @@ function BatchControlPanel({
               </div>
             </div>
           )}
+
+          <div className="flex-1 bg-gray-50 rounded-lg p-4 flex items-center justify-center min-h-0">
+            {!hasSeparateProjection && !allRevealed ? (
+              <div className="text-center">
+                <p className="text-gray-400 text-lg mb-2">Waiting for responses...</p>
+                <p className="text-gray-500 text-3xl font-bold">{questionVotes.length}</p>
+                <p className="text-gray-400 text-sm mt-1">vote{questionVotes.length !== 1 ? 's' : ''} received</p>
+              </div>
+            ) : (
+              <div className="w-full">
+                <BarChart
+                  data={chartData}
+                  totalVotes={questionVotes.length}
+                  size="default"
+                  theme="light"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Reasons panel (scrollable, right side) — only when results are shown */}
