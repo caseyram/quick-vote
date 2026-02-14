@@ -1555,6 +1555,11 @@ export default function AdminSession() {
           onActivateSequenceItem={handleActivateSequenceItem}
           onEndSession={handleEndSession}
           onExitPresentationMode={() => setPresentationMode(false)}
+          onQuickQuestion={handleQuickQuestion}
+          quickQuestionLoading={quickQuestionLoading}
+          countdownRemaining={countdownRemaining}
+          countdownRunning={countdownRunning}
+          onCloseVoting={handleCloseVotingInternal}
         />
       )}
 
