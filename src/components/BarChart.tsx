@@ -82,7 +82,7 @@ export function BarChart({ data, totalVotes, size = 'default', theme = 'dark', b
                 }}
               />
             </div>
-            <div className={`${labelClass} text-center mt-2 truncate w-full`}>
+            <div className={`${labelClass} text-center mt-2 w-full break-words`}>
               {item.label}
             </div>
           </div>
