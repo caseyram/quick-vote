@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { QRCodeSVG } from 'qrcode.react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { ConnectionStatus } from '../hooks/use-realtime-channel';
 import type { SessionItem, Vote } from '../types/database';
@@ -36,6 +38,18 @@ const timerOptions = [
   { label: 'None', value: null },
 ] as const;
 
+const slideVariants = {
+  enter: (direction: 'forward' | 'backward' | null) => ({
+    x: direction === 'forward' ? '100%' : direction === 'backward' ? '-100%' : 0,
+    opacity: direction ? 0 : 1,
+  }),
+  center: { x: 0, opacity: 1 },
+  exit: (direction: 'forward' | 'backward' | null) => ({
+    x: direction === 'forward' ? '-100%' : direction === 'backward' ? '100%' : 0,
+    opacity: direction ? 0 : 1,
+  }),
+};
+
 export function PresentationControls({
   sessionId,
   sessionTitle,
@@ -66,9 +80,11 @@ export function PresentationControls({
   const [timerDuration, setTimerDuration] = useState<number | null>(30);
   const [quickText, setQuickText] = useState('');
   const [showNextPreview, setShowNextPreview] = useState(false);
+  const [navigationDirection, setNavigationDirection] = useState<'forward' | 'backward' | null>(null);
+  const [qrExpanded, setQrExpanded] = useState(false);
   const presentationWindowRef = useRef<Window | null>(null);
 
-  // Auto-show next preview when presentation window opens, hide when it closes
+  // Auto-hide next preview when presentation window closes
   useEffect(() => {
     if (!presentationWindowRef.current) return;
     const interval = setInterval(() => {
@@ -80,16 +96,24 @@ export function PresentationControls({
     return () => clearInterval(interval);
   }, [showNextPreview]);
 
+  // Wrap onActivateSequenceItem to capture navigation direction
+  const handleActivateItem = useCallback((item: SessionItem, direction: 'forward' | 'backward') => {
+    setNavigationDirection(direction);
+    onActivateSequenceItem(item, direction);
+  }, [onActivateSequenceItem]);
+
   // Use navigation hook for keyboard shortcuts
   const { currentIndex, canGoNext, canGoPrev, goNext, goPrev } = useSequenceNavigation({
     enabled: true,
-    onActivateItem: onActivateSequenceItem,
+    onActivateItem: handleActivateItem,
   });
 
   const currentItem = currentIndex >= 0 ? sessionItems[currentIndex] : null;
   const nextItem = currentIndex >= 0 && currentIndex < sessionItems.length - 1
     ? sessionItems[currentIndex + 1]
     : null;
+
+  const participantUrl = `${window.location.origin}/session/${sessionId}`;
 
   function handleOpenPresentation() {
     const url = `${window.location.origin}/presentation/${sessionId}`;
@@ -146,10 +170,6 @@ export function PresentationControls({
       event: 'black_screen_toggle',
       payload: { active: newState },
     });
-  }
-
-  function handleShowShortcuts() {
-    setShowShortcutHelp(true);
   }
 
   function handleRevealQuestion(questionId: string) {
@@ -214,12 +234,13 @@ export function PresentationControls({
       } else if (event.key === 'Escape' && showShortcutHelp) {
         setShowShortcutHelp(false);
       }
-      // Space, ArrowRight, ArrowLeft are already handled by useSequenceNavigation hook
     }
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [blackScreenActive, showShortcutHelp]);
+
+  const isBatchActive = currentItem?.item_type === 'batch' && currentItem.batch_id;
 
   return (
     <div className="flex h-screen bg-white">
@@ -243,7 +264,7 @@ export function PresentationControls({
             onDeleteSlide={() => {}}
             isLive={true}
             activeSessionItemId={activeSessionItemId}
-            onActivateItem={onActivateSequenceItem}
+            onActivateItem={handleActivateItem}
           />
         </div>
         <div className="p-4 border-t border-gray-200">
@@ -256,24 +277,26 @@ export function PresentationControls({
         </div>
       </div>
 
-      {/* Center area: Current + Next preview OR Batch controls */}
-      <div className="flex-1 flex flex-col p-6 min-h-0">
-        {/* Content area: takes remaining space, clips overflow */}
-        <div className="flex-1 min-h-0 overflow-hidden">
-          {currentItem?.item_type === 'batch' && currentItem.batch_id ? (
-            <BatchControlPanel
-              batchId={currentItem.batch_id}
-              questions={questions}
-              sessionVotes={sessionVotes}
-              revealedQuestions={revealedQuestions}
-              highlightedReasonId={highlightedReasonId}
-              currentBatchQuestionIndex={currentBatchQuestionIndex}
-              onSetCurrentBatchQuestionIndex={setCurrentBatchQuestionIndex}
-              onRevealQuestion={handleRevealQuestion}
-              onHighlightReason={handleHighlightReason}
-            />
+      {/* Center area */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Content area */}
+        <div className="flex-1 min-h-0 overflow-hidden relative">
+          {isBatchActive ? (
+            <div className="h-full p-6">
+              <BatchControlPanel
+                batchId={currentItem.batch_id!}
+                questions={questions}
+                sessionVotes={sessionVotes}
+                revealedQuestions={revealedQuestions}
+                highlightedReasonId={highlightedReasonId}
+                currentBatchQuestionIndex={currentBatchQuestionIndex}
+                onSetCurrentBatchQuestionIndex={setCurrentBatchQuestionIndex}
+                onRevealQuestion={handleRevealQuestion}
+                onHighlightReason={handleHighlightReason}
+              />
+            </div>
           ) : showNextPreview ? (
-            <div className="flex gap-6 h-full">
+            <div className="flex gap-6 h-full p-6">
               <div className="flex-1 flex flex-col min-w-0">
                 <h2 className="text-sm font-medium text-gray-500 mb-2">Current</h2>
                 <div className="flex-1 bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center">
@@ -296,18 +319,66 @@ export function PresentationControls({
               </div>
             </div>
           ) : (
-            <div className="flex-1 bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center">
-              {currentItem ? (
-                <ProjectionPreview item={currentItem} />
+            /* Full view: projection-style with transitions */
+            <div className="h-full bg-[#1a1a2e] relative overflow-hidden">
+              <AnimatePresence initial={false} custom={navigationDirection}>
+                <motion.div
+                  key={activeSessionItemId ?? 'none'}
+                  custom={navigationDirection}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.4, ease: [0.4, 0.0, 0.2, 1] }}
+                  className="w-full h-full absolute inset-0 flex items-center justify-center"
+                >
+                  {currentItem ? (
+                    <ProjectionPreview item={currentItem} fullSize />
+                  ) : (
+                    <p className="text-gray-500 text-sm">No active item</p>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+
+              {/* QR overlay (bottom-right corner) */}
+              {qrExpanded ? (
+                <div
+                  className="absolute inset-0 bg-white z-20 flex flex-col items-center justify-center cursor-pointer"
+                  onClick={() => setQrExpanded(false)}
+                >
+                  <QRCodeSVG value={participantUrl} size={400} level="M" marginSize={1} />
+                  <p className="text-2xl text-gray-600 text-center mt-6 font-medium">Scan to join</p>
+                  <p className="text-sm text-gray-400 mt-2">Click anywhere to close</p>
+                </div>
               ) : (
-                <p className="text-gray-500 text-sm">No active item</p>
+                <button
+                  onClick={() => setQrExpanded(true)}
+                  className="absolute bottom-4 right-4 z-10 bg-white p-3 rounded-xl shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+                  title="Show QR code"
+                >
+                  <QRCodeSVG value={participantUrl} size={80} level="M" marginSize={1} />
+                  <p className="text-xs text-gray-600 text-center mt-1 font-medium">Scan to join</p>
+                </button>
               )}
+
+              {/* Connection + participant overlay (bottom-left) */}
+              <div className="absolute bottom-4 left-4 z-10 flex items-center gap-3 bg-black/40 backdrop-blur-sm rounded-lg px-3 py-2">
+                <div className={`w-2 h-2 rounded-full ${
+                  connectionStatus === 'connected' ? 'bg-green-400' :
+                  connectionStatus === 'reconnecting' ? 'bg-yellow-400 animate-pulse' :
+                  connectionStatus === 'disconnected' ? 'bg-red-400' :
+                  'bg-gray-400 animate-pulse'
+                }`} />
+                <span className="text-white/80 text-xs">
+                  {participantCount} connected
+                </span>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Nav bar: fixed height, never obscured */}
-        <div className="shrink-0 flex items-center justify-between pt-4 border-t border-gray-200">
+        {/* Nav bar: always visible */}
+        <div className="shrink-0 flex items-center justify-between px-6 py-3 border-t border-gray-200 bg-white">
           <button
             onClick={goPrev}
             disabled={!canGoPrev}
@@ -326,9 +397,9 @@ export function PresentationControls({
                   ? 'bg-indigo-100 text-indigo-700'
                   : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               }`}
-              title={showNextPreview ? 'Hide next preview' : 'Show next preview'}
+              title={showNextPreview ? 'Full view' : 'Split view'}
             >
-              {showNextPreview ? 'Hide Next' : 'Show Next'}
+              {showNextPreview ? 'Full View' : 'Split View'}
             </button>
           </div>
           <button
@@ -341,172 +412,174 @@ export function PresentationControls({
         </div>
       </div>
 
-      {/* Right sidebar: QR + controls */}
-      <div className="w-64 shrink-0 border-l border-gray-200 p-4 space-y-6">
-        {/* Timer Duration pills */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Timer Duration</h3>
-          <div className="flex flex-wrap gap-2">
-            {timerOptions.map((opt) => (
+      {/* Right sidebar: only visible in split view */}
+      {showNextPreview && (
+        <div className="w-64 shrink-0 border-l border-gray-200 p-4 space-y-6 overflow-y-auto">
+          {/* Timer Duration pills */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Timer Duration</h3>
+            <div className="flex flex-wrap gap-2">
+              {timerOptions.map((opt) => (
+                <button
+                  key={opt.label}
+                  onClick={() => setTimerDuration(opt.value)}
+                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                    timerDuration === opt.value
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Go Live Quick Question */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Go Live</h3>
+            <input
+              type="text"
+              value={quickText}
+              onChange={(e) => setQuickText(e.target.value)}
+              placeholder="Type a question..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && quickText.trim()) {
+                  e.preventDefault();
+                  onQuickQuestion(quickText, timerDuration);
+                  setQuickText('');
+                }
+              }}
+            />
+            <button
+              onClick={() => {
+                onQuickQuestion(quickText, timerDuration);
+                setQuickText('');
+              }}
+              disabled={!quickText.trim() || quickQuestionLoading}
+              className="w-full px-3 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              {quickQuestionLoading ? 'Going Live...' : 'Go Live'}
+            </button>
+          </div>
+
+          {/* Active Question Status */}
+          {(() => {
+            const activeQ = questions.find(q => q.status === 'active');
+            if (!activeQ) return null;
+            return (
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg space-y-2">
+                <h3 className="text-sm font-semibold text-yellow-800">Voting Active</h3>
+                <p className="text-xs text-yellow-700 truncate">{activeQ.text}</p>
+                {countdownRunning && (
+                  <CountdownTimer
+                    remainingSeconds={Math.ceil(countdownRemaining / 1000)}
+                    isRunning={countdownRunning}
+                    theme="light"
+                  />
+                )}
+                <button
+                  onClick={() => onCloseVoting(activeQ.id)}
+                  className="w-full px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-medium rounded-lg transition-colors"
+                >
+                  Close Voting
+                </button>
+              </div>
+            );
+          })()}
+
+          {/* QR Code controls */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">QR Code</h3>
+            <div className="space-y-2">
               <button
-                key={opt.label}
-                onClick={() => setTimerDuration(opt.value)}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                  timerDuration === opt.value
-                    ? 'bg-indigo-600 text-white'
+                onClick={() => handleQrToggle('hidden')}
+                className={`w-full px-3 py-2 rounded text-sm transition-colors ${
+                  qrMode === 'hidden'
+                    ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {opt.label}
+                Hidden
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Go Live Quick Question */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Go Live</h3>
-          <input
-            type="text"
-            value={quickText}
-            onChange={(e) => setQuickText(e.target.value)}
-            placeholder="Type a question..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && quickText.trim()) {
-                e.preventDefault();
-                onQuickQuestion(quickText, timerDuration);
-                setQuickText('');
-              }
-            }}
-          />
-          <button
-            onClick={() => {
-              onQuickQuestion(quickText, timerDuration);
-              setQuickText('');
-            }}
-            disabled={!quickText.trim() || quickQuestionLoading}
-            className="w-full px-3 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            {quickQuestionLoading ? 'Going Live...' : 'Go Live'}
-          </button>
-        </div>
-
-        {/* Active Question Status */}
-        {(() => {
-          const activeQ = questions.find(q => q.status === 'active');
-          if (!activeQ) return null;
-          return (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg space-y-2">
-              <h3 className="text-sm font-semibold text-yellow-800">Voting Active</h3>
-              <p className="text-xs text-yellow-700 truncate">{activeQ.text}</p>
-              {countdownRunning && (
-                <CountdownTimer
-                  remainingSeconds={Math.ceil(countdownRemaining / 1000)}
-                  isRunning={countdownRunning}
-                  theme="light"
-                />
-              )}
               <button
-                onClick={() => onCloseVoting(activeQ.id)}
-                className="w-full px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-medium rounded-lg transition-colors"
+                onClick={() => handleQrToggle('corner')}
+                className={`w-full px-3 py-2 rounded text-sm transition-colors ${
+                  qrMode === 'corner'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
               >
-                Close Voting
+                Corner
+              </button>
+              <button
+                onClick={() => handleQrToggle('fullscreen')}
+                className={`w-full px-3 py-2 rounded text-sm transition-colors ${
+                  qrMode === 'fullscreen'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Full Screen
               </button>
             </div>
-          );
-        })()}
+          </div>
 
-        {/* QR Code controls */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">QR Code</h3>
-          <div className="space-y-2">
+          {/* Presentation controls */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Presentation</h3>
             <button
-              onClick={() => handleQrToggle('hidden')}
+              onClick={handleBlackScreenToggle}
               className={`w-full px-3 py-2 rounded text-sm transition-colors ${
-                qrMode === 'hidden'
-                  ? 'bg-blue-600 text-white'
+                blackScreenActive
+                  ? 'bg-gray-800 text-white hover:bg-gray-900'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              Hidden
-            </button>
-            <button
-              onClick={() => handleQrToggle('corner')}
-              className={`w-full px-3 py-2 rounded text-sm transition-colors ${
-                qrMode === 'corner'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Corner
-            </button>
-            <button
-              onClick={() => handleQrToggle('fullscreen')}
-              className={`w-full px-3 py-2 rounded text-sm transition-colors ${
-                qrMode === 'fullscreen'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Full Screen
+              {blackScreenActive ? 'Show Content' : 'Black Screen'}
             </button>
           </div>
-        </div>
 
-        {/* Presentation controls */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Presentation</h3>
-          <button
-            onClick={handleBlackScreenToggle}
-            className={`w-full px-3 py-2 rounded text-sm transition-colors ${
-              blackScreenActive
-                ? 'bg-gray-800 text-white hover:bg-gray-900'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            {blackScreenActive ? 'Show Content' : 'Black Screen'}
-          </button>
-        </div>
+          {/* Participant count */}
+          <div className="pt-4 border-t border-gray-200">
+            <ParticipantCount count={participantCount} size="default" />
+          </div>
 
-        {/* Participant count */}
-        <div className="pt-4 border-t border-gray-200">
-          <ParticipantCount count={participantCount} size="default" />
-        </div>
+          {/* Keyboard shortcuts */}
+          <div className="pt-4 border-t border-gray-200">
+            <button
+              onClick={() => setShowShortcutHelp(true)}
+              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Keyboard Shortcuts (?)
+            </button>
+          </div>
 
-        {/* Keyboard shortcuts */}
-        <div className="pt-4 border-t border-gray-200">
-          <button
-            onClick={handleShowShortcuts}
-            className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            Keyboard Shortcuts (?)
-          </button>
-        </div>
-
-        {/* Connection Status */}
-        <div className="pt-4 border-t border-gray-200">
-          <div className="flex items-center gap-2 text-xs">
-            <div className={`w-2 h-2 rounded-full ${
-              connectionStatus === 'connected' ? 'bg-green-500' :
-              connectionStatus === 'reconnecting' ? 'bg-yellow-500 animate-pulse' :
-              connectionStatus === 'disconnected' ? 'bg-red-500' :
-              'bg-gray-400 animate-pulse'
-            }`} />
-            <span className={
-              connectionStatus === 'connected' ? 'text-green-600' :
-              connectionStatus === 'reconnecting' ? 'text-yellow-600' :
-              connectionStatus === 'disconnected' ? 'text-red-600' :
-              'text-gray-500'
-            }>
-              {connectionStatus === 'connected' ? 'Connected' :
-               connectionStatus === 'reconnecting' ? 'Reconnecting...' :
-               connectionStatus === 'disconnected' ? 'Disconnected' :
-               'Connecting...'}
-            </span>
+          {/* Connection Status */}
+          <div className="pt-4 border-t border-gray-200">
+            <div className="flex items-center gap-2 text-xs">
+              <div className={`w-2 h-2 rounded-full ${
+                connectionStatus === 'connected' ? 'bg-green-500' :
+                connectionStatus === 'reconnecting' ? 'bg-yellow-500 animate-pulse' :
+                connectionStatus === 'disconnected' ? 'bg-red-500' :
+                'bg-gray-400 animate-pulse'
+              }`} />
+              <span className={
+                connectionStatus === 'connected' ? 'text-green-600' :
+                connectionStatus === 'reconnecting' ? 'text-yellow-600' :
+                connectionStatus === 'disconnected' ? 'text-red-600' :
+                'text-gray-500'
+              }>
+                {connectionStatus === 'connected' ? 'Connected' :
+                 connectionStatus === 'reconnecting' ? 'Reconnecting...' :
+                 connectionStatus === 'disconnected' ? 'Disconnected' :
+                 'Connecting...'}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Keyboard shortcut help overlay */}
       <KeyboardShortcutHelp
@@ -556,7 +629,6 @@ function BatchControlPanel({
   const aggregated = aggregateVotes(questionVotes);
   const barData = buildConsistentBarData(currentQuestion, aggregated);
 
-  // Map bar data to BarChart format with colors
   const chartData = barData.map((item, index) => {
     let color: string;
     if (currentQuestion.type === 'agree_disagree') {
@@ -578,7 +650,6 @@ function BatchControlPanel({
     };
   });
 
-  // Get reason color
   const getReasonColor = (voteValue: string): string => {
     if (currentQuestion.type === 'agree_disagree') {
       const colorMap: Record<string, string> = {
@@ -593,7 +664,6 @@ function BatchControlPanel({
     }
   };
 
-  // Group reasons by vote option
   const reasonsByOption: Record<string, Vote[]> = {};
   questionVotes.forEach((vote) => {
     if (vote.reason && vote.reason.trim()) {
@@ -608,7 +678,6 @@ function BatchControlPanel({
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* Question tabs/stepper */}
       <div className="flex gap-2 mb-4 overflow-x-auto">
         {batchQuestions.map((q, idx) => (
           <button
@@ -625,9 +694,7 @@ function BatchControlPanel({
         ))}
       </div>
 
-      {/* Scrollable question content */}
       <div className="flex-1 overflow-y-auto border rounded-lg bg-white p-4 space-y-4 min-h-0">
-        {/* Question text */}
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">{currentQuestion.text}</h3>
           <button
@@ -642,7 +709,6 @@ function BatchControlPanel({
           </button>
         </div>
 
-        {/* Chart */}
         <div className="bg-gray-50 rounded-lg p-4">
           <BarChart
             data={chartData}
@@ -652,7 +718,6 @@ function BatchControlPanel({
           />
         </div>
 
-        {/* Reasons grouped by option */}
         {Object.keys(reasonsByOption).length > 0 && (
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-gray-700">Reasons</h4>
@@ -698,13 +763,13 @@ function BatchControlPanel({
   );
 }
 
-// Mini projection preview component
-function ProjectionPreview({ item }: { item: SessionItem }) {
+// Projection preview component
+function ProjectionPreview({ item, fullSize }: { item: SessionItem; fullSize?: boolean }) {
   const { batches, questions } = useSessionStore();
 
   if (item.item_type === 'slide' && item.slide_image_path) {
     return (
-      <div className="w-full h-full scale-50 origin-center">
+      <div className={`w-full h-full ${fullSize ? '' : 'scale-50'} origin-center`}>
         <SlideDisplay imagePath={item.slide_image_path} caption={item.slide_caption} />
       </div>
     );
@@ -716,11 +781,11 @@ function ProjectionPreview({ item }: { item: SessionItem }) {
 
     return (
       <div className="text-center px-4">
-        <p className="text-lg text-gray-400 mb-2">Batch Voting</p>
-        <h3 className="text-2xl font-bold text-white leading-tight">
+        <p className={`${fullSize ? 'text-2xl' : 'text-lg'} text-gray-400 mb-2`}>Batch Voting</p>
+        <h3 className={`${fullSize ? 'text-5xl' : 'text-2xl'} font-bold text-white leading-tight`}>
           {batch?.name ?? 'Untitled Batch'}
         </h3>
-        <p className="text-lg text-gray-400 mt-2">
+        <p className={`${fullSize ? 'text-2xl' : 'text-lg'} text-gray-400 mt-2`}>
           {questionCount} Question{questionCount !== 1 ? 's' : ''}
         </p>
       </div>
