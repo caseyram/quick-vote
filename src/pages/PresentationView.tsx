@@ -14,6 +14,7 @@ import { BatchResultsProjection } from '../components/BatchResultsProjection';
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../components/BarChart';
 import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation';
 import { getTextColor } from '../lib/color-contrast';
+import { TeamQRGrid } from '../components/TeamQRGrid';
 
 export default function PresentationView() {
   const { sessionId } = useParams();
@@ -31,12 +32,14 @@ export default function PresentationView() {
 
   const [showFullscreenHint, setShowFullscreenHint] = useState(true);
   const [qrMode, setQrMode] = useState<QRMode>('hidden');
+  const [showTeamQR, setShowTeamQR] = useState(false);
   const [blackScreenActive, setBlackScreenActive] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
   const [sessionVotes, setSessionVotes] = useState<Record<string, Vote[]>>({});
   const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(new Set());
   const [highlightedReason, setHighlightedReason] = useState<{ questionId: string; reasonId: string } | null>(null);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
+  const [reasonsPerPage, setReasonsPerPage] = useState<1 | 2 | 4>(1);
   const [activeInlineQuestion, setActiveInlineQuestion] = useState<Question | null>(null);
   const [inlineVotingClosed, setInlineVotingClosed] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -216,6 +219,11 @@ export default function PresentationView() {
       setQrMode(payload.mode);
     });
 
+    // Listen for team QR toggle
+    channel.on('broadcast', { event: 'team_qr_toggled' }, ({ payload }: any) => {
+      setShowTeamQR(payload.show);
+    });
+
     // Listen for black screen toggle
     channel.on('broadcast', { event: 'black_screen_toggle' }, ({ payload }: any) => {
       setBlackScreenActive(payload.active);
@@ -244,6 +252,11 @@ export default function PresentationView() {
     // Listen for question tab selection from admin
     channel.on('broadcast', { event: 'question_selected' }, ({ payload }: any) => {
       setSelectedQuestionId(payload.questionId);
+    });
+
+    // Listen for reasons-per-page setting from admin
+    channel.on('broadcast', { event: 'reasons_per_page' }, ({ payload }: any) => {
+      setReasonsPerPage(payload.count);
     });
 
     channelRef.current = channel;
@@ -488,6 +501,7 @@ export default function PresentationView() {
                         highlightedReason={highlightedReason}
                         selectedQuestionId={selectedQuestionId}
                         backgroundColor="#1a1a2e"
+                        reasonsPerPage={reasonsPerPage}
                       />
                     </motion.div>
                   )}
@@ -503,8 +517,16 @@ export default function PresentationView() {
         </AnimatePresence>
       </div>
 
-      {/* QR overlay */}
-      <QROverlay mode={qrMode} sessionUrl={sessionUrl} />
+      {/* QR overlay - hidden when team QR is showing */}
+      {!showTeamQR && <QROverlay mode={qrMode} sessionUrl={sessionUrl} />}
+
+      {/* Team QR Grid overlay */}
+      {showTeamQR && useSessionStore.getState().session && useSessionStore.getState().session!.teams.length > 0 && (
+        <TeamQRGrid
+          sessionId={sessionId!}
+          teams={useSessionStore.getState().session!.teams}
+        />
+      )}
 
       {/* Black screen overlay */}
       <AnimatePresence>

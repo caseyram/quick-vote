@@ -12,8 +12,10 @@ import { ParticipantCount } from './ParticipantCount';
 import { KeyboardShortcutHelp } from './KeyboardShortcutHelp';
 import { CountdownTimer } from './CountdownTimer';
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from './BarChart';
-import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation';
+import { aggregateVotes, buildConsistentBarData, getTeamParticipantCount } from '../lib/vote-aggregation';
 import type { QRMode } from './QROverlay';
+import { TeamQRGrid } from './TeamQRGrid';
+import { TeamFilterTabs } from './TeamFilterTabs';
 
 interface PresentationControlsProps {
   sessionId: string;
@@ -69,20 +71,24 @@ export function PresentationControls({
     sessionItems,
     activeSessionItemId,
     questions,
+    session,
   } = useSessionStore();
 
   const [qrMode, setQrMode] = useState<QRMode>('hidden');
+  const [showTeamQR, setShowTeamQR] = useState(false);
   const [blackScreenActive, setBlackScreenActive] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
   const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(new Set());
   const [highlightedReasonId, setHighlightedReasonId] = useState<string | null>(null);
   const [currentBatchQuestionIndex, setCurrentBatchQuestionIndex] = useState(0);
+  const [reasonsPerPage, setReasonsPerPage] = useState<1 | 2 | 4>(1);
   const [timerDuration, setTimerDuration] = useState<number | null>(30);
   const [quickText, setQuickText] = useState('');
   const [showNextPreview, setShowNextPreview] = useState(false);
   const [navigationDirection, setNavigationDirection] = useState<'forward' | 'backward' | null>(null);
   const [qrExpanded, setQrExpanded] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const presentationWindowRef = useRef<Window | null>(null);
 
   // Auto-hide next preview when presentation window closes
@@ -163,6 +169,16 @@ export function PresentationControls({
     });
   }
 
+  function handleTeamQrToggle() {
+    const newState = !showTeamQR;
+    setShowTeamQR(newState);
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'team_qr_toggled',
+      payload: { show: newState },
+    });
+  }
+
   function handleBlackScreenToggle() {
     const newState = !blackScreenActive;
     setBlackScreenActive(newState);
@@ -234,6 +250,24 @@ export function PresentationControls({
     });
   }
 
+  function handleReasonsPerPage(count: 1 | 2 | 4) {
+    setReasonsPerPage(count);
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'reasons_per_page',
+      payload: { count },
+    });
+  }
+
+  function handleTeamChange(newTeam: string | null) {
+    setSelectedTeam(newTeam);
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'team_filter_changed',
+      payload: { teamId: newTeam },
+    });
+  }
+
   function handleHighlightReason(questionId: string, reasonId: string) {
     const isSameReason = highlightedReasonId === reasonId;
     const newReasonId = isSameReason ? null : reasonId;
@@ -297,6 +331,26 @@ export function PresentationControls({
           >
             Open Presentation
           </button>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(participantUrl);
+              setLinkCopied(true);
+              setTimeout(() => setLinkCopied(false), 2000);
+            }}
+            className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium text-sm flex items-center justify-center gap-2"
+          >
+            {linkCopied ? (
+              <>
+                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                Copied!
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+                Copy Participant Link
+              </>
+            )}
+          </button>
         </div>
         <div className="p-4">
           <SequenceManager
@@ -322,6 +376,18 @@ export function PresentationControls({
 
       {/* Center area */}
       <div className="flex-1 flex flex-col min-h-0">
+        {/* Team filter tabs */}
+        {session?.teams && session.teams.length > 0 && (
+          <div className="shrink-0 px-6 pt-4">
+            <TeamFilterTabs
+              teams={session.teams}
+              selectedTeam={selectedTeam}
+              onTeamChange={handleTeamChange}
+              theme="light"
+            />
+          </div>
+        )}
+
         {/* Content area */}
         <div className="flex-1 min-h-0 overflow-hidden relative">
           {isBatchActive ? (
@@ -338,6 +404,9 @@ export function PresentationControls({
                 onRevealQuestion={handleRevealQuestion}
                 onHighlightReason={handleHighlightReason}
                 hasSeparateProjection={showNextPreview}
+                reasonsPerPage={reasonsPerPage}
+                onReasonsPerPageChange={handleReasonsPerPage}
+                selectedTeam={selectedTeam}
               />
             </div>
           ) : showNextPreview ? (
@@ -440,6 +509,13 @@ export function PresentationControls({
                   {participantCount} connected
                 </span>
               </div>
+
+              {/* Team QR Grid overlay */}
+              {showTeamQR && session && session.teams.length > 0 && (
+                <div className="absolute inset-0 z-30">
+                  <TeamQRGrid sessionId={sessionId} teams={session.teams} />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -590,6 +666,18 @@ export function PresentationControls({
               >
                 Full Screen
               </button>
+              {session && session.teams.length > 0 && (
+                <button
+                  onClick={handleTeamQrToggle}
+                  className={`w-full px-3 py-2 rounded text-sm transition-colors ${
+                    showTeamQR
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Team QR Grid
+                </button>
+              )}
             </div>
           </div>
 
@@ -670,6 +758,9 @@ function BatchControlPanel({
   onRevealQuestion,
   onHighlightReason,
   hasSeparateProjection,
+  reasonsPerPage,
+  onReasonsPerPageChange,
+  selectedTeam,
 }: {
   batchId: string;
   questions: any[];
@@ -682,6 +773,9 @@ function BatchControlPanel({
   onRevealQuestion: (questionId: string) => void;
   onHighlightReason: (questionId: string, reasonId: string) => void;
   hasSeparateProjection: boolean;
+  reasonsPerPage: 1 | 2 | 4;
+  onReasonsPerPageChange: (count: 1 | 2 | 4) => void;
+  selectedTeam: string | null;
 }) {
   const batchQuestions = questions
     .filter((q) => q.batch_id === batchId)
@@ -697,7 +791,7 @@ function BatchControlPanel({
 
   const currentQuestion = batchQuestions[currentBatchQuestionIndex] || batchQuestions[0];
   const questionVotes = sessionVotes[currentQuestion.id] || [];
-  const aggregated = aggregateVotes(questionVotes);
+  const aggregated = aggregateVotes(questionVotes, selectedTeam);
   const barData = buildConsistentBarData(currentQuestion, aggregated);
 
   const chartData = barData.map((item, index) => {
@@ -735,7 +829,14 @@ function BatchControlPanel({
     }
   };
 
+  // Pre-initialize in question option order so reasons are grouped consistently
   const reasonsByOption: Record<string, Vote[]> = {};
+  const optionOrder = currentQuestion.type === 'agree_disagree'
+    ? ['Agree', 'Sometimes', 'Disagree']
+    : (currentQuestion.options ?? []);
+  for (const opt of optionOrder) {
+    reasonsByOption[opt] = [];
+  }
   questionVotes.forEach((vote) => {
     if (vote.reason && vote.reason.trim()) {
       if (!reasonsByOption[vote.value]) {
@@ -744,6 +845,10 @@ function BatchControlPanel({
       reasonsByOption[vote.value].push(vote);
     }
   });
+  // Remove empty groups (options with no reasons)
+  for (const key of Object.keys(reasonsByOption)) {
+    if (reasonsByOption[key].length === 0) delete reasonsByOption[key];
+  }
 
   const batchQuestionIds = batchQuestions.map((q) => q.id);
   const allRevealed = batchQuestionIds.every((id) => revealedQuestions.has(id));
@@ -754,6 +859,15 @@ function BatchControlPanel({
 
   // Flatten all reasons for playback and keyboard navigation
   const allReasons = Object.entries(reasonsByOption).flatMap(([, votes]) => votes);
+
+  // Build group-aware pages: each page stays within one option group
+  const reasonPages: typeof allReasons[] = [];
+  for (const votes of Object.values(reasonsByOption)) {
+    for (let i = 0; i < votes.length; i += reasonsPerPage) {
+      reasonPages.push(votes.slice(i, i + reasonsPerPage));
+    }
+  }
+
   const [playState, setPlayState] = useState<'idle' | 'playing' | 'paused'>('idle');
   const [viewedReasonIds, setViewedReasonIds] = useState<Set<string>>(new Set());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -763,22 +877,37 @@ function BatchControlPanel({
   onHighlightReasonRef.current = onHighlightReason;
   const allReasonsRef = useRef(allReasons);
   allReasonsRef.current = allReasons;
+  const reasonPagesRef = useRef(reasonPages);
+  reasonPagesRef.current = reasonPages;
   const highlightedReasonIdRef = useRef(highlightedReasonId);
   highlightedReasonIdRef.current = highlightedReasonId;
   const playStateRef = useRef(playState);
   playStateRef.current = playState;
 
   // Shared: go to next/prev reason (used by auto-play, keyboard, and manual)
-  function goToNextReason() {
+  // When usePages=true (auto-play with reasonsPerPage>1), jumps to start of next group-aware page
+  function goToNextReason(usePages = false) {
     const reasons = allReasonsRef.current;
     if (reasons.length === 0) return;
-    const currentIdx = reasons.findIndex((v) => v.id === highlightedReasonIdRef.current);
-    const nextIdx = currentIdx + 1;
-    if (nextIdx >= reasons.length) {
-      if (playStateRef.current === 'playing') setPlayState('paused');
-      return;
+
+    if (usePages) {
+      const pages = reasonPagesRef.current;
+      const curPageIdx = pages.findIndex((p) => p.some((v) => v.id === highlightedReasonIdRef.current));
+      const nextPageIdx = curPageIdx + 1;
+      if (nextPageIdx >= pages.length) {
+        if (playStateRef.current === 'playing') setPlayState('paused');
+        return;
+      }
+      onHighlightReasonRef.current(currentQuestion.id, pages[nextPageIdx][0].id);
+    } else {
+      const currentIdx = reasons.findIndex((v) => v.id === highlightedReasonIdRef.current);
+      const nextIdx = currentIdx + 1;
+      if (nextIdx >= reasons.length) {
+        if (playStateRef.current === 'playing') setPlayState('paused');
+        return;
+      }
+      onHighlightReasonRef.current(currentQuestion.id, reasons[nextIdx].id);
     }
-    onHighlightReasonRef.current(currentQuestion.id, reasons[nextIdx].id);
   }
 
   function goToPrevReason() {
@@ -811,26 +940,33 @@ function BatchControlPanel({
     onHighlightReason(currentQuestion.id, '');
   }
 
-  // Mark a reason as viewed whenever it's highlighted (manual or auto)
+  // Mark all reasons on the active page as viewed whenever highlight changes
   useEffect(() => {
     if (highlightedReasonId) {
       setViewedReasonIds((prev) => {
-        if (prev.has(highlightedReasonId)) return prev;
+        const idsToMark = activePageReasonIds.size > 0 ? activePageReasonIds : new Set([highlightedReasonId]);
+        let changed = false;
+        for (const id of idsToMark) {
+          if (!prev.has(id)) { changed = true; break; }
+        }
+        if (!changed) return prev;
         const next = new Set(prev);
-        next.add(highlightedReasonId);
+        for (const id of idsToMark) next.add(id);
         return next;
       });
     }
   }, [highlightedReasonId]);
 
-  // Auto-scroll reasons panel to keep active item visible
+  // Auto-scroll reasons panel to keep active items centered with context visible
   useEffect(() => {
     if (!highlightedReasonId || !scrollContainerRef.current) return;
+    // Scroll the first active item to center so previous/next items are visible
+    const ids = activePageReasonIds.size > 0 ? Array.from(activePageReasonIds) : [highlightedReasonId];
     const el = scrollContainerRef.current.querySelector(
-      `[data-reason-id="${highlightedReasonId}"]`,
+      `[data-reason-id="${ids[0]}"]`,
     );
-    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [highlightedReasonId]);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [highlightedReasonId, reasonsPerPage]);
 
   // Keyboard: up/down arrows navigate reasons
   useEffect(() => {
@@ -857,17 +993,28 @@ function BatchControlPanel({
       return;
     }
 
-    const currentReason = allReasons.find((v) => v.id === highlightedReasonId);
-    const len = currentReason?.reason?.length ?? 0;
-    // Base 2.5s, +0.5s per 40 chars, capped at 4s
-    const delay = Math.min(2500 + Math.floor(len / 40) * 500, 4000);
+    // Find the current group-aware page to compute delay from its content
+    const curPage = reasonPages.find((p) => p.some((v) => v.id === highlightedReasonId));
+    const pageLen = curPage?.length ?? 1;
+    const maxLen = Math.max(...(curPage ?? []).map((v) => v.reason?.length ?? 0), 0);
+    // Base 2.5s, +0.5s per 40 chars, capped at 4s — scaled by items on this page
+    const baseDelay = Math.min(2500 + Math.floor(maxLen / 40) * 500, 4000);
+    const delay = reasonsPerPage > 1 ? baseDelay * pageLen : baseDelay;
 
     const timeout = setTimeout(() => {
-      goToNextReason();
+      goToNextReason(reasonsPerPage > 1);
     }, delay);
 
     return () => clearTimeout(timeout);
-  }, [playState, highlightedReasonId]);
+  }, [playState, highlightedReasonId, reasonsPerPage]);
+
+  // Compute which group-aware page of reasons is active (for multi-select highlighting)
+  const activePageData = highlightedReasonId
+    ? reasonPages.find((p) => p.some((v) => v.id === highlightedReasonId))
+    : null;
+  const activePageReasonIds = new Set(
+    activePageData ? activePageData.map((v) => v.id) : [],
+  );
 
   // Find currently highlighted reason for display below chart
   const highlightedVote = highlightedReasonId
@@ -914,10 +1061,10 @@ function BatchControlPanel({
       </div>
 
       <div className="flex-1 flex gap-4 min-h-0">
-        {/* Chart + highlighted reason column */}
+        {/* Chart + highlighted reason(s) column */}
         <div className="flex-1 flex flex-col gap-3 min-w-0 min-h-0">
-          {/* Highlighted reason display */}
-          {highlightedVote && (
+          {/* Highlighted reason display — single */}
+          {reasonsPerPage === 1 && highlightedVote && (
             <div className="shrink-0 flex justify-center">
               <div
                 className="rounded-lg p-4 border-2 max-w-lg w-full text-center"
@@ -947,6 +1094,40 @@ function BatchControlPanel({
               </div>
             </div>
           )}
+          {/* Highlighted reasons display — multiple (2 or 4) */}
+          {reasonsPerPage > 1 && activePageData && activePageData.length > 0 && (
+            <div className={`shrink-0 ${reasonsPerPage === 4 ? 'grid grid-cols-2 gap-2' : 'flex flex-col gap-2'} max-w-lg mx-auto w-full`}>
+              {activePageData.map((vote) => (
+                <div
+                  key={vote.id}
+                  className="rounded-lg p-3 border-2 text-center"
+                  style={{
+                    borderLeftWidth: '5px',
+                    borderLeftColor: getReasonColor(vote.value),
+                    backgroundColor: getReasonColor(vote.value) + '08',
+                  }}
+                >
+                  <p className={`${reasonsPerPage === 4 ? 'text-xs' : 'text-sm'} text-gray-800 font-medium leading-relaxed`}>
+                    &ldquo;{vote.reason}&rdquo;
+                  </p>
+                  <div className="flex items-center justify-center gap-2 mt-1">
+                    {vote.display_name && (
+                      <span className="text-xs text-gray-500">— {vote.display_name}</span>
+                    )}
+                    <span
+                      className="text-xs font-medium px-1.5 py-0.5 rounded"
+                      style={{
+                        backgroundColor: getReasonColor(vote.value) + '20',
+                        color: getReasonColor(vote.value),
+                      }}
+                    >
+                      {vote.value}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="flex-1 bg-gray-50 rounded-lg p-4 flex items-center justify-center min-h-0">
             {!hasSeparateProjection && !allRevealed ? (
@@ -974,7 +1155,23 @@ function BatchControlPanel({
             <div className="flex items-center justify-between p-3 pb-2 shrink-0 border-b border-gray-100">
               <h4 className="text-sm font-semibold text-gray-700">Reasons</h4>
               {allReasons.length > 0 && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center bg-gray-100 rounded overflow-hidden text-xs">
+                    {([1, 2, 4] as const).map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => onReasonsPerPageChange(n)}
+                        className={`px-1.5 py-0.5 font-medium transition-colors ${
+                          reasonsPerPage === n
+                            ? 'bg-indigo-600 text-white'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                        title={`Show ${n} reason${n > 1 ? 's' : ''} at a time`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
                   {playState !== 'idle' && (
                     <button
                       onClick={handleResetPlay}
@@ -1027,12 +1224,22 @@ function BatchControlPanel({
                   <div className="space-y-2">
                     {votes.map((vote) => {
                       const isViewed = viewedReasonIds.has(vote.id);
-                      const isActive = highlightedReasonId === vote.id;
+                      const isActive = reasonsPerPage > 1
+                        ? activePageReasonIds.has(vote.id)
+                        : highlightedReasonId === vote.id;
                       return (
                         <button
                           key={vote.id}
                           data-reason-id={vote.id}
-                          onClick={() => onHighlightReason(currentQuestion.id, vote.id)}
+                          onClick={() => {
+                            if (reasonsPerPage > 1) {
+                              // Snap to first reason on the group-aware page containing the clicked reason
+                              const page = reasonPages.find((p) => p.some((v) => v.id === vote.id));
+                              if (page) onHighlightReason(currentQuestion.id, page[0].id);
+                            } else {
+                              onHighlightReason(currentQuestion.id, vote.id);
+                            }
+                          }}
                           className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
                             isActive
                               ? 'border-indigo-600 bg-indigo-50'
