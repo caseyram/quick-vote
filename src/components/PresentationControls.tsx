@@ -761,17 +761,26 @@ function BatchControlPanel({
       return;
     }
 
-    // Only advance via interval — first reason is highlighted by handlePlayReasons
-    const interval = setInterval(() => {
-      playIndexRef.current += 1;
-      if (playIndexRef.current >= reasons.length) {
-        setPlayState('paused');
-        return;
-      }
-      onHighlightReasonRef.current(currentQuestion.id, reasons[playIndexRef.current].id);
-    }, 1500);
+    // Advance with variable timing based on reason length
+    let timeout: ReturnType<typeof setTimeout>;
+    function scheduleNext() {
+      const current = reasons[playIndexRef.current];
+      const len = current?.reason?.length ?? 0;
+      // Base 2.5s, +0.5s per 40 chars, capped at 4s
+      const delay = Math.min(2500 + Math.floor(len / 40) * 500, 4000);
+      timeout = setTimeout(() => {
+        playIndexRef.current += 1;
+        if (playIndexRef.current >= reasons.length) {
+          setPlayState('paused');
+          return;
+        }
+        onHighlightReasonRef.current(currentQuestion.id, reasons[playIndexRef.current].id);
+        scheduleNext();
+      }, delay);
+    }
+    scheduleNext();
 
-    return () => clearInterval(interval);
+    return () => clearTimeout(timeout);
   }, [playState, currentQuestion.id]);
 
   // Find currently highlighted reason for display below chart
