@@ -1595,8 +1595,8 @@ export default function AdminSession() {
         batchQuestionIds={activeBatchQuestionIds}
       />
 
-      {/* Admin Control Bar — always visible */}
-      <AdminControlBar
+      {/* Admin Control Bar — hidden in presentation mode (PresentationControls has its own nav) */}
+      {!presentationMode && <AdminControlBar
         status={session.status}
         participantCount={participantCount}
         questions={questions}
@@ -1623,7 +1623,7 @@ export default function AdminSession() {
         // Existing batches from draft mode
         batches={batches}
         onActivateBatch={handleActivateBatch}
-      />
+      />}
 
       {/* Bulk Apply Confirmation Dialog */}
       <ConfirmDialog
