@@ -759,7 +759,6 @@ export default function AdminSession() {
 
     // 3. Update local store
     setActiveBatchId(batchId);
-    setResultsViewIndex(0);
     useSessionStore.getState().updateBatch(batchId, { status: 'active' });
 
     // 4. Get question IDs for this batch

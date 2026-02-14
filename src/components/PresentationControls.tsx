@@ -602,6 +602,7 @@ function BatchControlPanel({
   onSetCurrentBatchQuestionIndex,
   onRevealQuestion,
   onHighlightReason,
+  hasSeparateProjection,
 }: {
   batchId: string;
   questions: any[];
