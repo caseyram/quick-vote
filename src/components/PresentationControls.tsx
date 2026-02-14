@@ -705,15 +705,43 @@ function BatchControlPanel({
     0,
   );
 
-  // Flatten all reasons for playback
+  // Flatten all reasons for playback and keyboard navigation
   const allReasons = Object.entries(reasonsByOption).flatMap(([, votes]) => votes);
   const [playState, setPlayState] = useState<'idle' | 'playing' | 'paused'>('idle');
   const [viewedReasonIds, setViewedReasonIds] = useState<Set<string>>(new Set());
-  const reasonsRef = useRef<Vote[]>([]);
-  const playIndexRef = useRef(0);
-  // Stable ref for callback to avoid effect re-triggers on every render
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Stable refs to avoid stale closures in effects/timeouts
   const onHighlightReasonRef = useRef(onHighlightReason);
   onHighlightReasonRef.current = onHighlightReason;
+  const allReasonsRef = useRef(allReasons);
+  allReasonsRef.current = allReasons;
+  const highlightedReasonIdRef = useRef(highlightedReasonId);
+  highlightedReasonIdRef.current = highlightedReasonId;
+  const playStateRef = useRef(playState);
+  playStateRef.current = playState;
+
+  // Shared: go to next/prev reason (used by auto-play, keyboard, and manual)
+  function goToNextReason() {
+    const reasons = allReasonsRef.current;
+    if (reasons.length === 0) return;
+    const currentIdx = reasons.findIndex((v) => v.id === highlightedReasonIdRef.current);
+    const nextIdx = currentIdx + 1;
+    if (nextIdx >= reasons.length) {
+      if (playStateRef.current === 'playing') setPlayState('paused');
+      return;
+    }
+    onHighlightReasonRef.current(currentQuestion.id, reasons[nextIdx].id);
+  }
+
+  function goToPrevReason() {
+    const reasons = allReasonsRef.current;
+    if (reasons.length === 0) return;
+    const currentIdx = reasons.findIndex((v) => v.id === highlightedReasonIdRef.current);
+    const prevIdx = currentIdx <= 0 ? 0 : currentIdx - 1;
+    if (prevIdx === currentIdx && currentIdx !== -1) return;
+    onHighlightReasonRef.current(currentQuestion.id, reasons[prevIdx < 0 ? 0 : prevIdx].id);
+  }
 
   function handlePlayReasons() {
     if (playState === 'playing') {
@@ -721,23 +749,18 @@ function BatchControlPanel({
       return;
     }
     if (playState === 'paused') {
-      // Resume — current reason is already highlighted, just restart interval
       setPlayState('playing');
       return;
     }
     // idle → start from beginning
     if (allReasons.length === 0) return;
-    reasonsRef.current = allReasons;
-    playIndexRef.current = 0;
     setViewedReasonIds(new Set());
-    // Highlight first reason immediately (not yet highlighted, so no toggle issue)
     onHighlightReason(currentQuestion.id, allReasons[0].id);
     setPlayState('playing');
   }
 
   function handleResetPlay() {
     setPlayState('idle');
-    playIndexRef.current = 0;
     onHighlightReason(currentQuestion.id, '');
   }
 
@@ -753,35 +776,51 @@ function BatchControlPanel({
     }
   }, [highlightedReasonId]);
 
+  // Auto-scroll reasons panel to keep active item visible
+  useEffect(() => {
+    if (!highlightedReasonId || !scrollContainerRef.current) return;
+    const el = scrollContainerRef.current.querySelector(
+      `[data-reason-id="${highlightedReasonId}"]`,
+    );
+    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [highlightedReasonId]);
+
+  // Keyboard: up/down arrows navigate reasons
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        goToNextReason();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        goToPrevReason();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentQuestion.id]);
+
+  // Auto-play: schedule next reason with variable timing
   useEffect(() => {
     if (playState !== 'playing') return;
-    const reasons = reasonsRef.current;
-    if (reasons.length === 0) {
+    if (allReasons.length === 0) {
       setPlayState('idle');
       return;
     }
 
-    // Advance with variable timing based on reason length
-    let timeout: ReturnType<typeof setTimeout>;
-    function scheduleNext() {
-      const current = reasons[playIndexRef.current];
-      const len = current?.reason?.length ?? 0;
-      // Base 2.5s, +0.5s per 40 chars, capped at 4s
-      const delay = Math.min(2500 + Math.floor(len / 40) * 500, 4000);
-      timeout = setTimeout(() => {
-        playIndexRef.current += 1;
-        if (playIndexRef.current >= reasons.length) {
-          setPlayState('paused');
-          return;
-        }
-        onHighlightReasonRef.current(currentQuestion.id, reasons[playIndexRef.current].id);
-        scheduleNext();
-      }, delay);
-    }
-    scheduleNext();
+    const currentReason = allReasons.find((v) => v.id === highlightedReasonId);
+    const len = currentReason?.reason?.length ?? 0;
+    // Base 2.5s, +0.5s per 40 chars, capped at 4s
+    const delay = Math.min(2500 + Math.floor(len / 40) * 500, 4000);
+
+    const timeout = setTimeout(() => {
+      goToNextReason();
+    }, delay);
 
     return () => clearTimeout(timeout);
-  }, [playState, currentQuestion.id]);
+  }, [playState, highlightedReasonId]);
 
   // Find currently highlighted reason for display below chart
   const highlightedVote = highlightedReasonId
@@ -926,7 +965,7 @@ function BatchControlPanel({
                 </div>
               )}
             </div>
-            <div className="flex-1 overflow-y-auto p-3 pt-2 space-y-3">
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-3 pt-2 space-y-3">
               {Object.entries(reasonsByOption).map(([option, votes]) => (
                 <div key={option}>
                   <div
@@ -945,6 +984,7 @@ function BatchControlPanel({
                       return (
                         <button
                           key={vote.id}
+                          data-reason-id={vote.id}
                           onClick={() => onHighlightReason(currentQuestion.id, vote.id)}
                           className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
                             isActive
