@@ -12,12 +12,12 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 ## Current Position
 
 **Milestone:** v1.4 Template Authoring & Teams
-**Phase:** 24 of 26 (Presentation Polish)
-**Plan:** 03 of 03 complete
+**Phase:** 24.1 of 26 (Presentation-Only Active Mode)
+**Plan:** 01 of 02 complete
 **Status:** In progress
-**Last activity:** 2026-02-13 — Completed 24-03-PLAN.md (batch cover images)
+**Last activity:** 2026-02-14 — Completed 24.1-01-PLAN.md (Go Live, timer config, connection status)
 
-Progress: [███████████████░░░░░] 75% (v1.4: 10 of 12 plans complete)
+Progress: [███████████████░░░░░] 77% (v1.4: 11 of 14 plans complete)
 
 ## Milestone History
 
@@ -58,11 +58,15 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 
 **v1.4 Target (Phases 22-26):**
 - Requirements: 25 total
-- Estimated plans: 12 total
-- Completed: 10 (Phase 22: 4, Phase 23: 3, Phase 24: 3)
+- Estimated plans: 14 total (12 original + 2 from Phase 24.1 insertion)
+- Completed: 11 (Phase 22: 4, Phase 23: 3, Phase 24: 3, Phase 24.1: 1)
 - Research flags: Phase 25 (team aggregation RPC), Phase 26 (multi-select DnD)
 
 ## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 24.1 inserted after Phase 24: Presentation-Only Active Mode (URGENT) — Remove non-presentation admin view for active sessions, make PresentationControls the only active session view, add Go Live, timer config, and connection status
 
 ### Decisions
 
@@ -103,11 +107,11 @@ Recent decisions:
 
 ## Session Continuity
 
-**Last session:** 2026-02-13
-**Stopped at:** Completed 24-02-PLAN.md (color picker UI and adaptive charts)
-**Next action:** Phase 24 Plan 04 verification checkpoint, then continue to Phase 25 (Team-Based Voting)
+**Last session:** 2026-02-14
+**Stopped at:** Completed 24.1-01-PLAN.md
+**Next action:** Continue Phase 24.1 Plan 02, then Phase 24 verification, then Phase 25 (Team-Based Voting)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-13 — Phase 24 Plans 01-03 complete (Presentation Foundation, Color Picker UI, Batch Cover Images)*
+*Updated: 2026-02-14 — Phase 24.1 Plan 01 complete (Go Live, timer config, connection status in PresentationControls)*
