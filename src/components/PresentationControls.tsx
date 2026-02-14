@@ -853,7 +853,11 @@ function BatchControlPanel({
   const batchQuestionIds = batchQuestions.map((q) => q.id);
   const allRevealed = batchQuestionIds.every((id) => revealedQuestions.has(id));
   const totalBatchVotes = batchQuestionIds.reduce(
-    (sum, id) => sum + (sessionVotes[id]?.length ?? 0),
+    (sum, id) => {
+      const votes = sessionVotes[id] || [];
+      const filteredVotes = selectedTeam ? votes.filter(v => v.team_id === selectedTeam) : votes;
+      return sum + filteredVotes.length;
+    },
     0,
   );
 

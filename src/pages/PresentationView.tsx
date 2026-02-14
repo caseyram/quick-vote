@@ -15,6 +15,7 @@ import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../compone
 import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation';
 import { getTextColor } from '../lib/color-contrast';
 import { TeamQRGrid } from '../components/TeamQRGrid';
+import { TeamFilterTabs } from '../components/TeamFilterTabs';
 
 export default function PresentationView() {
   const { sessionId } = useParams();
@@ -42,6 +43,7 @@ export default function PresentationView() {
   const [reasonsPerPage, setReasonsPerPage] = useState<1 | 2 | 4>(1);
   const [activeInlineQuestion, setActiveInlineQuestion] = useState<Question | null>(null);
   const [inlineVotingClosed, setInlineVotingClosed] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const prevConnectionStatus = useRef<ConnectionStatus>('connecting');
 
@@ -259,6 +261,11 @@ export default function PresentationView() {
       setReasonsPerPage(payload.count);
     });
 
+    // Listen for team filter changes from admin
+    channel.on('broadcast', { event: 'team_filter_changed' }, ({ payload }: any) => {
+      setSelectedTeam(payload.teamId);
+    });
+
     channelRef.current = channel;
   }, []);
 
@@ -433,7 +440,7 @@ export default function PresentationView() {
               {inlineVotingClosed && sessionVotes[activeInlineQuestion.id] ? (
                 (() => {
                   const votes = sessionVotes[activeInlineQuestion.id] || [];
-                  const aggregated = aggregateVotes(votes);
+                  const aggregated = aggregateVotes(votes, selectedTeam);
                   const barData = buildConsistentBarData(activeInlineQuestion, aggregated);
                   const chartData = barData.map((item, index) => {
                     let color: string;
@@ -502,6 +509,7 @@ export default function PresentationView() {
                         selectedQuestionId={selectedQuestionId}
                         backgroundColor="#1a1a2e"
                         reasonsPerPage={reasonsPerPage}
+                        teamFilter={selectedTeam}
                       />
                     </motion.div>
                   )}

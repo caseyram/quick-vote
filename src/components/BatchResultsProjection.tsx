@@ -15,6 +15,10 @@ interface BatchResultsProjectionProps {
   /** Question ID selected by admin (synced via broadcast) */
   selectedQuestionId?: string | null;
   backgroundColor?: string;
+  /** How many reasons to show at once in the panel (1, 2, or 4) */
+  reasonsPerPage?: 1 | 2 | 4;
+  /** Team filter - if set, only show votes from this team */
+  teamFilter?: string | null;
 }
 
 export function BatchResultsProjection({
@@ -26,6 +30,8 @@ export function BatchResultsProjection({
   highlightedReason,
   selectedQuestionId,
   backgroundColor,
+  reasonsPerPage = 1,
+  teamFilter,
 }: BatchResultsProjectionProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -70,14 +76,17 @@ export function BatchResultsProjection({
     ? batchQuestions.find((q) => q.id === currentQuestionId)
     : null;
 
-  // Auto-scroll reasons panel to keep highlighted item visible
+  // Auto-scroll reasons panel to keep highlighted item(s) centered
   // (must be before early return to satisfy Rules of Hooks)
   useEffect(() => {
     if (!highlightedReason?.reasonId || !scrollContainerRef.current) return;
+    // Scroll the first active item to center so context is visible above and below
+    const ids = Array.from(activePageReasonIds);
+    const targetId = ids.length > 0 ? ids[0] : highlightedReason.reasonId;
     const el = scrollContainerRef.current.querySelector(
-      `[data-reason-id="${highlightedReason.reasonId}"]`,
+      `[data-reason-id="${targetId}"]`,
     );
-    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [highlightedReason?.reasonId]);
 
   // If no questions revealed, show batch name with "Results ready"
@@ -94,7 +103,7 @@ export function BatchResultsProjection({
 
   // Get votes for current question
   const questionVotes = sessionVotes[currentQuestion.id] || [];
-  const aggregated = aggregateVotes(questionVotes);
+  const aggregated = aggregateVotes(questionVotes, teamFilter);
   const barData = buildConsistentBarData(currentQuestion, aggregated);
 
   // Map bar data to BarChart format with colors
@@ -146,8 +155,14 @@ export function BatchResultsProjection({
     }
   };
 
-  // Collect reasons grouped by option
+  // Collect reasons grouped by option, in question option order
   const reasonsByOption: Record<string, Vote[]> = {};
+  const optionOrder = currentQuestion.type === 'agree_disagree'
+    ? ['Agree', 'Sometimes', 'Disagree']
+    : (currentQuestion.options ?? []);
+  for (const opt of optionOrder) {
+    reasonsByOption[opt] = [];
+  }
   questionVotes.forEach((vote) => {
     if (vote.reason && vote.reason.trim()) {
       if (!reasonsByOption[vote.value]) {
@@ -156,39 +171,70 @@ export function BatchResultsProjection({
       reasonsByOption[vote.value].push(vote);
     }
   });
+  // Remove empty groups
+  for (const key of Object.keys(reasonsByOption)) {
+    if (reasonsByOption[key].length === 0) delete reasonsByOption[key];
+  }
 
   const hasReasons = Object.keys(reasonsByOption).length > 0;
+
+  // Build group-aware pages: each page stays within one option group
+  const reasonPages: Vote[][] = [];
+  for (const votes of Object.values(reasonsByOption)) {
+    for (let i = 0; i < votes.length; i += reasonsPerPage) {
+      reasonPages.push(votes.slice(i, i + reasonsPerPage));
+    }
+  }
+
+  // Find current page based on highlighted reason
+  const currentPageData = highlightedReason
+    ? reasonPages.find((p) => p.some((v) => v.id === highlightedReason.reasonId))
+    : null;
+  const pageReasons = currentPageData ?? [];
+  const currentPageIdx = currentPageData ? reasonPages.indexOf(currentPageData) : -1;
+  const activePageReasonIds = new Set(
+    currentPageData
+      ? currentPageData.map((v) => v.id)
+      : highlightedReason ? [highlightedReason.reasonId] : [],
+  );
 
   return (
     <div className="flex flex-col h-full p-8">
       {/* Question text */}
-      <h2 className={`text-3xl font-bold ${headingColor} mb-4 text-center shrink-0`}>
-        {currentQuestion.text}
-      </h2>
+      <div className="text-center shrink-0 mb-4">
+        <h2 className={`text-3xl font-bold ${headingColor}`}>
+          {currentQuestion.text}
+        </h2>
+        {teamFilter && (
+          <p className={`text-sm ${subTextColor} mt-1`}>
+            Showing: {teamFilter}
+          </p>
+        )}
+      </div>
 
       {/* Chart + Reasons list layout */}
       <div className="flex-1 flex gap-8 min-h-0">
-        {/* Chart section with highlighted reason just above the bars */}
+        {/* Chart section with highlighted reason(s) above the bars */}
         <div className={`flex-1 flex items-center justify-center min-h-0`}>
-          <div className="w-full max-w-2xl">
-            {/* Highlighted reason immediately above chart */}
-            {highlightedReasonData && (
-              <div className="flex justify-center mb-4">
+          <div className="w-full max-w-5xl">
+            {/* Reason cards above chart — shows 1, 2, or 4 at a time */}
+            {reasonsPerPage === 1 && highlightedReasonData && (
+              <div className="flex justify-center mb-6">
                 <div
-                  className={`${cardBg} backdrop-blur rounded-lg p-5 max-w-2xl w-full text-center`}
+                  className={`${cardBg} backdrop-blur rounded-lg p-6 max-w-4xl w-full text-center`}
                   style={{
                     borderLeft: `5px solid ${getReasonColor(highlightedReasonData.value)}`,
                   }}
                 >
-                  <p className={`${headingColor} text-xl leading-relaxed`}>
+                  <p className={`${headingColor} text-3xl leading-relaxed`}>
                     &ldquo;{highlightedReasonData.reason || 'No reason provided'}&rdquo;
                   </p>
-                  <div className="flex items-center justify-center gap-2 mt-2">
+                  <div className="flex items-center justify-center gap-3 mt-3">
                     {highlightedReasonData.display_name && (
-                      <span className={`text-sm ${subTextColor}`}>— {highlightedReasonData.display_name}</span>
+                      <span className={`text-lg ${subTextColor}`}>— {highlightedReasonData.display_name}</span>
                     )}
                     <span
-                      className="text-xs font-medium px-2 py-0.5 rounded"
+                      className="text-base font-medium px-2.5 py-1 rounded"
                       style={{
                         backgroundColor: getReasonColor(highlightedReasonData.value) + '30',
                         color: textMode === 'light' ? '#fff' : getReasonColor(highlightedReasonData.value),
@@ -198,6 +244,37 @@ export function BatchResultsProjection({
                     </span>
                   </div>
                 </div>
+              </div>
+            )}
+            {reasonsPerPage > 1 && pageReasons.length > 0 && (
+              <div className={`mb-6 ${reasonsPerPage === 4 ? 'grid grid-cols-2 gap-4' : 'flex flex-col gap-4'}`}>
+                {pageReasons.map((vote) => (
+                  <div
+                    key={vote.id}
+                    className={`${cardBg} backdrop-blur rounded-lg ${reasonsPerPage === 4 ? 'p-4' : 'p-5'} text-center`}
+                    style={{
+                      borderLeft: `5px solid ${getReasonColor(vote.value)}`,
+                    }}
+                  >
+                    <p className={`${headingColor} ${reasonsPerPage === 4 ? 'text-xl' : 'text-2xl'} leading-relaxed`}>
+                      &ldquo;{vote.reason}&rdquo;
+                    </p>
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      {vote.display_name && (
+                        <span className={`${reasonsPerPage === 4 ? 'text-sm' : 'text-base'} ${subTextColor}`}>— {vote.display_name}</span>
+                      )}
+                      <span
+                        className={`${reasonsPerPage === 4 ? 'text-sm' : 'text-base'} font-medium px-2 py-0.5 rounded`}
+                        style={{
+                          backgroundColor: getReasonColor(vote.value) + '20',
+                          color: textMode === 'light' ? '#fff' : getReasonColor(vote.value),
+                        }}
+                      >
+                        {vote.value}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
             <BarChart
@@ -230,7 +307,7 @@ export function BatchResultsProjection({
                   </div>
                   <div className="space-y-2">
                     {votes.map((vote) => {
-                      const isActive = highlightedReason?.reasonId === vote.id;
+                      const isActive = activePageReasonIds.has(vote.id);
                       return (
                         <div
                           key={vote.id}
