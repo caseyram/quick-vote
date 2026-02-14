@@ -16,6 +16,7 @@ const VoteExportSchema = z.object({
   participant_id: z.string(),
   value: z.string(),
   reason: z.string().nullable(),
+  team_id: z.string().nullable(), // Team assignment (null for non-team participants)
 });
 
 // Question in export
@@ -50,6 +51,7 @@ export const SessionExportSchema = z.object({
   created_at: z.string(),
   batches: z.array(z.discriminatedUnion('type', [BatchExportSchema, SlideExportSchema])),
   templates: z.array(TemplateExportSchema).optional(),
+  teams: z.array(z.string()).optional(), // Team names configured for this session
   session_template_name: z.string().nullable().optional(), // provenance
 });
 
@@ -196,6 +198,7 @@ export async function exportSession(sessionId: string): Promise<SessionExport> {
                     participant_id: v.participant_id,
                     value: v.value,
                     reason: v.reason,
+                    team_id: v.team_id ?? null,
                   })),
               })),
           });
@@ -229,6 +232,7 @@ export async function exportSession(sessionId: string): Promise<SessionExport> {
               participant_id: v.participant_id,
               value: v.value,
               reason: v.reason,
+              team_id: v.team_id ?? null,
             })),
         })),
     }));
@@ -252,6 +256,7 @@ export async function exportSession(sessionId: string): Promise<SessionExport> {
               participant_id: v.participant_id,
               value: v.value,
               reason: v.reason,
+              team_id: v.team_id ?? null,
             })),
         })),
       });
@@ -263,6 +268,7 @@ export async function exportSession(sessionId: string): Promise<SessionExport> {
     created_at: session.created_at,
     batches: exportEntries as any, // Type-safe via schema validation
     templates: templateData.map(t => ({ name: t.name, options: t.options })),
+    teams: session.teams ?? [],
     session_template_name: null, // No provenance tracking yet
   };
 }
