@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { ConnectionStatus } from '../hooks/use-realtime-channel';
 import type { SessionItem, Vote } from '../types/database';
@@ -65,6 +65,20 @@ export function PresentationControls({
   const [currentBatchQuestionIndex, setCurrentBatchQuestionIndex] = useState(0);
   const [timerDuration, setTimerDuration] = useState<number | null>(30);
   const [quickText, setQuickText] = useState('');
+  const [showNextPreview, setShowNextPreview] = useState(false);
+  const presentationWindowRef = useRef<Window | null>(null);
+
+  // Auto-show next preview when presentation window opens, hide when it closes
+  useEffect(() => {
+    if (!presentationWindowRef.current) return;
+    const interval = setInterval(() => {
+      if (presentationWindowRef.current?.closed) {
+        setShowNextPreview(false);
+        presentationWindowRef.current = null;
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [showNextPreview]);
 
   // Use navigation hook for keyboard shortcuts
   const { currentIndex, canGoNext, canGoPrev, goNext, goPrev } = useSequenceNavigation({
@@ -79,11 +93,15 @@ export function PresentationControls({
 
   function handleOpenPresentation() {
     const url = `${window.location.origin}/presentation/${sessionId}`;
-    window.open(
+    const win = window.open(
       url,
       'QuickVotePresentation',
       'width=1920,height=1080,menubar=no,toolbar=no,location=no,status=no'
     );
+    if (win) {
+      presentationWindowRef.current = win;
+      setShowNextPreview(true);
+    }
 
     // Re-broadcast current active item after delay so the projection window
     // has time to connect its realtime channel and pick up the current state
@@ -254,11 +272,10 @@ export function PresentationControls({
               onRevealQuestion={handleRevealQuestion}
               onHighlightReason={handleHighlightReason}
             />
-          ) : (
+          ) : showNextPreview ? (
             <div className="flex gap-6 h-full">
-              {/* Current (live mirror) */}
               <div className="flex-1 flex flex-col min-w-0">
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">Current (Live)</h2>
+                <h2 className="text-sm font-medium text-gray-500 mb-2">Current</h2>
                 <div className="flex-1 bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center">
                   {currentItem ? (
                     <ProjectionPreview item={currentItem} />
@@ -267,10 +284,8 @@ export function PresentationControls({
                   )}
                 </div>
               </div>
-
-              {/* Next (preview) */}
-              <div className="flex-1 flex flex-col min-w-0">
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">Next</h2>
+              <div className="w-1/3 flex flex-col min-w-0">
+                <h2 className="text-sm font-medium text-gray-500 mb-2">Next</h2>
                 <div className="flex-1 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
                   {nextItem ? (
                     <ProjectionPreview item={nextItem} />
@@ -279,6 +294,14 @@ export function PresentationControls({
                   )}
                 </div>
               </div>
+            </div>
+          ) : (
+            <div className="flex-1 bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center">
+              {currentItem ? (
+                <ProjectionPreview item={currentItem} />
+              ) : (
+                <p className="text-gray-500 text-sm">No active item</p>
+              )}
             </div>
           )}
         </div>
@@ -292,9 +315,22 @@ export function PresentationControls({
           >
             Previous
           </button>
-          <span className="text-sm text-gray-500 font-medium">
-            {currentIndex >= 0 ? `${currentIndex + 1} / ${sessionItems.length}` : 'No item selected'}
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-500 font-medium">
+              {currentIndex >= 0 ? `${currentIndex + 1} / ${sessionItems.length}` : 'No item selected'}
+            </span>
+            <button
+              onClick={() => setShowNextPreview((v) => !v)}
+              className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                showNextPreview
+                  ? 'bg-indigo-100 text-indigo-700'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+              title={showNextPreview ? 'Hide next preview' : 'Show next preview'}
+            >
+              {showNextPreview ? 'Hide Next' : 'Show Next'}
+            </button>
+          </div>
           <button
             onClick={goNext}
             disabled={!canGoNext}
