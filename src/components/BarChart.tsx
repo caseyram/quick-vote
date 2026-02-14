@@ -1,3 +1,5 @@
+import { getTextColor } from '../lib/color-contrast';
+
 export const AGREE_DISAGREE_COLORS = {
   agree: '#3B82F6',
   disagree: '#F97316',
@@ -27,24 +29,28 @@ interface BarChartProps {
   totalVotes?: number;
   size?: 'default' | 'large' | 'fill';
   theme?: 'dark' | 'light';
+  /** When provided, text colors are computed from this background for proper contrast */
+  backgroundColor?: string;
 }
 
-export function BarChart({ data, totalVotes, size = 'default', theme = 'dark' }: BarChartProps) {
+export function BarChart({ data, totalVotes, size = 'default', theme = 'dark', backgroundColor }: BarChartProps) {
   const isLarge = size === 'large' || size === 'fill';
   const isFill = size === 'fill';
-  const isLight = theme === 'light';
+
+  // When backgroundColor is provided, compute text colors from it; otherwise use theme
+  const isLight = backgroundColor ? getTextColor(backgroundColor) === 'dark' : theme === 'light';
 
   const countClass = isLarge
     ? `text-xl font-bold ${isLight ? 'text-gray-800' : 'text-white'}`
     : `text-sm font-medium ${isLight ? 'text-gray-800' : 'text-white'}`;
 
   const labelClass = isLarge
-    ? `text-lg font-semibold ${isLight ? 'text-gray-600' : 'text-gray-200'}`
-    : `text-sm ${isLight ? 'text-gray-600' : 'text-gray-300'}`;
+    ? `text-lg font-semibold ${isLight ? 'text-gray-600' : 'text-white/80'}`
+    : `text-sm ${isLight ? 'text-gray-600' : 'text-white/70'}`;
 
   const totalClass = isLarge
-    ? `text-base ${isLight ? 'text-gray-500' : 'text-gray-400'}`
-    : `text-xs ${isLight ? 'text-gray-500' : 'text-gray-500'}`;
+    ? `text-base ${isLight ? 'text-gray-500' : 'text-white/60'}`
+    : `text-xs ${isLight ? 'text-gray-500' : 'text-white/60'}`;
 
   const heightStyle: React.CSSProperties = isFill
     ? { height: '100%' }

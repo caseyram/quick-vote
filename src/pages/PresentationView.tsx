@@ -431,7 +431,7 @@ export default function PresentationView() {
                   });
                   return (
                     <div className="w-full max-w-2xl">
-                      <BarChart data={chartData} totalVotes={votes.length} size="large" />
+                      <BarChart data={chartData} totalVotes={votes.length} size="large" backgroundColor={backgroundColor} />
                     </div>
                   );
                 })()

@@ -132,7 +132,7 @@ export function BatchResultsProjection({
               data={adaptedChartData}
               totalVotes={questionVotes.length}
               size="large"
-              theme="dark"
+              backgroundColor={bgColor}
             />
           </div>
         </div>

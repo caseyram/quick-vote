@@ -85,7 +85,7 @@ export function PreviewProjection({ step, direction = null, backgroundColor = '#
                     step.question.type,
                     step.question.options
                   )}
-                  theme="light"
+                  backgroundColor={backgroundColor}
                   size="default"
                 />
               </div>
