@@ -282,7 +282,7 @@ export function PresentationControls({
         {/* Content area */}
         <div className="flex-1 min-h-0 overflow-hidden relative">
           {isBatchActive ? (
-            <div className="h-full p-6">
+            <div className="h-full p-6 flex flex-col">
               <BatchControlPanel
                 batchId={currentItem.batch_id!}
                 questions={questions}
@@ -300,6 +300,7 @@ export function PresentationControls({
             <div className="flex gap-6 h-full p-6">
               <div className="flex-1 flex flex-col min-w-0">
                 <h2 className="text-sm font-medium text-gray-500 mb-2">Current</h2>
+
                 <div className="flex-1 bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center">
                   {currentItem ? (
                     <ProjectionPreview item={currentItem} />
@@ -697,9 +698,9 @@ function BatchControlPanel({
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto border rounded-lg bg-white p-4 space-y-4 min-h-0">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">{currentQuestion.text}</h3>
+      <div className="border rounded-lg bg-white p-4 mb-3">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{currentQuestion.text}</h3>
+        <div className="flex items-center gap-3">
           <button
             onClick={() => onRevealQuestion(currentQuestion.id)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -712,55 +713,72 @@ function BatchControlPanel({
               ? (hasSeparateProjection ? 'Revealed to Audience' : 'Results Shown')
               : (hasSeparateProjection ? 'Reveal to Audience' : 'Show Results')}
           </button>
+          <span className="text-sm text-gray-500">{questionVotes.length} vote{questionVotes.length !== 1 ? 's' : ''}</span>
+        </div>
+      </div>
+
+      <div className="flex-1 flex gap-4 min-h-0">
+        {/* Chart area */}
+        <div className="flex-1 bg-gray-50 rounded-lg p-4 flex items-center justify-center min-w-0">
+          {!hasSeparateProjection && !isRevealed ? (
+            <div className="text-center">
+              <p className="text-gray-400 text-lg mb-2">Waiting for responses...</p>
+              <p className="text-gray-500 text-3xl font-bold">{questionVotes.length}</p>
+              <p className="text-gray-400 text-sm mt-1">vote{questionVotes.length !== 1 ? 's' : ''} received</p>
+            </div>
+          ) : (
+            <div className="w-full">
+              <BarChart
+                data={chartData}
+                totalVotes={questionVotes.length}
+                size="default"
+                theme="light"
+              />
+            </div>
+          )}
         </div>
 
-        <div className="bg-gray-50 rounded-lg p-4">
-          <BarChart
-            data={chartData}
-            totalVotes={questionVotes.length}
-            size="default"
-            theme="light"
-          />
-        </div>
-
+        {/* Reasons panel (scrollable, right side) */}
         {Object.keys(reasonsByOption).length > 0 && (
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-gray-700">Reasons</h4>
-            {Object.entries(reasonsByOption).map(([option, votes]) => (
-              <div key={option}>
-                <div
-                  className="text-xs font-semibold text-gray-600 mb-2 px-2 py-1 rounded inline-block"
-                  style={{
-                    backgroundColor: getReasonColor(option) + '20',
-                    borderLeft: `3px solid ${getReasonColor(option)}`,
-                  }}
-                >
-                  {option}
+          <div className="w-80 shrink-0 flex flex-col min-h-0 border rounded-lg bg-white">
+            <h4 className="text-sm font-semibold text-gray-700 p-3 pb-2 shrink-0 border-b border-gray-100">Reasons</h4>
+            <div className="flex-1 overflow-y-auto p-3 pt-2 space-y-3">
+              {Object.entries(reasonsByOption).map(([option, votes]) => (
+                <div key={option}>
+                  <div
+                    className="text-xs font-semibold text-gray-600 mb-2 px-2 py-1 rounded inline-block"
+                    style={{
+                      backgroundColor: getReasonColor(option) + '20',
+                      borderLeft: `3px solid ${getReasonColor(option)}`,
+                    }}
+                  >
+                    {option}
+                  </div>
+                  <div className="space-y-2">
+                    {votes.map((vote) => (
+                      <button
+                        key={vote.id}
+                        onClick={() => onHighlightReason(currentQuestion.id, vote.id)}
+                        className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                          highlightedReasonId === vote.id
+                            ? 'border-indigo-600 bg-indigo-50'
+                            : 'border-transparent bg-gray-50 hover:bg-gray-100'
+                        }`}
+                        style={{
+                          borderLeftWidth: '4px',
+                          borderLeftColor: getReasonColor(vote.value),
+                        }}
+                      >
+                        <p className="text-sm text-gray-800">{vote.reason}</p>
+                        {vote.display_name && (
+                          <p className="text-xs text-gray-500 mt-1">— {vote.display_name}</p>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {votes.map((vote) => (
-                    <button
-                      key={vote.id}
-                      onClick={() => onHighlightReason(currentQuestion.id, vote.id)}
-                      className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
-                        highlightedReasonId === vote.id
-                          ? 'border-indigo-600 bg-indigo-50'
-                          : 'border-transparent bg-gray-50 hover:bg-gray-100'
-                      }`}
-                      style={{
-                        borderLeftWidth: '4px',
-                        borderLeftColor: getReasonColor(vote.value),
-                      }}
-                    >
-                      <p className="text-sm text-gray-800">{vote.reason}</p>
-                      {vote.display_name && (
-                        <p className="text-xs text-gray-500 mt-1">— {vote.display_name}</p>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>
