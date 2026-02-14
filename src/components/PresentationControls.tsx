@@ -705,6 +705,49 @@ function BatchControlPanel({
     0,
   );
 
+  // Flatten all reasons for playback
+  const allReasons = Object.entries(reasonsByOption).flatMap(([, votes]) => votes);
+  const [isPlayingReasons, setIsPlayingReasons] = useState(false);
+  const reasonsRef = useRef<Vote[]>([]);
+
+  function handlePlayReasons() {
+    if (isPlayingReasons) {
+      setIsPlayingReasons(false);
+      return;
+    }
+    if (allReasons.length === 0) return;
+    reasonsRef.current = allReasons;
+    setIsPlayingReasons(true);
+  }
+
+  useEffect(() => {
+    if (!isPlayingReasons) return;
+    const reasons = reasonsRef.current;
+    if (reasons.length === 0) {
+      setIsPlayingReasons(false);
+      return;
+    }
+
+    let index = 0;
+    onHighlightReason(currentQuestion.id, reasons[0].id);
+
+    const interval = setInterval(() => {
+      index += 1;
+      if (index >= reasons.length) {
+        setIsPlayingReasons(false);
+        return;
+      }
+      onHighlightReason(currentQuestion.id, reasons[index].id);
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, [isPlayingReasons, currentQuestion.id, onHighlightReason]);
+
+  // Find currently highlighted reason for display below chart
+  const highlightedVote = highlightedReasonId
+    ? questionVotes.find((v) => v.id === highlightedReasonId)
+    : null;
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex items-center gap-3 mb-4">
@@ -745,30 +788,93 @@ function BatchControlPanel({
       </div>
 
       <div className="flex-1 flex gap-4 min-h-0">
-        {/* Chart area */}
-        <div className="flex-1 bg-gray-50 rounded-lg p-4 flex items-center justify-center min-w-0">
-          {!hasSeparateProjection && !allRevealed ? (
-            <div className="text-center">
-              <p className="text-gray-400 text-lg mb-2">Waiting for responses...</p>
-              <p className="text-gray-500 text-3xl font-bold">{questionVotes.length}</p>
-              <p className="text-gray-400 text-sm mt-1">vote{questionVotes.length !== 1 ? 's' : ''} received</p>
-            </div>
-          ) : (
-            <div className="w-full">
-              <BarChart
-                data={chartData}
-                totalVotes={questionVotes.length}
-                size="default"
-                theme="light"
-              />
-            </div>
-          )}
+        {/* Chart + highlighted reason column */}
+        <div className="flex-1 flex flex-col gap-3 min-w-0 min-h-0">
+          <div className="flex-1 bg-gray-50 rounded-lg p-4 flex items-center justify-center min-h-0">
+            {!hasSeparateProjection && !allRevealed ? (
+              <div className="text-center">
+                <p className="text-gray-400 text-lg mb-2">Waiting for responses...</p>
+                <p className="text-gray-500 text-3xl font-bold">{questionVotes.length}</p>
+                <p className="text-gray-400 text-sm mt-1">vote{questionVotes.length !== 1 ? 's' : ''} received</p>
+              </div>
+            ) : (
+              <div className="w-full">
+                <BarChart
+                  data={chartData}
+                  totalVotes={questionVotes.length}
+                  size="default"
+                  theme="light"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Highlighted reason display */}
+          <AnimatePresence mode="wait">
+            {highlightedVote && (
+              <motion.div
+                key={highlightedVote.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+                className="shrink-0 rounded-lg p-4 border-2"
+                style={{
+                  borderLeftWidth: '5px',
+                  borderLeftColor: getReasonColor(highlightedVote.value),
+                  backgroundColor: getReasonColor(highlightedVote.value) + '08',
+                }}
+              >
+                <p className="text-base text-gray-800 font-medium leading-relaxed">
+                  &ldquo;{highlightedVote.reason}&rdquo;
+                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  {highlightedVote.display_name && (
+                    <span className="text-sm text-gray-500">— {highlightedVote.display_name}</span>
+                  )}
+                  <span
+                    className="text-xs font-medium px-2 py-0.5 rounded"
+                    style={{
+                      backgroundColor: getReasonColor(highlightedVote.value) + '20',
+                      color: getReasonColor(highlightedVote.value),
+                    }}
+                  >
+                    {highlightedVote.value}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Reasons panel (scrollable, right side) — only when results are shown */}
         {(hasSeparateProjection || allRevealed) && Object.keys(reasonsByOption).length > 0 && (
           <div className="w-80 shrink-0 flex flex-col min-h-0 border rounded-lg bg-white">
-            <h4 className="text-sm font-semibold text-gray-700 p-3 pb-2 shrink-0 border-b border-gray-100">Reasons</h4>
+            <div className="flex items-center justify-between p-3 pb-2 shrink-0 border-b border-gray-100">
+              <h4 className="text-sm font-semibold text-gray-700">Reasons</h4>
+              {allReasons.length > 0 && (
+                <button
+                  onClick={handlePlayReasons}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                    isPlayingReasons
+                      ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                      : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                  }`}
+                >
+                  {isPlayingReasons ? (
+                    <>
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+                      Stop
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                      Play
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
             <div className="flex-1 overflow-y-auto p-3 pt-2 space-y-3">
               {Object.entries(reasonsByOption).map(([option, votes]) => (
                 <div key={option}>
