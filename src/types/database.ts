@@ -25,6 +25,7 @@ export interface Session {
   created_by: string;
   created_at: string;
   default_template_id: string | null;
+  teams: string[];
 }
 
 export interface Question {
@@ -57,6 +58,7 @@ export interface Vote {
   value: string;
   reason: string | null;
   display_name: string | null;
+  team_id: string | null;
   locked_in: boolean;
   created_at: string;
   updated_at: string;
