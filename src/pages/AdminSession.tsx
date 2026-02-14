@@ -29,6 +29,7 @@ import { PresentationControls } from '../components/PresentationControls';
 import { checkQuestionVotes, fetchTemplates } from '../lib/template-api';
 import { ensureSessionItems, createBatchSessionItem } from '../lib/sequence-api';
 import { createSlide, deleteSlide } from '../lib/slide-api';
+import { updateSessionTeams, validateTeamList } from '../lib/team-api';
 import type { Question, Vote, Batch, SessionItem } from '../types/database';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -68,6 +69,11 @@ export default function AdminSession() {
   const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
   const [addingToBatchId, setAddingToBatchId] = useState<string | null>(null);
 
+  // Team configuration state
+  const [teamNames, setTeamNames] = useState<string[]>([]);
+  const [teamInput, setTeamInput] = useState('');
+  const [teamError, setTeamError] = useState<string | null>(null);
+
   // Track session ID in a ref for the channel setup callback
   const sessionIdRef = useRef<string | null>(null);
 
@@ -89,12 +95,6 @@ export default function AdminSession() {
         setUserId(authData.user.id);
       }
 
-      // Reclaim session ownership for current anonymous identity.
-      // If browser data was cleared, auth.uid() changes but admin_token
-      // still proves ownership. This updates created_by so RLS passes.
-      // Ignore errors (404 if PostgREST cache is stale, etc.)
-      try { await supabase.rpc('claim_session', { p_admin_token: adminToken }); } catch { /* ignore */ }
-
       const { data: sessionData, error: sessionError } = await supabase
         .from('sessions')
         .select('*')
@@ -110,8 +110,20 @@ export default function AdminSession() {
         return;
       }
 
+      // Reclaim session ownership if auth identity changed (browser data cleared).
+      // admin_token proves ownership; silently update created_by so RLS passes.
+      if (authData?.user?.id && sessionData.created_by !== authData.user.id) {
+        await supabase
+          .from('sessions')
+          .update({ created_by: authData.user.id })
+          .eq('admin_token', adminToken);
+      }
+
       setSession(sessionData);
       sessionIdRef.current = sessionData.session_id;
+
+      // Initialize team names from session
+      setTeamNames(sessionData.teams || []);
 
       const { data: questionsData, error: questionsError } = await supabase
         .from('questions')
@@ -292,7 +304,9 @@ export default function AdminSession() {
     presenceConfig
   );
 
-  // Poll votes every 3s while session is active (reliable fallback for Postgres Changes)
+  // Poll votes every 10s while session is active (fallback for Postgres Changes).
+  // Only updates state when vote count actually changes to avoid unnecessary re-renders.
+  const lastVoteCountRef = useRef(0);
   useEffect(() => {
     if (!isActive || !session?.session_id) return;
 
@@ -302,7 +316,8 @@ export default function AdminSession() {
         .select('*')
         .eq('session_id', session.session_id);
 
-      if (votesData) {
+      if (votesData && votesData.length !== lastVoteCountRef.current) {
+        lastVoteCountRef.current = votesData.length;
         const voteMap: Record<string, Vote[]> = {};
         for (const vote of votesData) {
           if (!voteMap[vote.question_id]) {
@@ -312,7 +327,7 @@ export default function AdminSession() {
         }
         setSessionVotes(voteMap);
       }
-    }, 3000);
+    }, 10000);
 
     return () => clearInterval(interval);
   }, [isActive, session?.session_id]);
@@ -971,6 +986,48 @@ export default function AdminSession() {
     setBulkApplyConfirm(null);
   }
 
+  // --- Team management handlers ---
+
+  async function handleAddTeam() {
+    if (!session) return;
+    const trimmed = teamInput.trim();
+    if (!trimmed) return;
+
+    const newTeams = [...teamNames, trimmed];
+    const validation = validateTeamList(newTeams);
+
+    if (!validation.valid) {
+      setTeamError(validation.error || 'Invalid team name');
+      return;
+    }
+
+    const result = await updateSessionTeams(session.session_id, newTeams);
+    if (result.success) {
+      setTeamNames(newTeams);
+      setTeamInput('');
+      setTeamError(null);
+      // Update session in store
+      setSession({ ...session, teams: newTeams });
+    } else {
+      setTeamError(result.error || 'Failed to add team');
+    }
+  }
+
+  async function handleRemoveTeam(teamName: string) {
+    if (!session) return;
+    const newTeams = teamNames.filter(t => t !== teamName);
+
+    const result = await updateSessionTeams(session.session_id, newTeams);
+    if (result.success) {
+      setTeamNames(newTeams);
+      setTeamError(null);
+      // Update session in store
+      setSession({ ...session, teams: newTeams });
+    } else {
+      setTeamError(result.error || 'Failed to remove team');
+    }
+  }
+
   // --- Loading / error states ---
 
   if (loading) {
@@ -1095,6 +1152,77 @@ export default function AdminSession() {
                 />
               </div>
             </div>
+
+            {/* Team Configuration (draft mode only) */}
+            {isDraft && (
+              <div className="bg-white rounded-lg p-4 space-y-3">
+                <p className="text-sm text-gray-500 font-medium">Team Configuration</p>
+                <p className="text-xs text-gray-400">
+                  Configure team names for team-based voting. Teams are locked once session goes live.
+                </p>
+
+                {/* Team input */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={teamInput}
+                    onChange={(e) => setTeamInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddTeam();
+                      }
+                    }}
+                    placeholder="Team name"
+                    maxLength={50}
+                    className="flex-1 px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <button
+                    onClick={handleAddTeam}
+                    disabled={!teamInput.trim() || teamNames.length >= 5}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    Add Team
+                  </button>
+                </div>
+
+                {/* Team count indicator */}
+                <p className="text-xs text-gray-500">
+                  {teamNames.length} of 5 teams
+                </p>
+
+                {/* Error message */}
+                {teamError && (
+                  <p className="text-sm text-red-600">{teamError}</p>
+                )}
+
+                {/* Team list */}
+                {teamNames.length > 0 && (
+                  <div className="space-y-2">
+                    {teamNames.map((team) => (
+                      <div
+                        key={team}
+                        className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-lg"
+                      >
+                        <span className="text-sm text-gray-700 font-medium">{team}</span>
+                        <button
+                          onClick={() => handleRemoveTeam(team)}
+                          className="text-red-600 hover:text-red-700 text-sm font-medium"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {teamNames.length === 0 && (
+                  <p className="text-sm text-gray-400 text-center py-2">
+                    No teams configured
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Session Sequence - unified list of batches and slides */}
             <div className="bg-white rounded-lg p-6 space-y-4">
