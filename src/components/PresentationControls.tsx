@@ -707,41 +707,71 @@ function BatchControlPanel({
 
   // Flatten all reasons for playback
   const allReasons = Object.entries(reasonsByOption).flatMap(([, votes]) => votes);
-  const [isPlayingReasons, setIsPlayingReasons] = useState(false);
+  const [playState, setPlayState] = useState<'idle' | 'playing' | 'paused'>('idle');
+  const [viewedReasonIds, setViewedReasonIds] = useState<Set<string>>(new Set());
   const reasonsRef = useRef<Vote[]>([]);
+  const playIndexRef = useRef(0);
 
   function handlePlayReasons() {
-    if (isPlayingReasons) {
-      setIsPlayingReasons(false);
+    if (playState === 'playing') {
+      setPlayState('paused');
       return;
     }
+    if (playState === 'paused') {
+      setPlayState('playing');
+      return;
+    }
+    // idle → start from beginning
     if (allReasons.length === 0) return;
     reasonsRef.current = allReasons;
-    setIsPlayingReasons(true);
+    playIndexRef.current = 0;
+    setViewedReasonIds(new Set());
+    setPlayState('playing');
   }
 
+  function handleResetPlay() {
+    setPlayState('idle');
+    playIndexRef.current = 0;
+    onHighlightReason(currentQuestion.id, '');
+  }
+
+  // Mark a reason as viewed whenever it's highlighted (manual or auto)
   useEffect(() => {
-    if (!isPlayingReasons) return;
+    if (highlightedReasonId) {
+      setViewedReasonIds((prev) => {
+        if (prev.has(highlightedReasonId)) return prev;
+        const next = new Set(prev);
+        next.add(highlightedReasonId);
+        return next;
+      });
+    }
+  }, [highlightedReasonId]);
+
+  useEffect(() => {
+    if (playState !== 'playing') return;
     const reasons = reasonsRef.current;
     if (reasons.length === 0) {
-      setIsPlayingReasons(false);
+      setPlayState('idle');
       return;
     }
 
-    let index = 0;
-    onHighlightReason(currentQuestion.id, reasons[0].id);
+    // Highlight current reason immediately on play/resume
+    const current = reasons[playIndexRef.current];
+    if (current) {
+      onHighlightReason(currentQuestion.id, current.id);
+    }
 
     const interval = setInterval(() => {
-      index += 1;
-      if (index >= reasons.length) {
-        setIsPlayingReasons(false);
+      playIndexRef.current += 1;
+      if (playIndexRef.current >= reasons.length) {
+        setPlayState('paused');
         return;
       }
-      onHighlightReason(currentQuestion.id, reasons[index].id);
+      onHighlightReason(currentQuestion.id, reasons[playIndexRef.current].id);
     }, 1500);
 
     return () => clearInterval(interval);
-  }, [isPlayingReasons, currentQuestion.id, onHighlightReason]);
+  }, [playState, currentQuestion.id, onHighlightReason]);
 
   // Find currently highlighted reason for display below chart
   const highlightedVote = highlightedReasonId
@@ -810,15 +840,10 @@ function BatchControlPanel({
           </div>
 
           {/* Highlighted reason display */}
-          <AnimatePresence mode="wait">
-            {highlightedVote && (
-              <motion.div
-                key={highlightedVote.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.25 }}
-                className="shrink-0 rounded-lg p-4 border-2"
+          {highlightedVote && (
+            <div className="shrink-0 flex justify-center">
+              <div
+                className="rounded-lg p-4 border-2 max-w-lg w-full text-center"
                 style={{
                   borderLeftWidth: '5px',
                   borderLeftColor: getReasonColor(highlightedVote.value),
@@ -828,7 +853,7 @@ function BatchControlPanel({
                 <p className="text-base text-gray-800 font-medium leading-relaxed">
                   &ldquo;{highlightedVote.reason}&rdquo;
                 </p>
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex items-center justify-center gap-2 mt-2">
                   {highlightedVote.display_name && (
                     <span className="text-sm text-gray-500">— {highlightedVote.display_name}</span>
                   )}
@@ -842,9 +867,9 @@ function BatchControlPanel({
                     {highlightedVote.value}
                   </span>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Reasons panel (scrollable, right side) — only when results are shown */}
@@ -853,26 +878,42 @@ function BatchControlPanel({
             <div className="flex items-center justify-between p-3 pb-2 shrink-0 border-b border-gray-100">
               <h4 className="text-sm font-semibold text-gray-700">Reasons</h4>
               {allReasons.length > 0 && (
-                <button
-                  onClick={handlePlayReasons}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                    isPlayingReasons
-                      ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                      : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
-                  }`}
-                >
-                  {isPlayingReasons ? (
-                    <>
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
-                      Stop
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                      Play
-                    </>
+                <div className="flex items-center gap-1">
+                  {playState !== 'idle' && (
+                    <button
+                      onClick={handleResetPlay}
+                      className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+                      title="Reset"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5M20 20v-5h-5M4 9a9 9 0 0115.36-5.36M20 15a9 9 0 01-15.36 5.36" /></svg>
+                    </button>
                   )}
-                </button>
+                  <button
+                    onClick={handlePlayReasons}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                      playState === 'playing'
+                        ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                        : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                    }`}
+                  >
+                    {playState === 'playing' ? (
+                      <>
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+                        Pause
+                      </>
+                    ) : playState === 'paused' ? (
+                      <>
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                        Resume
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                        Play
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
             <div className="flex-1 overflow-y-auto p-3 pt-2 space-y-3">
@@ -888,26 +929,41 @@ function BatchControlPanel({
                     {option}
                   </div>
                   <div className="space-y-2">
-                    {votes.map((vote) => (
-                      <button
-                        key={vote.id}
-                        onClick={() => onHighlightReason(currentQuestion.id, vote.id)}
-                        className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
-                          highlightedReasonId === vote.id
-                            ? 'border-indigo-600 bg-indigo-50'
-                            : 'border-transparent bg-gray-50 hover:bg-gray-100'
-                        }`}
-                        style={{
-                          borderLeftWidth: '4px',
-                          borderLeftColor: getReasonColor(vote.value),
-                        }}
-                      >
-                        <p className="text-sm text-gray-800">{vote.reason}</p>
-                        {vote.display_name && (
-                          <p className="text-xs text-gray-500 mt-1">— {vote.display_name}</p>
-                        )}
-                      </button>
-                    ))}
+                    {votes.map((vote) => {
+                      const isViewed = viewedReasonIds.has(vote.id);
+                      const isActive = highlightedReasonId === vote.id;
+                      return (
+                        <button
+                          key={vote.id}
+                          onClick={() => onHighlightReason(currentQuestion.id, vote.id)}
+                          className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
+                            isActive
+                              ? 'border-indigo-600 bg-indigo-50'
+                              : isViewed
+                                ? 'border-transparent bg-green-50/60'
+                                : 'border-transparent bg-gray-50 hover:bg-gray-100'
+                          }`}
+                          style={{
+                            borderLeftWidth: '4px',
+                            borderLeftColor: getReasonColor(vote.value),
+                          }}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm ${isViewed && !isActive ? 'text-gray-500' : 'text-gray-800'}`}>{vote.reason}</p>
+                              {vote.display_name && (
+                                <p className="text-xs text-gray-500 mt-1">— {vote.display_name}</p>
+                              )}
+                            </div>
+                            {isViewed && !isActive && (
+                              <svg className="w-4 h-4 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
