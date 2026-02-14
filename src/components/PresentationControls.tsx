@@ -293,6 +293,7 @@ export function PresentationControls({
                 onSetCurrentBatchQuestionIndex={setCurrentBatchQuestionIndex}
                 onRevealQuestion={handleRevealQuestion}
                 onHighlightReason={handleHighlightReason}
+                hasSeparateProjection={showNextPreview}
               />
             </div>
           ) : showNextPreview ? (
@@ -611,6 +612,7 @@ function BatchControlPanel({
   onSetCurrentBatchQuestionIndex: (index: number) => void;
   onRevealQuestion: (questionId: string) => void;
   onHighlightReason: (questionId: string, reasonId: string) => void;
+  hasSeparateProjection: boolean;
 }) {
   const batchQuestions = questions
     .filter((q) => q.batch_id === batchId)
@@ -705,7 +707,9 @@ function BatchControlPanel({
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
-            {isRevealed ? 'Revealed to Audience' : 'Reveal to Audience'}
+            {isRevealed
+              ? (hasSeparateProjection ? 'Revealed to Audience' : 'Results Shown')
+              : (hasSeparateProjection ? 'Reveal to Audience' : 'Show Results')}
           </button>
         </div>
 
