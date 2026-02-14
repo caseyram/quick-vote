@@ -7,17 +7,17 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 **Core Value:** Participants can instantly vote on questions in a way that feels immersive and tactile -- not like filling out a form.
 **Stack:** Vite + React (TypeScript), Supabase (database + realtime + storage), Vercel deployment
 **Repo:** C:/code/quick-vote
-**Current focus:** v1.4 Template Authoring & Teams - Phase 25 (Team-Based Voting)
+**Current focus:** v1.4 Template Authoring & Teams - Phase 26 (Sequence & Results Enhancements)
 
 ## Current Position
 
 **Milestone:** v1.4 Template Authoring & Teams
-**Phase:** 25 of 26 (Team-Based Voting)
-**Plan:** 4 of 4 (Phase Complete)
-**Status:** Complete
-**Last activity:** 2026-02-14 — Completed Plan 25-03 (Team-Based Results Filtering)
+**Phase:** 26 of 26 (Sequence & Results Enhancements)
+**Plan:** Not yet planned
+**Status:** Ready to plan
+**Last activity:** 2026-02-14 — Completed Phase 25 (Team-Based Voting, 4/4 plans, verified)
 
-Progress: [███████████████████░] 98% (v1.4: 18 of 18 plans complete)
+Progress: [███████████████████░] 95% (v1.4: 18 of ~20 plans complete)
 
 ## Milestone History
 
@@ -132,10 +132,10 @@ Recent decisions:
 ## Session Continuity
 
 **Last session:** 2026-02-14
-**Stopped at:** Completed Plan 25-03 (Team-Based Results Filtering) - Phase 25 complete (4/4 plans)
-**Next action:** Phase 25 complete. All team-based voting features implemented. Continue to Phase 26 (Multi-Select DnD).
+**Stopped at:** Completed Phase 25 (Team-Based Voting) — verified, all 5 success criteria met
+**Next action:** Plan Phase 26 (Sequence & Results Enhancements)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-14 — Plan 25-03 complete. Phase 25 (Team-Based Voting) complete (4/4 plans). Team filter tabs with broadcast sync enable admin to toggle results between all participants and specific teams, with projection mirroring selection in real time.*
+*Updated: 2026-02-14 — Phase 25 complete (4/4 plans, verified). Team-based voting: DB schema, admin config, participant joining, filter tabs, QR grid, export. All TEAM requirements delivered.*

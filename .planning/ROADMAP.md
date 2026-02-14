@@ -94,7 +94,7 @@ Plans:
 - [x] 24-04-PLAN.md — Human verification of all PRES requirements
 - [x] 24-05-PLAN.md — Gap closure: fix nav button visibility when batch panel active (PRES-06)
 
-#### Phase 25: Team-Based Voting
+#### Phase 25: Team-Based Voting (DONE)
 **Goal**: Multi-team voting with team-specific QR codes and filtered results
 **Depends on**: Phase 22
 **Requirements**: TEAM-01, TEAM-02, TEAM-03, TEAM-04, TEAM-05
@@ -107,10 +107,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 25-01-PLAN.md — Database migration (teams column, team_id), TypeScript types, team API module
-- [ ] 25-02-PLAN.md — Admin team config UI, participant team picker, team badge, auto-assign from QR
-- [ ] 25-03-PLAN.md — Team filter tabs, enhanced vote aggregation, projection broadcast sync
-- [ ] 25-04-PLAN.md — Team QR grid overlay for projection, session export with team column
+- [x] 25-01-PLAN.md — Database migration (teams column, team_id), TypeScript types, team API module
+- [x] 25-02-PLAN.md — Admin team config UI, participant team picker, team badge, auto-assign from QR
+- [x] 25-03-PLAN.md — Team filter tabs, enhanced vote aggregation, projection broadcast sync
+- [x] 25-04-PLAN.md — Team QR grid overlay for projection, session export with team column
 
 #### Phase 26: Sequence & Results Enhancements
 **Goal**: Multi-select rearrangement, results polish, and UX fixes
@@ -143,12 +143,12 @@ Phases execute in numeric order: 22 → 23 → 24 → 25 → 26
 | 23. Preview System | v1.4 | 3/3 | Done | 2026-02-13 |
 | 24. Presentation Polish | v1.4 | 5/5 | Done | 2026-02-14 |
 | 24.1 Presentation-Only Active Mode | v1.4 | 2/2 | Done | 2026-02-14 |
-| 25. Team-Based Voting | v1.4 | 0/4 | Planned | - |
+| 25. Team-Based Voting | v1.4 | 4/4 | Done | 2026-02-14 |
 | 26. Sequence & Results Enhancements | v1.4 | 0/? | Not started | - |
 
 ---
 *Created: 2026-01-27*
-*Updated: 2026-02-14 - Phases 24 and 24.1 complete (7/7 plans, verified)*
+*Updated: 2026-02-14 - Phase 25 complete (4/4 plans, verified). Team-based voting with QR codes, filter tabs, and export.*
 
 ### Phase 24.1: Presentation-Only Active Mode (DONE)
 
