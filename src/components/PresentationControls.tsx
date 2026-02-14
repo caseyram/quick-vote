@@ -82,6 +82,7 @@ export function PresentationControls({
   const [showNextPreview, setShowNextPreview] = useState(false);
   const [navigationDirection, setNavigationDirection] = useState<'forward' | 'backward' | null>(null);
   const [qrExpanded, setQrExpanded] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const presentationWindowRef = useRef<Window | null>(null);
 
   // Auto-hide next preview when presentation window closes
@@ -368,6 +369,27 @@ export function PresentationControls({
                 >
                   <QRCodeSVG value={participantUrl} size={400} level="M" marginSize={1} />
                   <p className="text-2xl text-gray-600 text-center mt-6 font-medium">Scan to join</p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(participantUrl);
+                      setLinkCopied(true);
+                      setTimeout(() => setLinkCopied(false), 2000);
+                    }}
+                    className="mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+                  >
+                    {linkCopied ? (
+                      <>
+                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+                        Copy Link
+                      </>
+                    )}
+                  </button>
                   <p className="text-sm text-gray-400 mt-2">Click anywhere to close</p>
                 </div>
               ) : (
