@@ -711,6 +711,9 @@ function BatchControlPanel({
   const [viewedReasonIds, setViewedReasonIds] = useState<Set<string>>(new Set());
   const reasonsRef = useRef<Vote[]>([]);
   const playIndexRef = useRef(0);
+  // Stable ref for callback to avoid effect re-triggers on every render
+  const onHighlightReasonRef = useRef(onHighlightReason);
+  onHighlightReasonRef.current = onHighlightReason;
 
   function handlePlayReasons() {
     if (playState === 'playing') {
@@ -718,6 +721,7 @@ function BatchControlPanel({
       return;
     }
     if (playState === 'paused') {
+      // Resume — current reason is already highlighted, just restart interval
       setPlayState('playing');
       return;
     }
@@ -726,6 +730,8 @@ function BatchControlPanel({
     reasonsRef.current = allReasons;
     playIndexRef.current = 0;
     setViewedReasonIds(new Set());
+    // Highlight first reason immediately (not yet highlighted, so no toggle issue)
+    onHighlightReason(currentQuestion.id, allReasons[0].id);
     setPlayState('playing');
   }
 
@@ -755,23 +761,18 @@ function BatchControlPanel({
       return;
     }
 
-    // Highlight current reason immediately on play/resume
-    const current = reasons[playIndexRef.current];
-    if (current) {
-      onHighlightReason(currentQuestion.id, current.id);
-    }
-
+    // Only advance via interval — first reason is highlighted by handlePlayReasons
     const interval = setInterval(() => {
       playIndexRef.current += 1;
       if (playIndexRef.current >= reasons.length) {
         setPlayState('paused');
         return;
       }
-      onHighlightReason(currentQuestion.id, reasons[playIndexRef.current].id);
+      onHighlightReasonRef.current(currentQuestion.id, reasons[playIndexRef.current].id);
     }, 1500);
 
     return () => clearInterval(interval);
-  }, [playState, currentQuestion.id, onHighlightReason]);
+  }, [playState, currentQuestion.id]);
 
   // Find currently highlighted reason for display below chart
   const highlightedVote = highlightedReasonId
