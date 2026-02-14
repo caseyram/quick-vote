@@ -738,8 +738,8 @@ function BatchControlPanel({
           )}
         </div>
 
-        {/* Reasons panel (scrollable, right side) */}
-        {Object.keys(reasonsByOption).length > 0 && (
+        {/* Reasons panel (scrollable, right side) — only when results are shown */}
+        {(hasSeparateProjection || isRevealed) && Object.keys(reasonsByOption).length > 0 && (
           <div className="w-80 shrink-0 flex flex-col min-h-0 border rounded-lg bg-white">
             <h4 className="text-sm font-semibold text-gray-700 p-3 pb-2 shrink-0 border-b border-gray-100">Reasons</h4>
             <div className="flex-1 overflow-y-auto p-3 pt-2 space-y-3">
