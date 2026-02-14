@@ -22,7 +22,6 @@ interface PresentationControlsProps {
   sessionVotes: Record<string, Vote[]>;
   onActivateSequenceItem: (item: SessionItem, direction: 'forward' | 'backward') => void;
   onEndSession: () => void;
-  onExitPresentationMode: () => void;
   onQuickQuestion: (text: string, timerDuration: number | null) => void;
   quickQuestionLoading: boolean;
   countdownRemaining: number;
@@ -46,7 +45,6 @@ export function PresentationControls({
   sessionVotes,
   onActivateSequenceItem,
   onEndSession,
-  onExitPresentationMode,
   onQuickQuestion,
   quickQuestionLoading,
   countdownRemaining,
@@ -210,16 +208,7 @@ export function PresentationControls({
       {/* Left sidebar: Sequence list */}
       <div className="w-80 shrink-0 border-r border-gray-200 bg-gray-50 overflow-y-auto">
         <div className="p-4 border-b border-gray-200 bg-white space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">{sessionTitle}</h2>
-            <button
-              onClick={onExitPresentationMode}
-              className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
-              title="Exit presentation mode"
-            >
-              Exit
-            </button>
-          </div>
+          <h2 className="text-lg font-semibold text-gray-900">{sessionTitle}</h2>
           <button
             onClick={handleOpenPresentation}
             className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
