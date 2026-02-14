@@ -13,9 +13,9 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 
 **Milestone:** v1.4 Template Authoring & Teams
 **Phase:** 25 of 26 (Team-Based Voting)
-**Plan:** 4 of TBD
-**Status:** Executing
-**Last activity:** 2026-02-14 — Completed Plan 25-04 (Team QR Grid and Export)
+**Plan:** 4 of 4 (Phase Complete)
+**Status:** Complete
+**Last activity:** 2026-02-14 — Completed Plan 25-03 (Team-Based Results Filtering)
 
 Progress: [███████████████████░] 98% (v1.4: 18 of 18 plans complete)
 
@@ -77,9 +77,11 @@ Recent decisions:
 - [Phase 25-04]: Include general session QR at bottom of team grid for non-team participants
 - [Phase 25-04]: Export format remains JSON (team_id is nullable for backward compatibility)
 - [Phase 25-04]: Responsive grid: 2 cols for 2-4 teams, 3 cols for 5 teams
-- [Phase 25-03]: Team filter tabs show participant counts per team (All, plus each team)
-- [Phase 25-03]: selectedTeam state in PresentationControls filters batch results by team
-- [Phase 25-03]: team_filter_changed broadcast event syncs team selection to projection
+- [Phase 25-03]: TeamFilterTabs accepts theme prop for light (admin) and dark (projection) variants
+- [Phase 25-03]: selectedTeam === null represents 'All' (no filter applied)
+- [Phase 25-03]: Team filter state resets to 'All' on page reload (no persistence)
+- [Phase 25-03]: Broadcast event 'team_filter_changed' syncs filter selection to projection in real time
+- [Phase 25-03]: Display 'Showing: [TeamName]' label on projection when team filter is active
 - [Phase 25-02]: Team picker as gate (blocks lobby/voting until team selected) when session has teams
 - [Phase 25-02]: Team locked after first vote (prevents switching teams mid-session)
 - [Phase 25-02]: sessionStorage for team persistence (survives refresh, scoped to session)
@@ -130,10 +132,10 @@ Recent decisions:
 ## Session Continuity
 
 **Last session:** 2026-02-14
-**Stopped at:** Completed Plan 25-04 (Team QR Grid and Export)
-**Next action:** Phase 25 complete. Continue to Phase 26 (Multi-Select DnD).
+**Stopped at:** Completed Plan 25-03 (Team-Based Results Filtering) - Phase 25 complete (4/4 plans)
+**Next action:** Phase 25 complete. All team-based voting features implemented. Continue to Phase 26 (Multi-Select DnD).
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-14 — Plan 25-04 complete. Team QR grid overlay for projection with auto-assign URLs, and session export enhanced with team data (team_id on votes, teams on session).*
+*Updated: 2026-02-14 — Plan 25-03 complete. Phase 25 (Team-Based Voting) complete (4/4 plans). Team filter tabs with broadcast sync enable admin to toggle results between all participants and specific teams, with projection mirroring selection in real time.*
