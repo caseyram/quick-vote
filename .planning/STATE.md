@@ -13,11 +13,11 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 
 **Milestone:** v1.4 Template Authoring & Teams
 **Phase:** 25 of 26 (Team-Based Voting)
-**Plan:** 1 of TBD
+**Plan:** 2 of TBD
 **Status:** Executing
-**Last activity:** 2026-02-14 — Completed Plan 25-01 (Team Database Foundation)
+**Last activity:** 2026-02-14 — Completed Plan 25-02 (Team Configuration UI and Joining Flow)
 
-Progress: [██████████████████░░] 94% (v1.4: 15 of 16 plans complete)
+Progress: [███████████████████░] 96% (v1.4: 16 of 16 plans complete)
 
 ## Milestone History
 
@@ -59,8 +59,8 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 **v1.4 Target (Phases 22-26):**
 - Requirements: 25 total
 - Estimated plans: 14 total (12 original + 2 from Phase 24.1 insertion)
-- Completed: 14 (Phase 22: 4, Phase 23: 3, Phase 24: 5, Phase 24.1: 2)
-- Remaining: Phase 25 (team aggregation RPC), Phase 26 (multi-select DnD)
+- Completed: 16 (Phase 22: 4, Phase 23: 3, Phase 24: 5, Phase 24.1: 2, Phase 25: 2)
+- Remaining: Phase 26 (multi-select DnD)
 
 ## Accumulated Context
 
@@ -73,6 +73,10 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 See PROJECT.md for full decision log.
 
 Recent decisions:
+- [Phase 25-02]: Team picker as gate (blocks lobby/voting until team selected) when session has teams
+- [Phase 25-02]: Team locked after first vote (prevents switching teams mid-session)
+- [Phase 25-02]: sessionStorage for team persistence (survives refresh, scoped to session)
+- [Phase 25-02]: TeamBadge at top-right (z-40) to avoid overlap with ConnectionPill (top-left)
 - [Phase 25-01]: JSONB column for teams array on sessions table (flexible, max 5 teams via CHECK constraint)
 - [Phase 25-01]: Nullable team_id on votes table (participants can opt out of teams)
 - [Phase 25-01]: Case-insensitive uniqueness validation in Zod (prevents duplicate team names)
@@ -119,10 +123,10 @@ Recent decisions:
 ## Session Continuity
 
 **Last session:** 2026-02-14
-**Stopped at:** Completed Plan 25-01 (Team Database Foundation)
-**Next action:** Continue Phase 25 (Team-Based Voting) - Plan 02
+**Stopped at:** Completed Plan 25-02 (Team Configuration UI and Joining Flow)
+**Next action:** Continue Phase 25 (Team-Based Voting) - next plan TBD
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-14 — Plan 25-01 complete. Database schema and API foundation for team-based voting (teams JSONB column, team_id on votes, Zod validation, CRUD functions).*
+*Updated: 2026-02-14 — Plan 25-02 complete. Admin team configuration UI, participant team picker/badge, auto-assign from URL, team locking, vote integration with team_id.*
