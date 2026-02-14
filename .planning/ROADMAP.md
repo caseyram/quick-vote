@@ -146,3 +146,13 @@ Phases execute in numeric order: 22 → 23 → 24 → 25 → 26
 ---
 *Created: 2026-01-27*
 *Updated: 2026-02-13 - Phase 23 complete (3/3 plans, verified)*
+
+### Phase 24.1: Presentation-Only Active Mode (INSERTED)
+
+**Goal:** Make PresentationControls the only active session view, consolidating Go Live, timer config, and connection status from AdminControlBar
+**Depends on:** Phase 24
+**Plans:** 2 plans
+
+Plans:
+- [ ] 24.1-01-PLAN.md — Add Go Live, timer config, and connection status to PresentationControls right sidebar
+- [ ] 24.1-02-PLAN.md — Remove non-presentation active view, presentationMode toggle, and clean up AdminControlBar
