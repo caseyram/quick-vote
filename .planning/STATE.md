@@ -13,11 +13,11 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 
 **Milestone:** v1.4 Template Authoring & Teams
 **Phase:** 25 of 26 (Team-Based Voting)
-**Plan:** 2 of TBD
+**Plan:** 4 of TBD
 **Status:** Executing
-**Last activity:** 2026-02-14 — Completed Plan 25-02 (Team Configuration UI and Joining Flow)
+**Last activity:** 2026-02-14 — Completed Plan 25-04 (Team QR Grid and Export)
 
-Progress: [███████████████████░] 96% (v1.4: 16 of 16 plans complete)
+Progress: [███████████████████░] 98% (v1.4: 18 of 18 plans complete)
 
 ## Milestone History
 
@@ -59,7 +59,7 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 **v1.4 Target (Phases 22-26):**
 - Requirements: 25 total
 - Estimated plans: 14 total (12 original + 2 from Phase 24.1 insertion)
-- Completed: 16 (Phase 22: 4, Phase 23: 3, Phase 24: 5, Phase 24.1: 2, Phase 25: 2)
+- Completed: 18 (Phase 22: 4, Phase 23: 3, Phase 24: 5, Phase 24.1: 2, Phase 25: 4)
 - Remaining: Phase 26 (multi-select DnD)
 
 ## Accumulated Context
@@ -73,6 +73,13 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 See PROJECT.md for full decision log.
 
 Recent decisions:
+- [Phase 25-04]: Team QR grid takes precedence over regular QR overlay when both active
+- [Phase 25-04]: Include general session QR at bottom of team grid for non-team participants
+- [Phase 25-04]: Export format remains JSON (team_id is nullable for backward compatibility)
+- [Phase 25-04]: Responsive grid: 2 cols for 2-4 teams, 3 cols for 5 teams
+- [Phase 25-03]: Team filter tabs show participant counts per team (All, plus each team)
+- [Phase 25-03]: selectedTeam state in PresentationControls filters batch results by team
+- [Phase 25-03]: team_filter_changed broadcast event syncs team selection to projection
 - [Phase 25-02]: Team picker as gate (blocks lobby/voting until team selected) when session has teams
 - [Phase 25-02]: Team locked after first vote (prevents switching teams mid-session)
 - [Phase 25-02]: sessionStorage for team persistence (survives refresh, scoped to session)
@@ -123,10 +130,10 @@ Recent decisions:
 ## Session Continuity
 
 **Last session:** 2026-02-14
-**Stopped at:** Completed Plan 25-02 (Team Configuration UI and Joining Flow)
-**Next action:** Continue Phase 25 (Team-Based Voting) - next plan TBD
+**Stopped at:** Completed Plan 25-04 (Team QR Grid and Export)
+**Next action:** Phase 25 complete. Continue to Phase 26 (Multi-Select DnD).
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-14 — Plan 25-02 complete. Admin team configuration UI, participant team picker/badge, auto-assign from URL, team locking, vote integration with team_id.*
+*Updated: 2026-02-14 — Plan 25-04 complete. Team QR grid overlay for projection with auto-assign URLs, and session export enhanced with team data (team_id on votes, teams on session).*
