@@ -8,6 +8,7 @@ import { SequenceManager } from './SequenceManager';
 import { SlideDisplay } from './SlideDisplay';
 import { ParticipantCount } from './ParticipantCount';
 import { KeyboardShortcutHelp } from './KeyboardShortcutHelp';
+import { CountdownTimer } from './CountdownTimer';
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from './BarChart';
 import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation';
 import type { QRMode } from './QROverlay';
@@ -22,17 +23,35 @@ interface PresentationControlsProps {
   onActivateSequenceItem: (item: SessionItem, direction: 'forward' | 'backward') => void;
   onEndSession: () => void;
   onExitPresentationMode: () => void;
+  onQuickQuestion: (text: string, timerDuration: number | null) => void;
+  quickQuestionLoading: boolean;
+  countdownRemaining: number;
+  countdownRunning: boolean;
+  onCloseVoting: (questionId: string) => void;
 }
+
+const timerOptions = [
+  { label: '15s', value: 15 },
+  { label: '30s', value: 30 },
+  { label: '60s', value: 60 },
+  { label: 'None', value: null },
+] as const;
 
 export function PresentationControls({
   sessionId,
   sessionTitle,
   participantCount,
+  connectionStatus,
   channelRef,
   sessionVotes,
   onActivateSequenceItem,
   onEndSession,
   onExitPresentationMode,
+  onQuickQuestion,
+  quickQuestionLoading,
+  countdownRemaining,
+  countdownRunning,
+  onCloseVoting,
 }: PresentationControlsProps) {
   const {
     sessionItems,
@@ -46,6 +65,8 @@ export function PresentationControls({
   const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(new Set());
   const [highlightedReasonId, setHighlightedReasonId] = useState<string | null>(null);
   const [currentBatchQuestionIndex, setCurrentBatchQuestionIndex] = useState(0);
+  const [timerDuration, setTimerDuration] = useState<number | null>(30);
+  const [quickText, setQuickText] = useState('');
 
   // Use navigation hook for keyboard shortcuts
   const { currentIndex, canGoNext, canGoPrev, goNext, goPrev } = useSequenceNavigation({
@@ -297,6 +318,80 @@ export function PresentationControls({
 
       {/* Right sidebar: QR + controls */}
       <div className="w-64 shrink-0 border-l border-gray-200 p-4 space-y-6">
+        {/* Timer Duration pills */}
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">Timer Duration</h3>
+          <div className="flex flex-wrap gap-2">
+            {timerOptions.map((opt) => (
+              <button
+                key={opt.label}
+                onClick={() => setTimerDuration(opt.value)}
+                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  timerDuration === opt.value
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Go Live Quick Question */}
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">Go Live</h3>
+          <input
+            type="text"
+            value={quickText}
+            onChange={(e) => setQuickText(e.target.value)}
+            placeholder="Type a question..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && quickText.trim()) {
+                e.preventDefault();
+                onQuickQuestion(quickText, timerDuration);
+                setQuickText('');
+              }
+            }}
+          />
+          <button
+            onClick={() => {
+              onQuickQuestion(quickText, timerDuration);
+              setQuickText('');
+            }}
+            disabled={!quickText.trim() || quickQuestionLoading}
+            className="w-full px-3 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            {quickQuestionLoading ? 'Going Live...' : 'Go Live'}
+          </button>
+        </div>
+
+        {/* Active Question Status */}
+        {(() => {
+          const activeQ = questions.find(q => q.status === 'active');
+          if (!activeQ) return null;
+          return (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg space-y-2">
+              <h3 className="text-sm font-semibold text-yellow-800">Voting Active</h3>
+              <p className="text-xs text-yellow-700 truncate">{activeQ.text}</p>
+              {countdownRunning && (
+                <CountdownTimer
+                  remainingSeconds={Math.ceil(countdownRemaining / 1000)}
+                  isRunning={countdownRunning}
+                  theme="light"
+                />
+              )}
+              <button
+                onClick={() => onCloseVoting(activeQ.id)}
+                className="w-full px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-medium rounded-lg transition-colors"
+              >
+                Close Voting
+              </button>
+            </div>
+          );
+        })()}
+
         {/* QR Code controls */}
         <div>
           <h3 className="text-sm font-semibold text-gray-700 mb-2">QR Code</h3>
@@ -362,6 +457,29 @@ export function PresentationControls({
           >
             Keyboard Shortcuts (?)
           </button>
+        </div>
+
+        {/* Connection Status */}
+        <div className="pt-4 border-t border-gray-200">
+          <div className="flex items-center gap-2 text-xs">
+            <div className={`w-2 h-2 rounded-full ${
+              connectionStatus === 'connected' ? 'bg-green-500' :
+              connectionStatus === 'reconnecting' ? 'bg-yellow-500 animate-pulse' :
+              connectionStatus === 'disconnected' ? 'bg-red-500' :
+              'bg-gray-400 animate-pulse'
+            }`} />
+            <span className={
+              connectionStatus === 'connected' ? 'text-green-600' :
+              connectionStatus === 'reconnecting' ? 'text-yellow-600' :
+              connectionStatus === 'disconnected' ? 'text-red-600' :
+              'text-gray-500'
+            }>
+              {connectionStatus === 'connected' ? 'Connected' :
+               connectionStatus === 'reconnecting' ? 'Reconnecting...' :
+               connectionStatus === 'disconnected' ? 'Disconnected' :
+               'Connecting...'}
+            </span>
+          </div>
         </div>
       </div>
 
