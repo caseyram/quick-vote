@@ -7,17 +7,17 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 **Core Value:** Participants can instantly vote on questions in a way that feels immersive and tactile -- not like filling out a form.
 **Stack:** Vite + React (TypeScript), Supabase (database + realtime + storage), Vercel deployment
 **Repo:** C:/code/quick-vote
-**Current focus:** v1.4 Template Authoring & Teams - Phase 24 (Presentation Polish)
+**Current focus:** v1.4 Template Authoring & Teams - Phase 25 (Team-Based Voting)
 
 ## Current Position
 
 **Milestone:** v1.4 Template Authoring & Teams
-**Phase:** 24.1 of 26 (Presentation-Only Active Mode)
-**Plan:** 01 of 02 complete
-**Status:** In progress
-**Last activity:** 2026-02-14 — Completed 24.1-01-PLAN.md (Go Live, timer config, connection status)
+**Phase:** 25 of 26 (Team-Based Voting)
+**Plan:** 1 of TBD
+**Status:** Executing
+**Last activity:** 2026-02-14 — Completed Plan 25-01 (Team Database Foundation)
 
-Progress: [███████████████░░░░░] 77% (v1.4: 11 of 14 plans complete)
+Progress: [██████████████████░░] 94% (v1.4: 15 of 16 plans complete)
 
 ## Milestone History
 
@@ -59,8 +59,8 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 **v1.4 Target (Phases 22-26):**
 - Requirements: 25 total
 - Estimated plans: 14 total (12 original + 2 from Phase 24.1 insertion)
-- Completed: 11 (Phase 22: 4, Phase 23: 3, Phase 24: 3, Phase 24.1: 1)
-- Research flags: Phase 25 (team aggregation RPC), Phase 26 (multi-select DnD)
+- Completed: 14 (Phase 22: 4, Phase 23: 3, Phase 24: 5, Phase 24.1: 2)
+- Remaining: Phase 25 (team aggregation RPC), Phase 26 (multi-select DnD)
 
 ## Accumulated Context
 
@@ -73,6 +73,17 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 See PROJECT.md for full decision log.
 
 Recent decisions:
+- [Phase 25-01]: JSONB column for teams array on sessions table (flexible, max 5 teams via CHECK constraint)
+- [Phase 25-01]: Nullable team_id on votes table (participants can opt out of teams)
+- [Phase 25-01]: Case-insensitive uniqueness validation in Zod (prevents duplicate team names)
+- [Phase 25-01]: Composite index on (session_id, team_id) for efficient team filtering queries
+- [Phase 24.1-02]: Removed non-presentation active view entirely — PresentationControls is the only active session UI
+- [Phase 24.1-02]: Split view toggle replaces fixed current+next layout
+- [Phase 24.1-02]: Batch-level reveal (all questions at once) instead of per-question reveal
+- [Phase 24.1-02]: Reason review with auto-play, keyboard nav, group-aware pagination, reasons-per-page (1/2/4)
+- [Phase 24.1-02]: Reasons displayed in question response option order
+- [Phase 24.1-02]: Removed claim_session RPC; session reclaim uses direct UPDATE
+- [Phase 24.1-02]: Vote polling reduced from 3s to 10s (realtime is primary channel)
 - [Phase 24-03]: Cover image selector in BatchEditor toolbar between question count and timer input
 - [Phase 24-03]: Cover image crossfade animation (400ms) when transitioning from cover to results
 - [Phase 24-01]: Default background color #1a1a2e for projection views until session template loading implemented
@@ -99,7 +110,7 @@ Recent decisions:
 
 ### Known Issues
 
-- **PostgREST schema cache:** claim_session RPC returns 404 until PostgREST cache refreshes. Project restart needed. Call is wrapped in try-catch so it doesn't block loading.
+- **PostgREST schema cache:** claim_session RPC function exists in migrations but not deployed. Removed the RPC call; session reclaim now uses direct UPDATE on sessions table.
 
 ### Blockers
 
@@ -108,10 +119,10 @@ Recent decisions:
 ## Session Continuity
 
 **Last session:** 2026-02-14
-**Stopped at:** Completed 24.1-01-PLAN.md
-**Next action:** Continue Phase 24.1 Plan 02, then Phase 24 verification, then Phase 25 (Team-Based Voting)
+**Stopped at:** Completed Plan 25-01 (Team Database Foundation)
+**Next action:** Continue Phase 25 (Team-Based Voting) - Plan 02
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-14 — Phase 24.1 Plan 01 complete (Go Live, timer config, connection status in PresentationControls)*
+*Updated: 2026-02-14 — Plan 25-01 complete. Database schema and API foundation for team-based voting (teams JSONB column, team_id on votes, Zod validation, CRUD functions).*
