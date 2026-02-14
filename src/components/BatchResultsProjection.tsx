@@ -43,21 +43,27 @@ export function BatchResultsProjection({
     .filter((q) => q.batch_id === batchId)
     .sort((a, b) => a.position - b.position);
 
-  // Determine which question to display:
-  // 1. Prefer admin-selected question (if it's a revealed batch question)
-  // 2. Fall back to most recently revealed question
+  // Determine which question to display (in priority order):
+  // 1. If a reason is highlighted, show that reason's question
+  // 2. Prefer admin-selected question (synced via broadcast)
+  // 3. Fall back to first revealed batch question
   let currentQuestionId: string | undefined;
   if (
+    highlightedReason &&
+    revealedQuestions.has(highlightedReason.questionId) &&
+    batchQuestions.some((q) => q.id === highlightedReason.questionId)
+  ) {
+    currentQuestionId = highlightedReason.questionId;
+  } else if (
     selectedQuestionId &&
     revealedQuestions.has(selectedQuestionId) &&
     batchQuestions.some((q) => q.id === selectedQuestionId)
   ) {
     currentQuestionId = selectedQuestionId;
   } else {
-    const revealedArray = Array.from(revealedQuestions);
-    currentQuestionId = revealedArray
-      .reverse()
-      .find((qId) => batchQuestions.some((q) => q.id === qId));
+    // Pick the first revealed batch question (by position order)
+    currentQuestionId = batchQuestions
+      .find((q) => revealedQuestions.has(q.id))?.id;
   }
 
   const currentQuestion = currentQuestionId

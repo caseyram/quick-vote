@@ -207,6 +207,22 @@ export function PresentationControls({
         payload: { questionId, revealed: !allRevealed },
       });
     });
+
+    // Also sync the currently viewed question to the projection
+    if (!allRevealed && questionIds.length > 0) {
+      // Determine which question the admin is viewing based on batch question index
+      const batchQuestions = questions
+        .filter((q) => questionIds.includes(q.id))
+        .sort((a, b) => a.position - b.position);
+      const currentQ = batchQuestions[currentBatchQuestionIndex] || batchQuestions[0];
+      if (currentQ) {
+        channelRef.current?.send({
+          type: 'broadcast',
+          event: 'question_selected',
+          payload: { questionId: currentQ.id },
+        });
+      }
+    }
   }
 
   function handleSelectQuestion(questionId: string, index: number) {
