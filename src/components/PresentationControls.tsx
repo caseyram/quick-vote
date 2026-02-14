@@ -209,6 +209,15 @@ export function PresentationControls({
     });
   }
 
+  function handleSelectQuestion(questionId: string, index: number) {
+    setCurrentBatchQuestionIndex(index);
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'question_selected',
+      payload: { questionId },
+    });
+  }
+
   function handleHighlightReason(questionId: string, reasonId: string) {
     const isSameReason = highlightedReasonId === reasonId;
     const newReasonId = isSameReason ? null : reasonId;
@@ -308,7 +317,7 @@ export function PresentationControls({
                 revealedQuestions={revealedQuestions}
                 highlightedReasonId={highlightedReasonId}
                 currentBatchQuestionIndex={currentBatchQuestionIndex}
-                onSetCurrentBatchQuestionIndex={setCurrentBatchQuestionIndex}
+                onSelectQuestion={handleSelectQuestion}
                 onRevealBatch={handleRevealBatch}
                 onRevealQuestion={handleRevealQuestion}
                 onHighlightReason={handleHighlightReason}
@@ -640,7 +649,7 @@ function BatchControlPanel({
   revealedQuestions,
   highlightedReasonId,
   currentBatchQuestionIndex,
-  onSetCurrentBatchQuestionIndex,
+  onSelectQuestion,
   onRevealBatch,
   onRevealQuestion,
   onHighlightReason,
@@ -652,7 +661,7 @@ function BatchControlPanel({
   revealedQuestions: Set<string>;
   highlightedReasonId: string | null;
   currentBatchQuestionIndex: number;
-  onSetCurrentBatchQuestionIndex: (index: number) => void;
+  onSelectQuestion: (questionId: string, index: number) => void;
   onRevealBatch: (questionIds: string[]) => void;
   onRevealQuestion: (questionId: string) => void;
   onHighlightReason: (questionId: string, reasonId: string) => void;
@@ -856,7 +865,7 @@ function BatchControlPanel({
           {batchQuestions.map((q, idx) => (
             <button
               key={q.id}
-              onClick={() => onSetCurrentBatchQuestionIndex(idx)}
+              onClick={() => onSelectQuestion(q.id, idx)}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 idx === currentBatchQuestionIndex
                   ? 'bg-indigo-600 text-white'

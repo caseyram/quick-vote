@@ -12,6 +12,8 @@ interface BatchResultsProjectionProps {
   sessionVotes: Record<string, Vote[]>;
   revealedQuestions: Set<string>;
   highlightedReason: { questionId: string; reasonId: string } | null;
+  /** Question ID selected by admin (synced via broadcast) */
+  selectedQuestionId?: string | null;
   backgroundColor?: string;
 }
 
@@ -22,6 +24,7 @@ export function BatchResultsProjection({
   sessionVotes,
   revealedQuestions,
   highlightedReason,
+  selectedQuestionId,
   backgroundColor,
 }: BatchResultsProjectionProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -40,11 +43,22 @@ export function BatchResultsProjection({
     .filter((q) => q.batch_id === batchId)
     .sort((a, b) => a.position - b.position);
 
-  // Find the most recently revealed question
-  const revealedArray = Array.from(revealedQuestions);
-  const currentQuestionId = revealedArray
-    .reverse()
-    .find((qId) => batchQuestions.some((q) => q.id === qId));
+  // Determine which question to display:
+  // 1. Prefer admin-selected question (if it's a revealed batch question)
+  // 2. Fall back to most recently revealed question
+  let currentQuestionId: string | undefined;
+  if (
+    selectedQuestionId &&
+    revealedQuestions.has(selectedQuestionId) &&
+    batchQuestions.some((q) => q.id === selectedQuestionId)
+  ) {
+    currentQuestionId = selectedQuestionId;
+  } else {
+    const revealedArray = Array.from(revealedQuestions);
+    currentQuestionId = revealedArray
+      .reverse()
+      .find((qId) => batchQuestions.some((q) => q.id === qId));
+  }
 
   const currentQuestion = currentQuestionId
     ? batchQuestions.find((q) => q.id === currentQuestionId)

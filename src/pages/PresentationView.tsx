@@ -36,6 +36,7 @@ export default function PresentationView() {
   const [sessionVotes, setSessionVotes] = useState<Record<string, Vote[]>>({});
   const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(new Set());
   const [highlightedReason, setHighlightedReason] = useState<{ questionId: string; reasonId: string } | null>(null);
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
   const [activeInlineQuestion, setActiveInlineQuestion] = useState<Question | null>(null);
   const [inlineVotingClosed, setInlineVotingClosed] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -161,6 +162,7 @@ export default function PresentationView() {
     channel.on('broadcast', { event: 'batch_activated' }, ({ payload }: any) => {
       setRevealedQuestions(new Set());
       setHighlightedReason(null);
+      setSelectedQuestionId(null);
       setActiveInlineQuestion(null); // Clear any inline question
 
       useSessionStore.getState().setActiveBatchId(payload.batchId);
@@ -237,6 +239,11 @@ export default function PresentationView() {
       setHighlightedReason(
         payload.reasonId ? { questionId: payload.questionId, reasonId: payload.reasonId } : null
       );
+    });
+
+    // Listen for question tab selection from admin
+    channel.on('broadcast', { event: 'question_selected' }, ({ payload }: any) => {
+      setSelectedQuestionId(payload.questionId);
     });
 
     channelRef.current = channel;
@@ -479,6 +486,7 @@ export default function PresentationView() {
                         sessionVotes={sessionVotes}
                         revealedQuestions={revealedQuestions}
                         highlightedReason={highlightedReason}
+                        selectedQuestionId={selectedQuestionId}
                         backgroundColor="#1a1a2e"
                       />
                     </motion.div>
