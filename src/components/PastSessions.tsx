@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { bulkInsertQuestions, questionsToTemplates, batchesToTemplates } from '../lib/question-templates';
 import { exportSession, downloadJSON, generateExportFilename } from '../lib/session-export';
 import { ConfirmDialog } from './ConfirmDialog';
-import type { Session, Question, Batch } from '../types/database';
+import type { Session, Question, Batch, SessionItem } from '../types/database';
 
 interface SessionRow extends Session {
   question_count: number;
@@ -75,8 +75,8 @@ export function PastSessions() {
   async function handleUseAsTemplate(session: SessionRow) {
     setActionLoading(session.id);
     try {
-      // Fetch questions and batches from the source session
-      const [questionsResult, batchesResult] = await Promise.all([
+      // Fetch questions, batches, and session_items from the source session
+      const [questionsResult, batchesResult, itemsResult] = await Promise.all([
         supabase
           .from('questions')
           .select('*')
@@ -87,12 +87,18 @@ export function PastSessions() {
           .select('*')
           .eq('session_id', session.session_id)
           .order('position', { ascending: true }),
+        supabase
+          .from('session_items')
+          .select('*')
+          .eq('session_id', session.session_id)
+          .order('position', { ascending: true }),
       ]);
 
       const srcQuestions = questionsResult.data as Question[] | null;
       const srcBatches = batchesResult.data as Batch[] | null;
+      const srcItems = itemsResult.data as SessionItem[] | null;
 
-      if (!srcQuestions || srcQuestions.length === 0) {
+      if ((!srcQuestions || srcQuestions.length === 0) && (!srcItems || srcItems.length === 0)) {
         setActionLoading(null);
         return;
       }
@@ -115,9 +121,35 @@ export function PastSessions() {
       if (insertErr || !newSession) return;
 
       // Bulk-insert copied questions and batches
-      const questionTemplates = questionsToTemplates(srcQuestions, srcBatches ?? []);
+      const questionTemplates = questionsToTemplates(srcQuestions ?? [], srcBatches ?? []);
       const batchTemplates = batchesToTemplates(srcBatches ?? []);
-      await bulkInsertQuestions(newSessionId, questionTemplates, batchTemplates, 0, 0);
+      const { batches: newBatches } = await bulkInsertQuestions(
+        newSessionId, questionTemplates, batchTemplates, 0, 0
+      );
+
+      // Build old batch ID → new batch ID mapping (matched by sorted position order)
+      const sortedSrcBatches = [...(srcBatches ?? [])].sort((a, b) => a.position - b.position);
+      const sortedNewBatches = [...newBatches].sort((a, b) => a.position - b.position);
+      const batchIdMap = new Map<string, string>();
+      sortedSrcBatches.forEach((srcBatch, idx) => {
+        if (idx < sortedNewBatches.length) {
+          batchIdMap.set(srcBatch.id, sortedNewBatches[idx].id);
+        }
+      });
+
+      // Create session_items for the new session (preserving sequence order with slides)
+      if (srcItems && srcItems.length > 0) {
+        const newItems = srcItems.map((item) => ({
+          session_id: newSessionId,
+          item_type: item.item_type,
+          position: item.position,
+          batch_id: item.batch_id ? (batchIdMap.get(item.batch_id) ?? null) : null,
+          slide_image_path: item.slide_image_path,
+          slide_caption: item.slide_caption,
+        }));
+
+        await supabase.from('session_items').insert(newItems);
+      }
 
       navigate(`/admin/${newSession.admin_token}`);
     } finally {
