@@ -6,10 +6,12 @@ export interface VoteCount {
   percentage: number;
 }
 
-export function aggregateVotes(votes: Vote[]): VoteCount[] {
-  const total = votes.length;
+export function aggregateVotes(votes: Vote[], teamFilter?: string | null): VoteCount[] {
+  // Filter votes by team if teamFilter is provided
+  const filteredVotes = teamFilter ? votes.filter(v => v.team_id === teamFilter) : votes;
+  const total = filteredVotes.length;
 
-  const counts = votes.reduce<Record<string, number>>((acc, vote) => {
+  const counts = filteredVotes.reduce<Record<string, number>>((acc, vote) => {
     acc[vote.value] = (acc[vote.value] || 0) + 1;
     return acc;
   }, {});
@@ -19,6 +21,14 @@ export function aggregateVotes(votes: Vote[]): VoteCount[] {
     count,
     percentage: total === 0 ? 0 : Math.round((count / total) * 100),
   }));
+}
+
+/**
+ * Returns count of unique participants for the given votes, optionally filtered by team.
+ */
+export function getTeamParticipantCount(votes: Vote[], teamFilter?: string | null): number {
+  const filteredVotes = teamFilter ? votes.filter(v => v.team_id === teamFilter) : votes;
+  return new Set(filteredVotes.map(v => v.participant_id)).size;
 }
 
 /**
