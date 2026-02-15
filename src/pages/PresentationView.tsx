@@ -398,6 +398,25 @@ export default function PresentationView() {
     ? sessionItems.find((item) => item.id === activeSessionItemId)
     : null;
 
+  // When a batch cover matches the previous slide, skip all transitions —
+  // the image is already on screen, no visual change needed
+  const coverMatchesPrevSlide = (() => {
+    if (currentItem?.item_type === 'batch' && currentItem.batch_id) {
+      const batch = batches.find((b) => b.id === currentItem.batch_id);
+      if (batch?.cover_image_path && revealedQuestions.size === 0) {
+        const idx = sessionItems.findIndex((i) => i.id === activeSessionItemId);
+        const prevItem = idx > 0 ? sessionItems[idx - 1] : null;
+        if (prevItem?.item_type === 'slide' && prevItem.slide_image_path === batch.cover_image_path) {
+          return true;
+        }
+      }
+    }
+    return false;
+  })();
+  const displayKey = coverMatchesPrevSlide
+    ? sessionItems[sessionItems.findIndex((i) => i.id === activeSessionItemId) - 1].id
+    : (activeSessionItemId ?? 'none');
+
   // Animation variants (unified directional slide transitions)
   const slideVariants = {
     enter: (direction: 'forward' | 'backward' | null) => ({
@@ -427,7 +446,7 @@ export default function PresentationView() {
       <div className="relative w-full h-full overflow-hidden">
         <AnimatePresence initial={false} custom={navigationDirection}>
           <motion.div
-            key={activeSessionItemId ?? 'none'}
+            key={displayKey}
             custom={navigationDirection}
             variants={slideVariants}
             initial="enter"
@@ -487,7 +506,7 @@ export default function PresentationView() {
                   {showCover ? (
                     <motion.div
                       key="batch-cover"
-                      initial={{ opacity: 0 }}
+                      initial={coverMatchesPrevSlide ? false : { opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.4 }}

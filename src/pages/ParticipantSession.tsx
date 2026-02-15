@@ -53,6 +53,7 @@ export default function ParticipantSession() {
   // Refs for mutable state accessible from Broadcast callbacks (avoid stale closures)
   const viewRef = useRef<ParticipantView>('loading');
   const activeQuestionRef = useRef<Question | null>(null);
+  const participantIdRef = useRef<string | null>(null);
   // Keep refs in sync with state
   useEffect(() => {
     viewRef.current = view;
@@ -61,6 +62,10 @@ export default function ParticipantSession() {
   useEffect(() => {
     activeQuestionRef.current = activeQuestion;
   }, [activeQuestion]);
+
+  useEffect(() => {
+    participantIdRef.current = participantId;
+  }, [participantId]);
 
   // Restore display name from sessionStorage on mount
   useEffect(() => {
@@ -174,10 +179,23 @@ export default function ParticipantSession() {
       }
 
       if (qData) {
-        setActiveQuestion(qData);
-        setView('voting');
-        // Restore timer from stored expiration
-        restoreTimerFromExpiration(statusData.timer_expires_at);
+        // Check if participant already voted on this question
+        const { data: existingVote } = await supabase
+          .from('votes')
+          .select('id')
+          .eq('question_id', qData.id)
+          .eq('participant_id', participantIdRef.current)
+          .maybeSingle();
+
+        if (existingVote) {
+          setView('waiting');
+          setWaitingMessage('Vote submitted! Waiting for results...');
+        } else {
+          setActiveQuestion(qData);
+          setView('voting');
+          // Restore timer from stored expiration
+          restoreTimerFromExpiration(statusData.timer_expires_at);
+        }
       } else {
         setActiveQuestion(null);
         setView('waiting');
@@ -217,6 +235,23 @@ export default function ParticipantSession() {
           .single();
 
         if (data) {
+          // Skip voting UI if participant already voted on this question
+          const pid = participantIdRef.current;
+          if (pid) {
+            const { data: existing } = await supabase
+              .from('votes')
+              .select('id')
+              .eq('question_id', questionId)
+              .eq('participant_id', pid)
+              .maybeSingle();
+
+            if (existing) {
+              setView('waiting');
+              setWaitingMessage('Vote submitted! Waiting for results...');
+              return;
+            }
+          }
+
           setActiveQuestion(data);
           setView('voting');
           setWaitingMessage('Waiting for next question...');
@@ -435,6 +470,7 @@ export default function ParticipantSession() {
       // If session is active, check for active batch or question
       let question: Question | null = null;
       let hasBatchActive = false;
+      let alreadyVoted = false;
       if (sessionData.status === 'active') {
         // First check for active batch
         const { data: activeBatch, error: batchErr } = await supabase
@@ -477,8 +513,20 @@ export default function ParticipantSession() {
           }
 
           if (!cancelled && qData) {
-            question = qData;
-            setActiveQuestion(qData);
+            // Check if participant already voted on this question
+            const { data: existingVote } = await supabase
+              .from('votes')
+              .select('id')
+              .eq('question_id', qData.id)
+              .eq('participant_id', uid)
+              .maybeSingle();
+
+            if (existingVote) {
+              alreadyVoted = true;
+            } else {
+              question = qData;
+              setActiveQuestion(qData);
+            }
           }
         }
       }
@@ -507,6 +555,9 @@ export default function ParticipantSession() {
           // Restore timer if viewing active question
           if (derivedView === 'voting') {
             restoreTimerFromExpiration(sessionData.timer_expires_at);
+          }
+          if (alreadyVoted) {
+            setWaitingMessage('Vote submitted! Waiting for results...');
           }
         }
       }

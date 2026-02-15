@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { nanoid } from 'nanoid';
-import imageCompression from 'browser-image-compression';
 import {
   DndContext,
   closestCenter,
@@ -19,7 +18,7 @@ import { useTemplateEditorStore } from '../../stores/template-editor-store';
 import type { EditorItem, EditorQuestion } from '../../stores/template-editor-store';
 import { useTemplateStore } from '../../stores/template-store';
 import { fetchTemplates } from '../../lib/template-api';
-import { uploadSlideImage, getSlideImageUrl } from '../../lib/slide-api';
+import { getSlideImageUrl } from '../../lib/slide-api';
 import { QuestionRow } from './QuestionRow';
 
 interface BatchEditorProps {
@@ -34,9 +33,7 @@ export function BatchEditor({ item }: BatchEditorProps) {
   const [collapseSignal, setCollapseSignal] = useState(0);
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [newQuestionId, setNewQuestionId] = useState<string | null>(null);
-  const [uploadingCover, setUploadingCover] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
-  const coverFileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch response templates on mount
   useEffect(() => {
@@ -56,8 +53,27 @@ export function BatchEditor({ item }: BatchEditorProps) {
   if (!item.batch) return null;
 
   const questions = item.batch.questions;
-  const allItems = items;
-  const availableSlides = allItems.filter((i) => i.item_type === 'slide' && i.slide?.image_path);
+
+  // Find the nearest preceding slide in the sequence for cover image
+  const previousSlide = useMemo(() => {
+    const idx = items.findIndex((i) => i.id === item.id);
+    for (let i = idx - 1; i >= 0; i--) {
+      if (items[i].item_type === 'slide' && items[i].slide?.image_path) {
+        return items[i];
+      }
+    }
+    return null;
+  }, [items, item.id]);
+
+  // Keep cover in sync when previous slide changes (e.g. after reorder)
+  const previousSlidePath = previousSlide?.slide?.image_path ?? null;
+  useEffect(() => {
+    if (!item.batch?.cover_image_path) return; // cover not enabled
+    if (item.batch.cover_image_path === previousSlidePath) return; // already correct
+    updateItem(item.id, {
+      batch: { ...item.batch!, cover_image_path: previousSlidePath },
+    });
+  }, [previousSlidePath]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveQuestionId(event.active.id as string);
@@ -177,31 +193,7 @@ export function BatchEditor({ item }: BatchEditorProps) {
     }
   };
 
-  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingCover(true);
-    try {
-      const compressed = await imageCompression(file, {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1920,
-        useWebWorker: true,
-        fileType: 'image/webp',
-        initialQuality: 0.85,
-        preserveExif: false,
-      });
-      const imagePath = await uploadSlideImage('templates', compressed);
-      updateItem(item.id, {
-        batch: { ...item.batch!, cover_image_path: imagePath },
-      });
-    } catch (err) {
-      console.error('Failed to upload cover image:', err);
-      alert('Failed to upload image. Please try again.');
-    } finally {
-      setUploadingCover(false);
-      if (coverFileInputRef.current) coverFileInputRef.current.value = '';
-    }
-  };
+
 
   // Find active question for drag overlay
   const activeQuestion = activeQuestionId
@@ -237,48 +229,30 @@ export function BatchEditor({ item }: BatchEditorProps) {
           {questions.length} {questions.length === 1 ? 'Q' : 'Qs'}
         </span>
 
-        {/* Cover image selector */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <label className="text-xs text-gray-500">Cover</label>
-          {item.batch.cover_image_path && (
-            <img
-              src={getSlideImageUrl(item.batch.cover_image_path)}
-              alt="Cover"
-              className="w-6 h-6 rounded object-cover"
+        {/* Slide cover checkbox */}
+        {previousSlide && (
+          <label className="flex items-center gap-1.5 flex-shrink-0 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={!!item.batch.cover_image_path}
+              onChange={(e) => {
+                updateItem(item.id, {
+                  batch: {
+                    ...item.batch!,
+                    cover_image_path: e.target.checked ? previousSlide.slide!.image_path : null,
+                  },
+                });
+              }}
+              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
             />
-          )}
-          <select
-            value={item.batch.cover_image_path || ''}
-            onChange={(e) => {
-              updateItem(item.id, {
-                batch: { ...item.batch!, cover_image_path: e.target.value || null },
-              });
-            }}
-            className="bg-gray-50 border border-gray-300 rounded px-2 py-1 text-sm text-gray-700 max-w-[140px]"
-          >
-            <option value="">None</option>
-            {availableSlides.map((slide) => (
-              <option key={slide.id} value={slide.slide!.image_path}>
-                {slide.slide!.caption || 'Slide'}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={() => coverFileInputRef.current?.click()}
-            disabled={uploadingCover}
-            className="px-2 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors disabled:opacity-50"
-            title="Upload new cover image"
-          >
-            {uploadingCover ? '...' : 'Upload'}
-          </button>
-          <input
-            ref={coverFileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            onChange={handleCoverUpload}
-            className="hidden"
-          />
-        </div>
+            <img
+              src={getSlideImageUrl(previousSlide.slide!.image_path)}
+              alt="Cover"
+              className="w-6 h-6 rounded object-cover opacity-70 group-hover:opacity-100 transition-opacity"
+            />
+            <span className="text-xs text-gray-500">Cover</span>
+          </label>
+        )}
 
         <div className="flex-1" />
 
