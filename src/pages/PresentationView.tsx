@@ -165,7 +165,7 @@ export default function PresentationView() {
     });
 
     // Listen for batch activations - also reset reveal state
-    channel.on('broadcast', { event: 'batch_activated' }, ({ payload }: any) => {
+    channel.on('broadcast', { event: 'batch_activated' }, async ({ payload }: any) => {
       setRevealedQuestions(new Set());
       setHighlightedReason(null);
       setSelectedQuestionId(null);
@@ -175,9 +175,29 @@ export default function PresentationView() {
       useSessionStore.getState().setActiveBatchId(payload.batchId);
       // Find the corresponding session_item for this batch
       const items = useSessionStore.getState().sessionItems;
-      const batchItem = items.find(
+      let batchItem = items.find(
         (item) => item.item_type === 'batch' && item.batch_id === payload.batchId
       );
+
+      // If session_item not found locally (e.g. Go Live created a new batch),
+      // re-fetch session_items, batches, and questions from DB
+      if (!batchItem && sessionId) {
+        const [itemsRes, batchesRes, questionsRes] = await Promise.all([
+          supabase.from('session_items').select('*').eq('session_id', sessionId).order('position', { ascending: true }),
+          supabase.from('batches').select('*').eq('session_id', sessionId).order('position', { ascending: true }),
+          supabase.from('questions').select('*').eq('session_id', sessionId).order('position', { ascending: true }),
+        ]);
+        if (itemsRes.data) useSessionStore.getState().setSessionItems(itemsRes.data);
+        if (batchesRes.data) useSessionStore.getState().setBatches(batchesRes.data);
+        if (questionsRes.data) useSessionStore.getState().setQuestions(questionsRes.data);
+
+        // Re-search for the session_item
+        const freshItems = useSessionStore.getState().sessionItems;
+        batchItem = freshItems.find(
+          (item) => item.item_type === 'batch' && item.batch_id === payload.batchId
+        );
+      }
+
       if (batchItem) {
         useSessionStore.getState().setActiveSessionItemId(batchItem.id);
       }
