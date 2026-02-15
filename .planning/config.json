@@ -2,5 +2,8 @@
   "mode": "yolo",
   "depth": "quick",
   "parallelization": true,
-  "created": "2026-01-27"
+  "created": "2026-01-27",
+  "workflow": {
+    "research": true
+  }
 }

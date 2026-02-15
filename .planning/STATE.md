@@ -2,20 +2,18 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-12)
+See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core Value:** Participants can instantly vote on questions in a way that feels immersive and tactile -- not like filling out a form.
 **Stack:** Vite + React (TypeScript), Supabase (database + realtime + storage), Vercel deployment
 **Repo:** C:/code/quick-vote
-**Current focus:** v1.4 Template Authoring & Teams - Phase 26 (Sequence & Results Enhancements)
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-**Milestone:** v1.4 Template Authoring & Teams
-**Phase:** 26 of 26 (Sequence & Results Enhancements)
-**Plan:** 2 of 2 complete
-**Status:** Phase 26 complete
-**Last activity:** 2026-02-15 — Completed Phase 26-02 (Live Vote Progress & Simplified Config)
+**Milestone:** v1.4 Template Authoring & Teams — SHIPPED
+**Status:** Complete
+**Last activity:** 2026-02-15 — v1.4 milestone archived
 
 Progress: [████████████████████] 100% (v1.4: 20 of 20 plans complete)
 
@@ -27,6 +25,7 @@ Progress: [████████████████████] 100% (v
 | v1.1 | Batch Questions & Polish | 2026-01-29 | 6-10 (+09.1) | 18 |
 | v1.2 | Response Templates | 2026-02-10 | 11-15 | 11 |
 | v1.3 | Presentation Mode | 2026-02-11 | 16-21 | 12 |
+| v1.4 | Template Authoring & Teams | 2026-02-15 | 22-26 (+24.1) | 20 |
 
 See `.planning/MILESTONES.md` for full details.
 See `.planning/milestones/` for archived roadmaps and requirements.
@@ -56,86 +55,18 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 - Requirements: 22/22 delivered
 - Timeline: 2 days (2026-02-10 to 2026-02-11)
 
-**v1.4 Target (Phases 22-26):**
-- Requirements: 25 total
-- Estimated plans: 20 total (14 original - 1 merged + 7 from research/context)
-- Completed: 20 (Phase 22: 4, Phase 23: 3, Phase 24: 5, Phase 24.1: 2, Phase 25: 4, Phase 26: 2)
-- Status: Complete
+**v1.4 (Phases 22-26 + 24.1):**
+- Plans: 20
+- Avg plans/phase: 3.3
+- Requirements: 22/25 delivered (3 dropped by user)
+- Timeline: 3 days (2026-02-12 to 2026-02-15)
+- Inserted phases: 1 (Phase 24.1)
 
 ## Accumulated Context
 
-### Roadmap Evolution
-
-- Phase 24.1 inserted after Phase 24: Presentation-Only Active Mode (URGENT) — Remove non-presentation admin view for active sessions, make PresentationControls the only active session view, add Go Live, timer config, and connection status
-
-### Decisions
-
-See PROJECT.md for full decision log.
-
-Recent decisions:
-- [Phase 26-02]: Progress bar renders only for active batches with vote data present
-- [Phase 26-02]: Green progress bar indicates 100% completion (all participants voted)
-- [Phase 26-02]: Blue progress bar indicates voting in progress
-- [Phase 26-02]: X/Y count format shows total votes vs expected votes
-- [Phase 26-02]: Draft session config shows only runtime settings (reasons, test mode, teams, sequence)
-- [Phase 26-02]: Content editing (slides, questions, templates) lives exclusively in template editor
-- [Phase 26-01]: Multi-select enabled only in draft mode (isLive=false)
-- [Phase 26-01]: Selection uses Set<string> for O(1) lookups
-- [Phase 26-01]: Group drag preserves relative order of selected items
-- [Phase 26-01]: Shift-click range selection adds to existing selection (union)
-- [Phase 26-01]: Indigo tint (bg-indigo-100 border-indigo-400) for selected state
-- [Phase 26-01]: DragOverlay shows count badge for multi-item drag
-- [Phase 25-04]: Team QR grid takes precedence over regular QR overlay when both active
-- [Phase 25-04]: Include general session QR at bottom of team grid for non-team participants
-- [Phase 25-04]: Export format remains JSON (team_id is nullable for backward compatibility)
-- [Phase 25-04]: Responsive grid: 2 cols for 2-4 teams, 3 cols for 5 teams
-- [Phase 25-03]: TeamFilterTabs accepts theme prop for light (admin) and dark (projection) variants
-- [Phase 25-03]: selectedTeam === null represents 'All' (no filter applied)
-- [Phase 25-03]: Team filter state resets to 'All' on page reload (no persistence)
-- [Phase 25-03]: Broadcast event 'team_filter_changed' syncs filter selection to projection in real time
-- [Phase 25-03]: Display 'Showing: [TeamName]' label on projection when team filter is active
-- [Phase 25-02]: Team picker as gate (blocks lobby/voting until team selected) when session has teams
-- [Phase 25-02]: Team locked after first vote (prevents switching teams mid-session)
-- [Phase 25-02]: sessionStorage for team persistence (survives refresh, scoped to session)
-- [Phase 25-02]: TeamBadge at top-right (z-40) to avoid overlap with ConnectionPill (top-left)
-- [Phase 25-01]: JSONB column for teams array on sessions table (flexible, max 5 teams via CHECK constraint)
-- [Phase 25-01]: Nullable team_id on votes table (participants can opt out of teams)
-- [Phase 25-01]: Case-insensitive uniqueness validation in Zod (prevents duplicate team names)
-- [Phase 25-01]: Composite index on (session_id, team_id) for efficient team filtering queries
-- [Phase 24.1-02]: Removed non-presentation active view entirely — PresentationControls is the only active session UI
-- [Phase 24.1-02]: Split view toggle replaces fixed current+next layout
-- [Phase 24.1-02]: Batch-level reveal (all questions at once) instead of per-question reveal
-- [Phase 24.1-02]: Reason review with auto-play, keyboard nav, group-aware pagination, reasons-per-page (1/2/4)
-- [Phase 24.1-02]: Reasons displayed in question response option order
-- [Phase 24.1-02]: Removed claim_session RPC; session reclaim uses direct UPDATE
-- [Phase 24.1-02]: Vote polling reduced from 3s to 10s (realtime is primary channel)
-- [Phase 24-03]: Cover image selector in BatchEditor toolbar between question count and timer input
-- [Phase 24-03]: Cover image crossfade animation (400ms) when transitioning from cover to results
-- [Phase 24-01]: Default background color #1a1a2e for projection views until session template loading implemented
-- [Phase 24-01]: Cubic-bezier easing [0.4, 0.0, 0.2, 1] with 400ms for smooth directional transitions
-- [Phase 24-01]: Remove AnimatePresence mode="wait" to enable overlap during transitions (no visible gaps)
-- [Phase 23-02]: Static voting mockup (no click handlers) chosen for simplicity over clickable no-ops
-- [Phase 23-02]: No device frame for participant view - just phone proportions (max-w-[320px])
-- [Phase 23-01]: Fixed deterministic mock vote distributions (no randomness) for consistent preview
-- [Phase 23-01]: Dropdown pattern for Preview All vs Preview from Here (better UX than two separate buttons)
-- [Phase 23-01]: Light theme for projection panel to match live presentation appearance
-- (v1.4) Install yet-another-react-lightbox for image viewing — battle-tested library, minimal setup required
-- (v1.4) Restructure Home page with three session creation paths — Create New (template editor), Quick Session (direct), New from Template (copy)
-- (v1.4) Add Start Session button alongside Save Template — separate one-off session launch from template persistence
-- (v1.4) Use nanoid for editor item IDs — consistent with project convention, already in dependencies
-- (v1.4) Upload template images to 'templates' session ID folder — reuses existing slide storage infrastructure, isolates template images from session images
-- (v1.3) Inline slide data in session_items — avoids separate slides table, simpler queries
-- (v1.3) JSONB blueprint for session templates — flexible schema, single column stores full session structure
-- [Phase 22]: Auto-collapse expanded questions on drag start to prevent glitchy overlays
-- [Phase 22]: Timer duration as number input in seconds with human-readable conversion
-- [Phase 22]: Anonymous field removed from editor UI — all votes are anonymous by default (hard-coded true in blueprint)
-- [Phase 22]: Response template selectors at 3 levels: per-question, per-batch, and global toolbar
-- [Phase 24]: HexColorPicker and HexColorInput from react-colorful provide wheel + text input in single UI
-- [Phase 24]: Chart color adaptation uses 3.0 minimum contrast ratio (WCAG AA minimum for graphics)
-
 ### Known Issues
 
-- **PostgREST schema cache:** claim_session RPC function exists in migrations but not deployed. Removed the RPC call; session reclaim now uses direct UPDATE on sessions table.
+- **PostgREST schema cache:** claim_session RPC function exists in migrations but not deployed. Removed the RPC call; session reclaim uses direct UPDATE.
 
 ### Blockers
 
@@ -144,10 +75,10 @@ Recent decisions:
 ## Session Continuity
 
 **Last session:** 2026-02-15
-**Stopped at:** Completed Phase 26-02 (Live Vote Progress & Simplified Config)
-**Next action:** Phase 26 complete — v1.4 milestone complete (20/20 plans delivered)
+**Stopped at:** v1.4 milestone archived
+**Next action:** Start next milestone with `/gsd:new-milestone`
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-15 — Phase 26-02 complete (2/2 plans). Live vote progress bars on active batch cards with real-time updates. Simplified draft session config to runtime-only settings. v1.4 milestone complete.*
+*Updated: 2026-02-15 — v1.4 milestone shipped and archived.*

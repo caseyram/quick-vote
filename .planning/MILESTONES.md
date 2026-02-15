@@ -1,5 +1,31 @@
 # Project Milestones: QuickVote
 
+## v1.4 Template Authoring & Teams (Shipped: 2026-02-15)
+
+**Delivered:** Template-first authoring workflow with dedicated editor, full preview system (projection + controls + participant), team-based voting with QR auto-assign and filtered results, presentation polish with background colors and cover images, and streamlined session config.
+
+**Phases completed:** 22-26 + 24.1 (6 phases, 20 plans)
+
+**Key accomplishments:**
+- Template editor: Dedicated full-page editor with inline batch editing, drag-reorder sidebar, edit/preview toggle, slide lightbox, quick session creation, and timer duration input
+- Preview system: Three-panel preview (projection, admin controls, participant view) with mock data and step-through navigation
+- Presentation polish: Crossfade transitions, configurable background color with contrast adaptation, batch cover images displayed on projection during voting
+- Presentation-only active mode: Consolidated active session into PresentationControls with split view toggle, batch-level reveal, full reason review system (auto-play, keyboard nav, group-aware pagination)
+- Team-based voting: Team configuration, participant self-select, team-specific QR codes with auto-assign, filtered results with broadcast sync, export with team data
+- Sequence enhancements: Multi-select rearrangement (shift/ctrl-click, group drag), live vote progress bars, simplified draft config to runtime-only settings
+
+**Stats:**
+- 122 files changed
+- 27,520 lines of TypeScript (+16,603 net added in v1.4)
+- 6 phases, 20 plans, 22/25 requirements satisfied (3 dropped by user)
+- 3 days from v1.3 to ship
+
+**Git range:** `v1.3` → `v1.4`
+
+**What's next:** TBD — start with `/gsd:new-milestone`
+
+---
+
 ## v1.3 Presentation Mode (Shipped: 2026-02-11)
 
 **Delivered:** Full presentation system with image slides, unified sequencing, keyboard-driven navigation, a dedicated presenter view with QR overlay and black screen, reusable session templates in Supabase, and backward-compatible export/import with slide support.

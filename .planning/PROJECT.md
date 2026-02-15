@@ -2,9 +2,9 @@
 
 ## What This Is
 
-A real-time voting web application where an administrator poses questions to a group and participants respond from their phones or desktops. Supports live single-question push, self-paced batch voting, and guided presentations with image slides, unified sequencing, and a dedicated presenter view. Built with Vite + React, backed by Supabase, and deployed to Vercel.
+A real-time voting web application where an administrator poses questions to a group and participants respond from their phones or desktops. Supports live single-question push, self-paced batch voting, and guided presentations with image slides, unified sequencing, and a dedicated presenter view. Features a template-first authoring workflow with inline editing, full preview, team-based voting with filtered results, and presentation polish with branded backgrounds and cover images. Built with Vite + React, backed by Supabase, and deployed to Vercel.
 
-**Current state:** v1.3 shipped with 20,057 LOC TypeScript across 80+ source files. Presentation mode transforms sessions into guided experiences with image slides between voting batches, keyboard-driven navigation, a separate projection window, and reusable session templates.
+**Current state:** v1.4 shipped with 27,520 LOC TypeScript across 90+ source files. Template editor enables iterative session authoring. Team-based voting supports multi-team sessions with QR auto-assign and filtered results. Presentation mode includes background colors, cover images, split view, and reason review.
 
 ## Core Value
 
@@ -81,24 +81,39 @@ Participants can instantly vote on questions in a way that feels immersive and t
 - ✓ Session template references preserved in export/import — v1.3
 - ✓ Slide preview thumbnails in sequence editor — v1.3
 - ✓ QR overlay on content slides in presentation view — v1.3
+- ✓ Admin can open dedicated template editor to build session content — v1.4 (AUTH-01)
+- ✓ Admin can toggle between edit and preview mode in template editor — v1.4 (AUTH-02)
+- ✓ Preview mode displays presenter projection view — v1.4 (AUTH-03)
+- ✓ Preview mode displays presenter control view with navigation — v1.4 (AUTH-04)
+- ✓ Preview mode displays participant voting view — v1.4 (AUTH-05)
+- ✓ Admin can edit batch questions inline within sequence — v1.4 (AUTH-06)
+- ✓ Admin can click slide thumbnail to view full image in lightbox — v1.4 (AUTH-07)
+- ✓ Admin can create quick one-off session without template editor — v1.4 (AUTH-08)
+- ✓ Admin can configure batch timer duration in template — v1.4 (AUTH-09)
+- ✓ Seamless slide-to-slide crossfade transitions — v1.4 (PRES-01)
+- ✓ Admin can set session background color via color picker — v1.4 (PRES-02)
+- ✓ Text and UI elements adjust for contrast on background color — v1.4 (PRES-03)
+- ✓ Admin can associate slide image with batch as cover image — v1.4 (PRES-04)
+- ✓ Projection displays batch cover image during voting — v1.4 (PRES-05)
+- ✓ Navigation buttons visible above batch controls — v1.4 (PRES-06)
+- ✓ Admin can configure team names in session or template — v1.4 (TEAM-01)
+- ✓ Participants can self-select team when joining — v1.4 (TEAM-02)
+- ✓ Admin can generate team-specific QR codes with auto-assign — v1.4 (TEAM-03)
+- ✓ Admin can toggle results between all participants and specific team — v1.4 (TEAM-04)
+- ✓ Admin can export session data grouped by team — v1.4 (TEAM-05)
+- ✓ Admin can select multiple sequence items and rearrange as group — v1.4 (SEQE-02)
+- ✓ Active batch shows live completion count, not "Results ready" — v1.4 (RESL-01)
+- ✗ Drag handles hidden in live session (SEQE-01) — dropped: editing stays available during live
+- ✗ Expand multiple reasons simultaneously (RESL-02) — dropped: existing review system sufficient
+- ✗ Auto-mark reasons as read (RESL-03) — dropped: existing viewed tracking sufficient
 
 ### Active
 
-## Current Milestone: v1.4 Template Authoring & Teams
-
-**Goal:** Transform session creation into an iterative authoring workflow with template-first editing, full preview, team-based voting, and presentation polish.
-
-**Target features:**
-- Dedicated session template editor with inline batch editing and full preview (projection, controls, participant view)
-- Team-based voting with team configuration, team-specific QR codes, filtered results, and per-team export
-- Seamless slide transitions, configurable background color, batch cover images
-- Multi-select sequence rearrangement, multi-select reasons display
-- Presentation UX fixes (drag handles, "Results ready" label, nav button overlap, batch timer in template)
+(No active requirements — start next milestone with `/gsd:new-milestone`)
 
 ### Out of Scope
 
 - User accounts / authentication system — admin uses simple link, no login
-- CSV/PDF export of results — JSON export available, visual formats deferred
 - Real-time chat or discussion features — voting only
 - 10,000 concurrent user support — architecture allows scaling later
 - Ranked choice voting — planned for future
@@ -116,16 +131,27 @@ Participants can instantly vote on questions in a way that feels immersive and t
 - Image editing/annotation — admin uses external tools
 - Auto-advance / timed slides — contradicts manual control model
 - Binary image embedding in export — file size explosion
+- Real-time collaborative template editing — conflict resolution complexity
+- Nested teams (hierarchies) — exponential UI complexity, single-level teams sufficient
+- Per-question timers — fragmented experience, batch-level timer keeps model simple
+- Animated transitions beyond crossfade — one high-quality crossfade beats 50 mediocre options
+- Team leaderboards / gamification — wrong positioning, QuickVote is voting not game show
+- Auto-save templates — unclear version stability, explicit save gives user control
+- Edit template during live session — risky, breaks active voting
+- Template tagging / categorization — premature, users have 5-20 templates
 
 ## Context
 
-- **Scale:** v1.3 handles 50-100 concurrent participants. Single Supabase channel per session multiplexes Broadcast + Presence + Postgres Changes.
-- **Tech stack:** Vite + React 19 + TypeScript, Supabase (PostgreSQL + Realtime + Storage), Vercel, Zustand, Motion (framer-motion), React Router v7, Zod, dnd-kit, browser-image-compression
+- **Scale:** v1.4 handles 50-100 concurrent participants. Single Supabase channel per session multiplexes Broadcast + Presence + Postgres Changes.
+- **Tech stack:** Vite + React 19 + TypeScript, Supabase (PostgreSQL + Realtime + Storage), Vercel, Zustand, Motion (framer-motion), React Router v7, Zod, dnd-kit, browser-image-compression, react-colorful, qrcode.react, yet-another-react-lightbox
 - **Themes:** Admin uses light theme (projection-friendly), participants use dark theme (immersive)
-- **Voting modes:** Live single-question push, self-paced batch mode (v1.1)
-- **Templates:** Reusable response templates with global storage, template assignment, consistent rendering (v1.2)
-- **Presentations:** Image slides, unified sequence, presenter view with separate projection window, session templates in Supabase (v1.3)
-- **Testing:** Vitest with happy-dom, 413 tests passing (16 pre-existing failures)
+- **Voting modes:** Live single-question push, self-paced batch mode
+- **Templates:** Reusable response templates with global storage, template assignment, consistent rendering
+- **Session templates:** Full session blueprints saved/loaded from Supabase with JSONB storage
+- **Template editor:** Dedicated full-page editor with inline batch editing, drag-reorder, edit/preview toggle
+- **Presentations:** Image slides, unified sequence, presenter view with projection window, background colors, cover images, split view, reason review
+- **Teams:** Multi-team voting with team config, QR auto-assign, filtered results, export with team data
+- **Testing:** Vitest with happy-dom
 
 ## Key Decisions
 
@@ -142,25 +168,26 @@ Participants can instantly vote on questions in a way that feels immersive and t
 | dnd-kit for drag-and-drop | Modern React 18+ support, accessible, well-maintained | ✓ Good |
 | Zod for JSON validation | Type-safe import/export with helpful error messages | ✓ Good |
 | localStorage for read/unread tracking | Simple persistence without database overhead | ✓ Good |
-| Decimal phase numbering (09.1) | Clear insertion semantics for urgent work | ✓ Good |
+| Decimal phase numbering (09.1, 24.1) | Clear insertion semantics for urgent work | ✓ Good |
 | Direct batch submit (no review screen) | Faster flow, review screen proved unnecessary | ✓ Good |
 | JSONB array for template options | Simpler than normalized table, sufficient for small option lists | ✓ Good |
 | ON DELETE SET NULL for template FK | Preserves question options when template deleted | ✓ Good |
 | Global templates (not session-scoped) | Reusable across sessions, simpler mental model | ✓ Good |
-| Native HTML select for TemplateSelector | Consistent with existing UI patterns, no extra dependency | ✓ Good |
 | Name-based template dedup on import | Portable across Supabase instances (UUIDs differ) | ✓ Good |
 | Locked options while template assigned | Prevents accidental inconsistency, detach to customize | ✓ Good |
-| Vote guard on template changes | Prevents data integrity issues with existing votes | ✓ Good |
 | Inline slide data in session_items | Avoids separate slides table, simpler queries | ✓ Good |
-| session_items excluded from Realtime | Use Broadcast for lower overhead, avoid duplicate triggers | ✓ Good |
-| browser-image-compression | Client-side WebP conversion before upload, smaller files | ✓ Good |
-| Relative Storage paths in export | Portable across environments (URLs change) | ✓ Good |
-| Discriminated union for export | Type-safe mixed slide/batch arrays, preserves import order | ✓ Good |
+| JSONB blueprint for session templates | Flexible schema, single column stores full session structure | ✓ Good |
 | PresentationView no auth required | Read-only projection content, simplifies cross-device setup | ✓ Good |
 | Results hidden by default in presentation | Admin explicitly reveals, prevents spoilers | ✓ Good |
-| JSONB blueprint for session templates | Flexible schema, single column stores full session structure | ✓ Good |
-| .passthrough() on ImportSchema | Forward compatibility — v1.2 importers ignore new fields | ✓ Good |
-| Idempotent backfill pattern | Safe to call on every load, graceful RLS fallback | ✓ Good |
+| Anonymous hardcoded to true | All votes anonymous by default, no toggle UI needed | ✓ Good |
+| PresentationControls as only active view | Consolidated admin experience, removed old split view | ✓ Good |
+| Batch-level reveal (all questions at once) | Simpler than per-question reveal, better presentation flow | ✓ Good |
+| JSONB teams array on sessions | Flexible, max 5 teams via CHECK constraint | ✓ Good |
+| Nullable team_id on votes | Participants can opt out of teams, backward compatible | ✓ Good |
+| sessionStorage for team persistence | Survives refresh, scoped to session, no login needed | ✓ Good |
+| Lobby view removed | Merged Start Session + Begin Voting into single "Go Live" | ✓ Good |
+| react-colorful for color picker | Lightweight, zero-dependency, accessible | ✓ Good |
+| Multi-select with useRef anchor | Avoids stale closures in useCallback for shift-click range | ✓ Good |
 
 ---
-*Last updated: 2026-02-12 after v1.4 milestone start*
+*Last updated: 2026-02-15 after v1.4 milestone completion*
