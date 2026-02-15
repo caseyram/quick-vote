@@ -110,11 +110,11 @@ export function BatchResultsProjection({
     let color: string;
     if (currentQuestion.type === 'agree_disagree') {
       const colorMap: Record<string, string> = {
-        Agree: AGREE_DISAGREE_COLORS.agree,
-        Sometimes: AGREE_DISAGREE_COLORS.sometimes,
-        Disagree: AGREE_DISAGREE_COLORS.disagree,
+        agree: AGREE_DISAGREE_COLORS.agree,
+        sometimes: AGREE_DISAGREE_COLORS.sometimes,
+        disagree: AGREE_DISAGREE_COLORS.disagree,
       };
-      color = colorMap[item.value] || MULTI_CHOICE_COLORS[0];
+      color = colorMap[item.value.toLowerCase()] || MULTI_CHOICE_COLORS[0];
     } else {
       color = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
     }
@@ -139,15 +139,15 @@ export function BatchResultsProjection({
       ? questionVotes.find((v) => v.id === highlightedReason.reasonId)
       : null;
 
-  // Get reason color based on vote value
+  // Get reason color based on vote value (case-insensitive for agree/disagree)
   const getReasonColor = (voteValue: string): string => {
     if (currentQuestion.type === 'agree_disagree') {
       const colorMap: Record<string, string> = {
-        Agree: AGREE_DISAGREE_COLORS.agree,
-        Sometimes: AGREE_DISAGREE_COLORS.sometimes,
-        Disagree: AGREE_DISAGREE_COLORS.disagree,
+        agree: AGREE_DISAGREE_COLORS.agree,
+        sometimes: AGREE_DISAGREE_COLORS.sometimes,
+        disagree: AGREE_DISAGREE_COLORS.disagree,
       };
-      return colorMap[voteValue] || MULTI_CHOICE_COLORS[0];
+      return colorMap[voteValue.toLowerCase()] || MULTI_CHOICE_COLORS[0];
     } else {
       const optionIndex = currentQuestion.options?.indexOf(voteValue) ?? -1;
       return MULTI_CHOICE_COLORS[optionIndex % MULTI_CHOICE_COLORS.length];
@@ -155,6 +155,10 @@ export function BatchResultsProjection({
   };
 
   // Collect reasons grouped by option, in question option order
+  // For agree/disagree, normalize vote values to canonical casing for consistent grouping
+  const canonicalAgreeValues: Record<string, string> = {
+    agree: 'Agree', sometimes: 'Sometimes', disagree: 'Disagree',
+  };
   const reasonsByOption: Record<string, Vote[]> = {};
   const optionOrder = currentQuestion.type === 'agree_disagree'
     ? ['Agree', 'Sometimes', 'Disagree']
@@ -164,10 +168,13 @@ export function BatchResultsProjection({
   }
   questionVotes.forEach((vote) => {
     if (vote.reason && vote.reason.trim()) {
-      if (!reasonsByOption[vote.value]) {
-        reasonsByOption[vote.value] = [];
+      const groupKey = currentQuestion.type === 'agree_disagree'
+        ? (canonicalAgreeValues[vote.value.toLowerCase()] || vote.value)
+        : vote.value;
+      if (!reasonsByOption[groupKey]) {
+        reasonsByOption[groupKey] = [];
       }
-      reasonsByOption[vote.value].push(vote);
+      reasonsByOption[groupKey].push(vote);
     }
   });
   // Remove empty groups

@@ -56,16 +56,20 @@ export function buildConsistentBarData(
     return aggregated;
   }
 
+  const totalVotes = aggregated.reduce((sum, vc) => sum + vc.count, 0);
+
   // Sort aggregated results to match expected order
   // Include items even if they have 0 votes (for consistent columns)
+  // Sum all case-insensitive matches to handle mixed-case data (e.g. 'Agree' + 'agree')
   return expectedOrder.map(value => {
-    const found = aggregated.find(
+    const matches = aggregated.filter(
       vc => vc.value.toLowerCase() === value.toLowerCase()
     );
-    return found || {
+    const count = matches.reduce((sum, m) => sum + m.count, 0);
+    return {
       value,
-      count: 0,
-      percentage: 0
+      count,
+      percentage: totalVotes === 0 ? 0 : Math.round((count / totalVotes) * 100),
     };
   });
 }

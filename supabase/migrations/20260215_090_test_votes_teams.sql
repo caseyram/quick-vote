@@ -1,13 +1,12 @@
--- ============================================
--- Dev/Test: Fake Vote Generator
--- ============================================
--- RPC function to insert fake votes for testing.
--- Uses SECURITY DEFINER to bypass RLS (participant_id won't match auth.uid()).
+-- Drop old signature (can't add params with CREATE OR REPLACE)
+DROP FUNCTION IF EXISTS insert_test_votes(TEXT, UUID, INT);
 
+-- Recreate with teams parameter
 CREATE OR REPLACE FUNCTION insert_test_votes(
   p_session_id TEXT,
   p_question_id UUID,
-  p_count INT DEFAULT 10
+  p_count INT DEFAULT 10,
+  p_teams JSONB DEFAULT '[]'::jsonb
 )
 RETURNS INT
 LANGUAGE plpgsql
@@ -19,9 +18,11 @@ DECLARE
   fake_pid UUID;
   vote_value TEXT;
   vote_reason TEXT;
+  vote_team TEXT;
   roll FLOAT;
   opt_count INT;
   opt_index INT;
+  team_count INT;
   inserted INT := 0;
   reasons_pool TEXT[] := ARRAY[
     'I feel strongly about this',
@@ -46,6 +47,8 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Question not found: %', p_question_id;
   END IF;
+
+  team_count := jsonb_array_length(p_teams);
 
   FOR i IN 1..p_count LOOP
     fake_pid := gen_random_uuid();
@@ -78,7 +81,14 @@ BEGIN
       vote_reason := NULL;
     END IF;
 
-    INSERT INTO votes (question_id, session_id, participant_id, value, display_name, locked_in, reason)
+    -- Distribute across teams round-robin (NULL if no teams)
+    IF team_count > 0 THEN
+      vote_team := p_teams->>((i - 1) % team_count);
+    ELSE
+      vote_team := NULL;
+    END IF;
+
+    INSERT INTO votes (question_id, session_id, participant_id, value, display_name, locked_in, reason, team_id)
     VALUES (
       p_question_id,
       p_session_id,
@@ -86,7 +96,8 @@ BEGIN
       vote_value,
       NULL,
       false,
-      vote_reason
+      vote_reason,
+      vote_team
     );
 
     inserted := inserted + 1;
