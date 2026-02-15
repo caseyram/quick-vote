@@ -122,11 +122,11 @@ Plans:
   3. Active batch shows live completion count, not "Results ready" label
   4. Admin can expand multiple reasons simultaneously
   5. Displayed reasons automatically marked as read when shown
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 26-01: TBD
-- [ ] 26-02: TBD
+- [ ] 26-01-PLAN.md — Multi-select rearrangement (shift/ctrl-click selection, group drag)
+- [ ] 26-02-PLAN.md — Live vote progress bar on active batches, session config simplification
 
 ## Progress
 
