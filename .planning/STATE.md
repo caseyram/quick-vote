@@ -13,11 +13,11 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 
 **Milestone:** v1.4 Template Authoring & Teams
 **Phase:** 26 of 26 (Sequence & Results Enhancements)
-**Plan:** Not yet planned
-**Status:** Ready to plan
-**Last activity:** 2026-02-14 — Completed Phase 25 (Team-Based Voting, 4/4 plans, verified)
+**Plan:** 1 of 1 complete
+**Status:** Phase 26 complete
+**Last activity:** 2026-02-15 — Completed Phase 26-01 (Multi-Select Rearrangement)
 
-Progress: [███████████████████░] 95% (v1.4: 18 of ~20 plans complete)
+Progress: [████████████████████] 100% (v1.4: 19 of 19 plans complete)
 
 ## Milestone History
 
@@ -58,9 +58,9 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 
 **v1.4 Target (Phases 22-26):**
 - Requirements: 25 total
-- Estimated plans: 14 total (12 original + 2 from Phase 24.1 insertion)
-- Completed: 18 (Phase 22: 4, Phase 23: 3, Phase 24: 5, Phase 24.1: 2, Phase 25: 4)
-- Remaining: Phase 26 (multi-select DnD)
+- Estimated plans: 19 total (14 original - 1 merged + 6 from research/context)
+- Completed: 19 (Phase 22: 4, Phase 23: 3, Phase 24: 5, Phase 24.1: 2, Phase 25: 4, Phase 26: 1)
+- Status: Complete
 
 ## Accumulated Context
 
@@ -73,6 +73,12 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 See PROJECT.md for full decision log.
 
 Recent decisions:
+- [Phase 26-01]: Multi-select enabled only in draft mode (isLive=false)
+- [Phase 26-01]: Selection uses Set<string> for O(1) lookups
+- [Phase 26-01]: Group drag preserves relative order of selected items
+- [Phase 26-01]: Shift-click range selection adds to existing selection (union)
+- [Phase 26-01]: Indigo tint (bg-indigo-100 border-indigo-400) for selected state
+- [Phase 26-01]: DragOverlay shows count badge for multi-item drag
 - [Phase 25-04]: Team QR grid takes precedence over regular QR overlay when both active
 - [Phase 25-04]: Include general session QR at bottom of team grid for non-team participants
 - [Phase 25-04]: Export format remains JSON (team_id is nullable for backward compatibility)
@@ -131,11 +137,11 @@ Recent decisions:
 
 ## Session Continuity
 
-**Last session:** 2026-02-14
-**Stopped at:** Completed Phase 25 (Team-Based Voting) — verified, all 5 success criteria met
-**Next action:** Plan Phase 26 (Sequence & Results Enhancements)
+**Last session:** 2026-02-15
+**Stopped at:** Completed Phase 26-01 (Multi-Select Rearrangement)
+**Next action:** Phase 26 complete — v1.4 milestone complete (19/19 plans delivered)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-14 — Phase 25 complete (4/4 plans, verified). Team-based voting: DB schema, admin config, participant joining, filter tabs, QR grid, export. All TEAM requirements delivered.*
+*Updated: 2026-02-15 — Phase 26-01 complete (1/1 plan). Multi-select rearrangement: shift-click range, ctrl-click toggle, group drag with relative order preservation. v1.4 milestone complete.*
