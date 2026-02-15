@@ -13,11 +13,11 @@ See: .planning/PROJECT.md (updated 2026-02-12)
 
 **Milestone:** v1.4 Template Authoring & Teams
 **Phase:** 26 of 26 (Sequence & Results Enhancements)
-**Plan:** 1 of 1 complete
+**Plan:** 2 of 2 complete
 **Status:** Phase 26 complete
-**Last activity:** 2026-02-15 — Completed Phase 26-01 (Multi-Select Rearrangement)
+**Last activity:** 2026-02-15 — Completed Phase 26-02 (Live Vote Progress & Simplified Config)
 
-Progress: [████████████████████] 100% (v1.4: 19 of 19 plans complete)
+Progress: [████████████████████] 100% (v1.4: 20 of 20 plans complete)
 
 ## Milestone History
 
@@ -58,8 +58,8 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 
 **v1.4 Target (Phases 22-26):**
 - Requirements: 25 total
-- Estimated plans: 19 total (14 original - 1 merged + 6 from research/context)
-- Completed: 19 (Phase 22: 4, Phase 23: 3, Phase 24: 5, Phase 24.1: 2, Phase 25: 4, Phase 26: 1)
+- Estimated plans: 20 total (14 original - 1 merged + 7 from research/context)
+- Completed: 20 (Phase 22: 4, Phase 23: 3, Phase 24: 5, Phase 24.1: 2, Phase 25: 4, Phase 26: 2)
 - Status: Complete
 
 ## Accumulated Context
@@ -73,6 +73,12 @@ See `.planning/milestones/` for archived roadmaps and requirements.
 See PROJECT.md for full decision log.
 
 Recent decisions:
+- [Phase 26-02]: Progress bar renders only for active batches with vote data present
+- [Phase 26-02]: Green progress bar indicates 100% completion (all participants voted)
+- [Phase 26-02]: Blue progress bar indicates voting in progress
+- [Phase 26-02]: X/Y count format shows total votes vs expected votes
+- [Phase 26-02]: Draft session config shows only runtime settings (reasons, test mode, teams, sequence)
+- [Phase 26-02]: Content editing (slides, questions, templates) lives exclusively in template editor
 - [Phase 26-01]: Multi-select enabled only in draft mode (isLive=false)
 - [Phase 26-01]: Selection uses Set<string> for O(1) lookups
 - [Phase 26-01]: Group drag preserves relative order of selected items
@@ -138,10 +144,10 @@ Recent decisions:
 ## Session Continuity
 
 **Last session:** 2026-02-15
-**Stopped at:** Completed Phase 26-01 (Multi-Select Rearrangement)
-**Next action:** Phase 26 complete — v1.4 milestone complete (19/19 plans delivered)
+**Stopped at:** Completed Phase 26-02 (Live Vote Progress & Simplified Config)
+**Next action:** Phase 26 complete — v1.4 milestone complete (20/20 plans delivered)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-27*
-*Updated: 2026-02-15 — Phase 26-01 complete (1/1 plan). Multi-select rearrangement: shift-click range, ctrl-click toggle, group drag with relative order preservation. v1.4 milestone complete.*
+*Updated: 2026-02-15 — Phase 26-02 complete (2/2 plans). Live vote progress bars on active batch cards with real-time updates. Simplified draft session config to runtime-only settings. v1.4 milestone complete.*
