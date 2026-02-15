@@ -9,6 +9,7 @@ import { useTemplateStore } from '../../stores/template-store';
 import { fetchTemplates } from '../../lib/template-api';
 import { saveSessionTemplate, overwriteSessionTemplate, loadTemplateIntoSession } from '../../lib/session-template-api';
 import { uploadSlideImage } from '../../lib/slide-api';
+import { validateTeamList } from '../../lib/team-api';
 import { supabase } from '../../lib/supabase';
 
 interface EditorToolbarProps {
@@ -44,11 +45,20 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
   const [showPreviewDropdown, setShowPreviewDropdown] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
+  // Per-session settings (NOT stored in template blueprint)
+  const [reasonsEnabled, setReasonsEnabled] = useState(true);
+  const [testMode, setTestMode] = useState(false);
+  const [teams, setTeams] = useState<string[]>([]);
+  const [teamInput, setTeamInput] = useState('');
+  const [teamError, setTeamError] = useState<string | null>(null);
+  const [showTeamPopover, setShowTeamPopover] = useState(false);
+
   const responseTemplates = useTemplateStore((s) => s.templates);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const slideFileInputRef = useRef<HTMLInputElement>(null);
   const colorPickerRef = useRef<HTMLDivElement>(null);
+  const teamPopoverRef = useRef<HTMLDivElement>(null);
 
   // Fetch response templates on mount
   useEffect(() => {
@@ -82,6 +92,41 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showColorPicker]);
+
+  // Click-outside detection for team popover
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (teamPopoverRef.current && !teamPopoverRef.current.contains(event.target as Node)) {
+        setShowTeamPopover(false);
+      }
+    }
+    if (showTeamPopover) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showTeamPopover]);
+
+  const handleAddTeam = () => {
+    const trimmed = teamInput.trim();
+    if (!trimmed) return;
+
+    const newTeams = [...teams, trimmed];
+    const validation = validateTeamList(newTeams);
+
+    if (!validation.valid) {
+      setTeamError(validation.error || 'Invalid team name');
+      return;
+    }
+
+    setTeams(newTeams);
+    setTeamInput('');
+    setTeamError(null);
+  };
+
+  const handleRemoveTeam = (teamName: string) => {
+    setTeams(teams.filter((t) => t !== teamName));
+    setTeamError(null);
+  };
 
   const handleNameClick = () => {
     setIsEditingName(true);
@@ -218,9 +263,12 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
           session_id: sessionId,
           title: templateName || 'Untitled Session',
           created_by: user.id,
-          reasons_enabled: true,
+          reasons_enabled: reasonsEnabled,
+          test_mode: testMode,
+          teams: teams.length > 0 ? teams : [],
+          status: 'active',
         })
-        .select('admin_token')
+        .select('admin_token, session_id')
         .single();
 
       if (insertError) {
@@ -231,7 +279,7 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
       // Load template blueprint into session (materialize batches/questions/items)
       await loadTemplateIntoSession(sessionId, blueprint);
 
-      // Navigate to admin view
+      // Navigate to admin view — session is already active, skipping draft
       navigate(`/admin/${data.admin_token}`);
     } catch (err) {
       console.error('Failed to start session:', err);
@@ -357,6 +405,100 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
                 prefixed
                 className="w-full mt-2 px-2 py-1 border border-gray-300 rounded text-sm font-mono text-gray-900"
               />
+            </div>
+          )}
+        </div>
+
+        {/* Session settings */}
+        <div className="w-px h-6 bg-gray-300" />
+        <span className="text-xs text-gray-500">Session</span>
+        <button
+          onClick={() => setReasonsEnabled(!reasonsEnabled)}
+          className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+            reasonsEnabled
+              ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+          }`}
+          title={reasonsEnabled ? 'Reasons enabled' : 'Reasons disabled'}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+          </svg>
+          Reasons
+        </button>
+        <button
+          onClick={() => setTestMode(!testMode)}
+          className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+            testMode
+              ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+          }`}
+          title={testMode ? 'Test mode on' : 'Test mode off'}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          Test
+        </button>
+        <div className="relative" ref={teamPopoverRef}>
+          <button
+            onClick={() => setShowTeamPopover(!showTeamPopover)}
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+              teams.length > 0
+                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+            title="Configure teams"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Teams{teams.length > 0 && <span className="ml-0.5 bg-green-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] leading-none">{teams.length}</span>}
+          </button>
+          {showTeamPopover && (
+            <div className="absolute top-8 left-0 z-50 w-64 bg-white p-3 rounded-lg shadow-xl border border-gray-200 space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={teamInput}
+                  onChange={(e) => setTeamInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddTeam();
+                    }
+                  }}
+                  placeholder="Team name"
+                  maxLength={50}
+                  className="flex-1 px-2 py-1 bg-gray-50 border border-gray-300 rounded text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <button
+                  onClick={handleAddTeam}
+                  disabled={!teamInput.trim() || teams.length >= 5}
+                  className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium rounded transition-colors"
+                >
+                  Add
+                </button>
+              </div>
+              <p className="text-xs text-gray-500">{teams.length} of 5 teams</p>
+              {teamError && <p className="text-xs text-red-600">{teamError}</p>}
+              {teams.length > 0 ? (
+                <div className="space-y-1">
+                  {teams.map((team) => (
+                    <div key={team} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded">
+                      <span className="text-sm text-gray-700">{team}</span>
+                      <button
+                        onClick={() => handleRemoveTeam(team)}
+                        className="text-red-500 hover:text-red-600 text-xs font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 text-center py-1">No teams configured</p>
+              )}
             </div>
           )}
         </div>
