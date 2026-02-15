@@ -639,8 +639,17 @@
                         </div>
                         <div class="flow-arrow">→</div>
                         <div class="flow-step">
-                            <div class="step-box">
+                            <div class="step-box decision-point">
                                 <div class="step-number">Step 4</div>
+                                <div class="step-title">Pick Team</div>
+                                <div class="step-actor">Lobby</div>
+                            </div>
+                            <div class="step-details">Select team if teams enabled</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 5</div>
                                 <div class="step-title">Receive Question</div>
                                 <div class="step-actor">WebSocket Push</div>
                             </div>
@@ -649,7 +658,7 @@
                         <div class="flow-arrow">→</div>
                         <div class="flow-step">
                             <div class="step-box">
-                                <div class="step-number">Step 5</div>
+                                <div class="step-number">Step 6</div>
                                 <div class="step-title">Select Answer</div>
                                 <div class="step-actor">Vote UI</div>
                             </div>
@@ -658,7 +667,7 @@
                         <div class="flow-arrow">→</div>
                         <div class="flow-step">
                             <div class="step-box success-point">
-                                <div class="step-number">Step 6</div>
+                                <div class="step-number">Step 7</div>
                                 <div class="step-title">Vote Confirmed</div>
                                 <div class="step-actor">Complete</div>
                             </div>
@@ -692,6 +701,7 @@
                         <li><strong>Add reason:</strong> Optional text explanation for vote choice</li>
                         <li><strong>Change vote:</strong> Tap different option before question closes</li>
                         <li><strong>Batch voting:</strong> Swipe through carousel of questions</li>
+                        <li><strong>Team selection:</strong> Choose a team in the lobby if the admin configured teams</li>
                     </ul>
                 </div>
 
@@ -1139,6 +1149,7 @@
                         <li><strong>B key:</strong> Toggle black screen between sequence items</li>
                         <li><strong>F key:</strong> Toggle fullscreen mode on presentation window</li>
                         <li><strong>? key:</strong> Show keyboard shortcut help overlay</li>
+                        <li><strong>Team filter:</strong> Filter results by team on the presentation display</li>
                     </ul>
                 </div>
 
@@ -1292,6 +1303,188 @@
             </div>
         </section>
 
+        <!-- Journey 9: Team-Based Voting -->
+        <section class="section">
+            <h2>Journey 9: Team-Based Voting</h2>
+
+            <div class="journey-card">
+                <div class="journey-header">
+                    <div class="journey-icon" style="background: linear-gradient(135deg, #f43f5e, #e11d48);">👥</div>
+                    <div class="journey-title">
+                        <h4>Admin: Configure and Run Team Voting</h4>
+                        <span>Divide participants into teams and view filtered results</span>
+                    </div>
+                    <span class="journey-badge badge-important">Important Flow</span>
+                </div>
+
+                <div class="flow-container">
+                    <div class="flow">
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 1</div>
+                                <div class="step-title">Configure Teams</div>
+                                <div class="step-actor">Admin Dashboard</div>
+                            </div>
+                            <div class="step-details">Set up to 5 team names</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 2</div>
+                                <div class="step-title">Open Lobby</div>
+                                <div class="step-actor">Admin Dashboard</div>
+                            </div>
+                            <div class="step-details">Display team QR grid</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 3</div>
+                                <div class="step-title">Participants Join</div>
+                                <div class="step-actor">Lobby Screen</div>
+                            </div>
+                            <div class="step-details">Select team on join</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 4</div>
+                                <div class="step-title">Run Voting</div>
+                                <div class="step-actor">Admin Dashboard</div>
+                            </div>
+                            <div class="step-details">Votes tagged with team_id</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box success-point">
+                                <div class="step-number">Step 5</div>
+                                <div class="step-title">Filter Results</div>
+                                <div class="step-actor">Presentation</div>
+                            </div>
+                            <div class="step-details">Toggle team filter tabs</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value">5</div>
+                        <div class="metric-label">Teams Max</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">Per-team</div>
+                        <div class="metric-label">Filter</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">Team QR</div>
+                        <div class="metric-label">Codes</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">Real-time</div>
+                        <div class="metric-label">Vote Updates</div>
+                    </div>
+                </div>
+
+                <div class="alt-paths">
+                    <h5>Alternative Paths</h5>
+                    <ul>
+                        <li><strong>Team QR grid:</strong> Scan per-team QR codes for direct team assignment</li>
+                        <li><strong>Switch team filter:</strong> Toggle team filter during presentation</li>
+                        <li><strong>Export includes team data:</strong> Exported results contain team information</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Journey 10: Author a Session Template -->
+        <section class="section">
+            <h2>Journey 10: Author a Session Template</h2>
+
+            <div class="journey-card">
+                <div class="journey-header">
+                    <div class="journey-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">✏️</div>
+                    <div class="journey-title">
+                        <h4>Admin: Visual Template Editor</h4>
+                        <span>Build reusable session blueprints with drag-and-drop</span>
+                    </div>
+                    <span class="journey-badge badge-standard">Standard Flow</span>
+                </div>
+
+                <div class="flow-container">
+                    <div class="flow">
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 1</div>
+                                <div class="step-title">Open Editor</div>
+                                <div class="step-actor">Home Page</div>
+                            </div>
+                            <div class="step-details">Click 'New Template'</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 2</div>
+                                <div class="step-title">Add Batches</div>
+                                <div class="step-actor">Editor Sidebar</div>
+                            </div>
+                            <div class="step-details">Create and name batches</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 3</div>
+                                <div class="step-title">Add Questions</div>
+                                <div class="step-actor">Editor Main Area</div>
+                            </div>
+                            <div class="step-details">Type questions, set options</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 4</div>
+                                <div class="step-title">Arrange Sequence</div>
+                                <div class="step-actor">Drag-and-Drop</div>
+                            </div>
+                            <div class="step-details">Reorder batches and slides</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box">
+                                <div class="step-number">Step 5</div>
+                                <div class="step-title">Preview</div>
+                                <div class="step-actor">Preview Mode</div>
+                            </div>
+                            <div class="step-details">Test all three views</div>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-step">
+                            <div class="step-box success-point">
+                                <div class="step-number">Step 6</div>
+                                <div class="step-title">Save Template</div>
+                                <div class="step-actor">Editor</div>
+                            </div>
+                            <div class="step-details">Name and save blueprint</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value">Drag-drop</div>
+                        <div class="metric-label">Arrangement</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">3-view</div>
+                        <div class="metric-label">Preview</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">Reusable</div>
+                        <div class="metric-label">Blueprints</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Journey Summary -->
         <section class="section">
             <h2>Journey Summary</h2>
@@ -1315,7 +1508,7 @@
                     <td>Join & Vote</td>
                     <td>Participant</td>
                     <td><span class="journey-badge badge-critical">Critical</span></td>
-                    <td>6</td>
+                    <td>7</td>
                     <td>Join in &lt;5 sec</td>
                 </tr>
                 <tr>
@@ -1359,6 +1552,20 @@
                     <td><span class="journey-badge badge-standard">Standard</span></td>
                     <td>4-6</td>
                     <td>3 clicks to save</td>
+                </tr>
+                <tr>
+                    <td>Team-Based Voting</td>
+                    <td>Admin</td>
+                    <td><span class="journey-badge badge-important">Important</span></td>
+                    <td>5</td>
+                    <td>Per-team filter</td>
+                </tr>
+                <tr>
+                    <td>Author Template</td>
+                    <td>Admin</td>
+                    <td><span class="journey-badge badge-standard">Standard</span></td>
+                    <td>6</td>
+                    <td>Drag-and-drop</td>
                 </tr>
             </table>
         </section>
@@ -1434,11 +1641,29 @@
                     <td>Save, load, rename, delete session templates</td>
                     <td>Session reuse</td>
                 </tr>
+                <tr>
+                    <td>Team Picker</td>
+                    <td>Participant</td>
+                    <td>Select team during lobby</td>
+                    <td>Team-based sessions</td>
+                </tr>
+                <tr>
+                    <td>Team Filter Tabs</td>
+                    <td>Admin (projected)</td>
+                    <td>Toggle results by team</td>
+                    <td>Team result analysis</td>
+                </tr>
+                <tr>
+                    <td>Template Editor</td>
+                    <td>Admin</td>
+                    <td>Visual drag-and-drop session builder</td>
+                    <td>Template authoring</td>
+                </tr>
             </table>
         </section>
 
         <footer>
-            <p>QuickVote User Journeys v1.3 | Updated February 2026</p>
+            <p>QuickVote User Journeys v1.4 | Updated February 2026</p>
             <p><a href="index.html">← Back to Documentation</a> · <a href="threat-model.html">Threat Model</a></p>
         </footer>
     </div>

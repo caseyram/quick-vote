@@ -284,7 +284,13 @@
                     <td>Post-session results review</td>
                 </tr>
                 <tr>
-                    <td>AdminList.tsx</td>
+                    <td>PresentationView.tsx</td>
+                    <td class="coverage-low">0%</td>
+                    <td><div class="progress-bar"><div class="progress-fill low" style="width: 0%"></div></div></td>
+                    <td><em>Needs tests</em></td>
+                </tr>
+                <tr>
+                    <td>TemplateEditorPage.tsx</td>
                     <td class="coverage-low">0%</td>
                     <td><div class="progress-bar"><div class="progress-fill low" style="width: 0%"></div></div></td>
                     <td><em>Needs tests</em></td>
@@ -292,7 +298,7 @@
             </table>
 
             <div class="gaps">
-                <strong>Gaps:</strong> AdminSession's <code>ActiveQuestionHero</code> reasons panel requires complex async state setup. SessionReview and AdminList need dedicated tests.
+                <strong>Gaps:</strong> AdminSession's <code>ActiveQuestionHero</code> reasons panel requires complex async state setup. SessionReview, PresentationView, and TemplateEditorPage need dedicated tests.
             </div>
         </section>
 
@@ -404,6 +410,10 @@
                     <td>Session history list</td>
                 </tr>
             </table>
+
+            <div class="gaps">
+                <strong>Gaps:</strong> New v1.4 team components (<code>TeamPicker</code>, <code>TeamBadge</code>, <code>TeamFilterTabs</code>, <code>TeamQRGrid</code>) need tests for team selection, visual indicators, result filtering, and QR code generation.
+            </div>
         </section>
 
         <section class="section">
@@ -527,6 +537,24 @@
                     <td><div class="progress-bar"><div class="progress-fill low" style="width: 28%"></div></div></td>
                     <td>Session items management</td>
                 </tr>
+                <tr>
+                    <td>team-api.ts</td>
+                    <td class="coverage-low">0%</td>
+                    <td><div class="progress-bar"><div class="progress-fill low" style="width: 0%"></div></div></td>
+                    <td>Team config validation</td>
+                </tr>
+                <tr>
+                    <td>chart-colors.ts</td>
+                    <td class="coverage-low">0%</td>
+                    <td><div class="progress-bar"><div class="progress-fill low" style="width: 0%"></div></div></td>
+                    <td>Color palettes</td>
+                </tr>
+                <tr>
+                    <td>color-contrast.ts</td>
+                    <td class="coverage-low">0%</td>
+                    <td><div class="progress-bar"><div class="progress-fill low" style="width: 0%"></div></div></td>
+                    <td>Text color computation</td>
+                </tr>
             </table>
 
             <div class="gaps">
@@ -561,6 +589,12 @@
                     <td class="coverage-medium">72%</td>
                     <td><div class="progress-bar"><div class="progress-fill medium" style="width: 72%"></div></div></td>
                     <td>Session template store</td>
+                </tr>
+                <tr>
+                    <td>template-editor-store.ts</td>
+                    <td class="coverage-low">0%</td>
+                    <td><div class="progress-bar"><div class="progress-fill low" style="width: 0%"></div></div></td>
+                    <td>Template editor state</td>
                 </tr>
             </table>
         </section>

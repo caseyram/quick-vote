@@ -315,7 +315,7 @@
             <p class="subtitle">Security Analysis & Architecture Documentation</p>
             <div class="metadata">
                 <span>📅 Updated: February 2026</span>
-                <span>📦 Version: 1.3</span>
+                <span>📦 Version: 1.4</span>
                 <span>🏷️ Classification: Internal</span>
             </div>
         </header>
@@ -323,7 +323,7 @@
         <!-- Executive Summary -->
         <section class="section">
             <h2>Executive Summary</h2>
-            <p>QuickVote is a real-time web-based polling application designed for live voting in meetings, classrooms, and presentations. This threat model identifies security risks across the application's architecture, including the React SPA frontend, Supabase backend-as-a-service, real-time WebSocket communications, image slide uploads via Supabase Storage, a separate presentation window for projected content, and session templates.</p>
+            <p>QuickVote is a real-time web-based polling application designed for live voting in meetings, classrooms, and presentations. This threat model identifies security risks across the application's architecture, including the React SPA frontend, Supabase backend-as-a-service, real-time WebSocket communications, image slide uploads via Supabase Storage, a separate presentation window for projected content, session templates, and team-based voting with per-team result filtering.</p>
 
             <div class="data-flow">
                 <div class="flow-item">
@@ -530,7 +530,7 @@
 
                     <!-- Threat indicators (repositioned lower left) -->
                     <g transform="translate(50, 470)">
-                        <rect width="300" height="190" rx="8" fill="rgba(239, 68, 68, 0.1)" stroke="#ef4444" stroke-width="1"/>
+                        <rect width="300" height="210" rx="8" fill="rgba(239, 68, 68, 0.1)" stroke="#ef4444" stroke-width="1"/>
                         <text x="150" y="25" text-anchor="middle" fill="#ef4444" font-size="12" font-weight="600">⚠️ Attack Surface</text>
                         <text x="20" y="50" fill="#f1f5f9" font-size="10">T1: Admin token in URL (guessable)</text>
                         <text x="20" y="70" fill="#f1f5f9" font-size="10">T2: Client-side password gate (bypassable)</text>
@@ -540,6 +540,7 @@
                         <text x="20" y="150" fill="#f1f5f9" font-size="10">T6: DoS via large import files</text>
                         <text x="20" y="170" fill="#f1f5f9" font-size="10">T7: Storage bucket abuse (image uploads)</text>
                         <text x="20" y="185" fill="#f1f5f9" font-size="10">T8: Template blueprint tampering</text>
+                        <text x="20" y="200" fill="#f1f5f9" font-size="10">T9: Team assignment manipulation</text>
                     </g>
 
                     <!-- API Key note (repositioned to avoid arrow paths) -->
@@ -666,6 +667,16 @@
                     <td>React 19, TypeScript</td>
                     <td>Save/load session blueprints from Supabase</td>
                 </tr>
+                <tr>
+                    <td>Team Components</td>
+                    <td>React 19, TypeScript</td>
+                    <td>Team picker, badges, filter tabs, QR grid — team assignment at vote time</td>
+                </tr>
+                <tr>
+                    <td>Template Editor</td>
+                    <td>React 19, dnd-kit</td>
+                    <td>Visual session builder with drag-and-drop ordering</td>
+                </tr>
             </table>
 
             <h3>Backend (Supabase BaaS)</h3>
@@ -726,6 +737,10 @@
                 <div class="flow-item">
                     <h4>6. Presentation Sync</h4>
                     <p>Admin navigates → Broadcast event → Presentation window receives → Display updates</p>
+                </div>
+                <div class="flow-item">
+                    <h4>7. Team Assignment</h4>
+                    <p>Participant joins lobby → Selects team → team_id stored in Zustand → Sent with each vote upsert → Admin filters results by team</p>
                 </div>
             </div>
         </section>
@@ -829,6 +844,18 @@
                 <div class="mitigation">
                     <div class="mitigation-label">Existing Mitigation</div>
                     <p>Templates are serialized through the session-template-api which validates structure before storage. Blueprint data is re-validated on load. RLS policies restrict template creation to authenticated users.</p>
+                </div>
+            </div>
+
+            <div class="threat-card low">
+                <div class="threat-header">
+                    <span class="threat-title">T4: Team Assignment Manipulation</span>
+                    <span class="badge badge-green">LOW</span>
+                </div>
+                <p>Participants select their team client-side during lobby. A malicious user could modify the team_id sent with their vote via direct API calls, potentially skewing team-based results.</p>
+                <div class="mitigation">
+                    <div class="mitigation-label">Existing Mitigation</div>
+                    <p>Team assignment is a convenience feature for result filtering, not a security boundary. Votes are still uniquely constrained per participant. Team names are validated against the session's configured team list. The impact is limited to one participant appearing in the wrong team's results.</p>
                 </div>
             </div>
 
@@ -1049,6 +1076,14 @@
                     <td class="risk-low">LOW</td>
                     <td><span class="badge badge-green">Mitigated</span></td>
                 </tr>
+                <tr>
+                    <td>T4</td>
+                    <td>Team Assignment Manipulation</td>
+                    <td>Low</td>
+                    <td>Low</td>
+                    <td class="risk-low">LOW</td>
+                    <td><span class="badge badge-green">Accepted</span></td>
+                </tr>
             </table>
         </section>
 
@@ -1180,11 +1215,23 @@
                     <td>PostgreSQL</td>
                     <td>Admin-created content</td>
                 </tr>
+                <tr>
+                    <td>Team Names</td>
+                    <td><span class="badge badge-yellow">Internal</span></td>
+                    <td>PostgreSQL (JSONB)</td>
+                    <td>Admin-configured, up to 5 per session</td>
+                </tr>
+                <tr>
+                    <td>Team Assignment (vote)</td>
+                    <td><span class="badge badge-green">Public</span></td>
+                    <td>PostgreSQL</td>
+                    <td>Participant's self-selected team</td>
+                </tr>
             </table>
         </section>
 
         <footer>
-            <p>QuickVote Threat Model v1.3 | Updated February 2026</p>
+            <p>QuickVote Threat Model v1.4 | Updated February 2026</p>
             <p>This document should be reviewed and updated whenever significant architectural changes are made.</p>
         </footer>
     </div>

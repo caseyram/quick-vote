@@ -1,6 +1,6 @@
 # Code Coverage Report
 
-**Generated:** January 2026
+**Generated:** February 2026
 **Tool:** Vitest + @vitest/coverage-v8
 **Result:** 415 tests across 37 test files
 
@@ -29,10 +29,10 @@ Top-level route components that orchestrate the full user experience.
 | ParticipantSession.tsx | 82% | 86% | 100% | Participant voting interface with lobby, voting, waiting, and results views |
 | AdminSession.tsx | 68% | 79% | 32% | Admin control panel for running live sessions (draft, lobby, active, ended views) |
 | SessionReview.tsx | 27% | 100% | 0% | Post-session results review page |
-| *AdminList.tsx* | *0%* | | | *Needs tests* |
-| *Demo.tsx* | *excluded* | | | *Test/demo page, excluded from coverage* |
+| *PresentationView.tsx* | *0%* | | | *Needs tests* |
+| *TemplateEditorPage.tsx* | *0%* | | | *Needs tests* |
 
-**Gaps:** AdminSession's `ActiveQuestionHero` reasons panel requires complex async state setup. SessionReview and AdminList need dedicated tests.
+**Gaps:** AdminSession's `ActiveQuestionHero` reasons panel requires complex async state setup. SessionReview, PresentationView, and TemplateEditorPage need dedicated tests.
 
 ---
 
@@ -65,6 +65,10 @@ Reusable UI components covering voting interfaces, admin controls, and session m
 | TemplatePanel.tsx | 73% | 73% | 67% | Save/load question templates from localStorage |
 | VoteAgreeDisagree.tsx | 96% | 63% | 50% | Agree/Sometimes/Disagree vote interface |
 | VoteMultipleChoice.tsx | 95% | 65% | 75% | Multiple choice vote interface |
+| *TeamPicker.tsx* | *0%* | | | *Needs tests — team selection in lobby* |
+| *TeamBadge.tsx* | *0%* | | | *Needs tests — team visual indicator* |
+| *TeamFilterTabs.tsx* | *0%* | | | *Needs tests — team result filtering* |
+| *TeamQRGrid.tsx* | *0%* | | | *Needs tests — team QR codes* |
 
 **Gaps:** QuestionList and QuestionForm have lower function coverage because drag-and-drop reorder handlers aren't fully exercised. PastSessions has async data paths that are partially covered.
 
@@ -83,6 +87,8 @@ Custom React hooks encapsulating reusable stateful logic.
 | use-presence.ts | 94% | 100% | 100% | Participant presence tracking with 10s grace period |
 | use-read-reasons.ts | 100% | 100% | 100% | Track read state of vote reasons |
 | use-realtime-channel.ts | 57% | 71% | 100% | Supabase Realtime channel lifecycle management |
+| use-multi-select.ts | 0% | 0% | 0% | Multi-select state for sequence items |
+| use-sequence-navigation.ts | 0% | 0% | 0% | Keyboard-driven sequence navigation |
 
 **Gaps:** `use-realtime-channel` has lower coverage because presence-related code paths require integration with the full channel lifecycle.
 
@@ -100,6 +106,9 @@ Pure utility modules and business logic.
 | session-import.ts | 83% | 92% | 50% | JSON import validation and database insertion |
 | supabase.ts | 78% | 0% | 100% | Supabase client initialization |
 | vote-aggregation.ts | 37% | 80% | 50% | Vote counting and percentage calculation |
+| team-api.ts | 0% | 0% | 0% | Team configuration validation |
+| chart-colors.ts | 0% | 0% | 0% | Color palettes for vote options |
+| color-contrast.ts | 0% | 0% | 0% | Text color computation |
 
 **Gaps:** `supabase.ts` has low branch coverage because its environment variable validation throws on missing config (intentionally untested). `session-export.ts` needs additional tests for the download functions.
 
@@ -112,6 +121,7 @@ Zustand state management.
 | File | Statements | Branches | Functions | Description |
 |------|-----------|----------|-----------|-------------|
 | session-store.ts | 100% | 100% | 95% | Central store for session, questions, votes, and connection state |
+| template-editor-store.ts | 0% | 0% | 0% | Template editor working state |
 
 ---
 
@@ -133,7 +143,8 @@ src/
     AdminSession.tsx ............. 68%    Admin control panel (draft/lobby/active/ended)
     ParticipantSession.tsx ....... 82%    Participant experience (lobby/voting/waiting/results)
     SessionReview.tsx ............ 27%    Post-session results review
-    AdminList.tsx ................ 0%     Session list (needs tests)
+    PresentationView.tsx ........... 0%
+    TemplateEditorPage.tsx ......... 0%     Visual template editor
   components/
     AdminControlBar.tsx .......... 90%    Fixed bottom toolbar
     AdminPasswordGate.tsx ........ 100%   Password prompt gate

@@ -191,7 +191,7 @@
 
         <section class="section">
             <h2>System Overview</h2>
-            <p>QuickVote is a client-side React application backed by Supabase for database, authentication, and real-time synchronization. The admin controls session flow from a dashboard while participants vote on their mobile devices.</p>
+            <p>QuickVote is a client-side React application backed by Supabase for database, authentication, and real-time synchronization. The admin controls session flow from a dashboard while participants vote on their mobile devices. Sessions support team-based voting with up to five named teams, and a visual template editor lets admins design session templates with drag-and-drop batch and question layout.</p>
 
             <div class="diagram-box">
                 <svg width="600" height="300" viewBox="0 0 600 300">
@@ -250,12 +250,12 @@
                 </tr>
                 <tr>
                     <td><code>sessions</code></td>
-                    <td>id, session_id, admin_token, status</td>
+                    <td>id, session_id, admin_token, status, teams, test_mode</td>
                     <td>Voting session container</td>
                 </tr>
                 <tr>
                     <td><code>batches</code></td>
-                    <td>id, session_id, name, position, status</td>
+                    <td>id, session_id, name, position, status, cover_image_path</td>
                     <td>Groups questions for batch voting</td>
                 </tr>
                 <tr>
@@ -265,7 +265,7 @@
                 </tr>
                 <tr>
                     <td><code>votes</code></td>
-                    <td>id, question_id, participant_id, value, reason</td>
+                    <td>id, question_id, participant_id, value, reason, team_id</td>
                     <td>Participant vote records</td>
                 </tr>
             </table>
@@ -277,6 +277,9 @@
                 <li>A <strong>Question</strong> can belong to a Batch (batched) or stand alone (unbatched)</li>
                 <li>A <strong>Question</strong> receives many <strong>Votes</strong> from participants</li>
                 <li>Each participant can submit one <strong>Vote</strong> per Question (upsert on conflict)</li>
+                <li>A <strong>Session</strong> may define up to 5 <strong>Teams</strong> (JSONB array of names)</li>
+                <li>A <strong>Vote</strong> may be associated with a <strong>Team</strong> via <code>team_id</code></li>
+                <li>A <strong>Batch</strong> may have a <strong>cover image</strong> stored in Supabase Storage</li>
             </ul>
         </section>
 
@@ -290,28 +293,43 @@
 │   ├── VoteAgreeDisagree.tsx    # Agree/Disagree voting buttons
 │   ├── VoteMultipleChoice.tsx   # Multiple choice voting cards
 │   ├── QRCode.tsx          # Join QR code generator
+│   ├── TeamPicker.tsx      # Team selection for participants
+│   ├── TeamBadge.tsx       # Team name/color badge
+│   ├── TeamFilterTabs.tsx  # Filter results by team
+│   ├── TeamQRGrid.tsx      # Per-team QR codes grid
+│   ├── editor/             # Template editor components
+│   │   ├── BatchEditor.tsx     # Batch editing panel
+│   │   ├── EditorMainArea.tsx  # Central editor canvas
+│   │   ├── EditorSidebar.tsx   # Sidebar with item list
+│   │   └── PreviewMode.tsx     # Live template preview
 │   └── ...
 │
 ├── pages/               # Route components
 │   ├── Home.tsx            # Landing page with join form
 │   ├── AdminSession.tsx    # Main admin dashboard (~1400 LOC)
 │   ├── ParticipantSession.tsx  # Participant voting view
-│   └── SessionReview.tsx   # Post-session results review
+│   ├── SessionReview.tsx   # Post-session results review
+│   └── TemplateEditorPage.tsx  # Visual template editor
 │
 ├── hooks/               # Custom React hooks
 │   ├── use-realtime-channel.ts  # Supabase realtime wrapper
 │   ├── use-presence.ts     # Participant presence tracking
 │   ├── use-countdown.ts    # Timer hook
-│   └── use-haptic.ts       # Mobile haptic feedback
+│   ├── use-haptic.ts       # Mobile haptic feedback
+│   └── use-multi-select.ts # Multi-select for sequence items
 │
 ├── stores/              # Zustand state stores
-│   └── session-store.ts    # Central session state
+│   ├── session-store.ts    # Central session state
+│   └── template-editor-store.ts  # Template editor working state
 │
 ├── lib/                 # Utilities
 │   ├── supabase.ts         # Supabase client instance
 │   ├── session-import.ts   # JSON import logic
 │   ├── session-export.ts   # JSON export logic
-│   └── vote-aggregation.ts # Vote counting utilities
+│   ├── vote-aggregation.ts # Vote counting utilities
+│   ├── team-api.ts         # Team config validation
+│   ├── chart-colors.ts     # Color palettes
+│   └── color-contrast.ts   # Text color from background
 │
 └── types/               # TypeScript definitions
     └── database.ts         # Entity type definitions</pre>
@@ -362,7 +380,7 @@
                 <tr>
                     <td><span class="badge badge-blue">Broadcast</span></td>
                     <td>Admin → Participants</td>
-                    <td>Commands: question_activated, question_closed, batch_activated, timer_started</td>
+                    <td>Commands: question_activated, question_closed, batch_activated, timer_started, team_filter_changed</td>
                 </tr>
                 <tr>
                     <td><span class="badge badge-green">Presence</span></td>
@@ -383,7 +401,8 @@ Activate Question  →  question_activated   →  Show voting UI
 Close Question     →  question_closed      →  Show waiting state
 Start Timer        →  timer_started        →  Display countdown
 Activate Batch     →  batch_activated      →  Show carousel
-Close Batch        →  batch_closed         →  Return to lobby</pre>
+Close Batch        →  batch_closed         →  Return to lobby
+Filter by Team     →  team_filter_changed  →  Show filtered results</pre>
         </section>
 
         <section class="section">
@@ -407,6 +426,8 @@ Close Batch        →  batch_closed         →  Return to lobby</pre>
   connectionStatus: ConnectionStatus;
   activeQuestionId: string | null;
   activeBatchId: string | null;
+  activeSessionItemId: string | null;
+  navigationDirection: 'forward' | 'backward' | null;
   timerEndTime: number | null;
 }</pre>
         </section>
@@ -418,7 +439,7 @@ Close Batch        →  batch_closed         →  Return to lobby</pre>
             <ul>
                 <li><strong>Sessions:</strong> Anyone can read; only creator can update</li>
                 <li><strong>Questions:</strong> Anyone can read session questions; only session creator can modify</li>
-                <li><strong>Votes:</strong> Participants can only modify their own votes</li>
+                <li><strong>Votes:</strong> Participants can only modify their own votes; <code>team_id</code> is set at vote time</li>
                 <li><strong>Batches:</strong> Same as questions</li>
             </ul>
 
@@ -458,7 +479,7 @@ Close Batch        →  batch_closed         →  Return to lobby</pre>
         </section>
 
         <footer>
-            <p>QuickVote Architecture Documentation</p>
+            <p>QuickVote v1.4 Architecture Documentation</p>
             <p><a href="index.html">← Back to Documentation</a> · <a href="threat-model.html">Threat Model</a> · <a href="user-journeys.html">User Journeys</a></p>
         </footer>
     </div>

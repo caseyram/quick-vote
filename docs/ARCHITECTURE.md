@@ -1,10 +1,10 @@
-# QuickVote Architecture (v1.3)
+# QuickVote Architecture (v1.4)
 
-This document describes the technical architecture of QuickVote, a real-time polling application with presentation mode.
+This document describes the technical architecture of QuickVote, a real-time polling application with presentation mode, team-based voting, and a visual template editor.
 
 ## System Overview
 
-QuickVote is a client-side React application backed by Supabase for database, authentication, real-time synchronization, and file storage. The admin controls session flow from a dashboard, participants vote on their mobile devices, and a dedicated presentation window projects slides and results to a shared screen.
+QuickVote is a client-side React application backed by Supabase for database, authentication, real-time synchronization, and file storage. The admin controls session flow from a dashboard, participants vote on their mobile devices (optionally assigned to teams), and a dedicated presentation window projects slides and results to a shared screen. A visual template editor allows authoring reusable session blueprints with drag-and-drop.
 
 ```
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
@@ -48,7 +48,9 @@ sessions
 ├── title (text)
 ├── status (draft | lobby | active | ended)
 ├── reasons_enabled (boolean)
+├── test_mode (boolean) - enables test vote generation
 ├── default_template_id (uuid, FK → response_templates, nullable)
+├── teams (jsonb, nullable) - array of up to 5 team names
 ├── created_by (uuid) - anonymous user ID
 └── created_at (timestamp)
 
@@ -58,6 +60,7 @@ batches
 ├── name (text)
 ├── position (integer) - display order
 ├── status (pending | active | closed)
+├── cover_image_path (text, nullable) - Storage path for batch cover image
 └── created_at (timestamp)
 
 questions
@@ -78,6 +81,7 @@ votes
 ├── question_id (uuid, FK → questions)
 ├── session_id (uuid, FK → sessions)
 ├── participant_id (uuid) - anonymous user ID
+├── team_id (text, nullable) - participant's team name
 ├── value (text) - "agree"/"disagree"/"sometimes" or option text
 ├── reason (text, nullable)
 ├── display_name (text, nullable)
@@ -115,11 +119,14 @@ session_templates
 
 - A **Session** contains many **Questions** and **Batches**
 - A **Session** contains many **SessionItems** (unified sequence of batches and slides)
+- A **Session** may define up to 5 **Teams** (stored as JSONB array of names)
 - A **SessionItem** can reference a **Batch** (type = 'batch') OR contain inline slide data (type = 'slide')
 - A **Batch** groups multiple **Questions** for simultaneous voting
+- A **Batch** may have a **cover image** (stored in Supabase Storage)
 - A **Question** can belong to a Batch (batched) or stand alone (unbatched)
 - A **Question** receives many **Votes** from participants
 - Each participant can submit one **Vote** per Question (upsert on conflict)
+- A **Vote** may be associated with a **Team** via `team_id`
 - A **ResponseTemplate** defines option labels and order for multiple-choice questions
 - A **SessionTemplate** stores a full session blueprint (batches, questions, slides, sequence)
 
@@ -157,24 +164,35 @@ src/
 │   ├── SlideManager.tsx         # Slide CRUD with preview
 │   ├── TemplateEditor.tsx       # Modal editor for response templates
 │   ├── TemplateSelector.tsx     # Template assignment dropdown
+│   ├── TeamBadge.tsx            # Visual indicator of participant's team
+│   ├── TeamFilterTabs.tsx       # Admin toggle between all/team results
+│   ├── TeamPicker.tsx           # Participant team selection in lobby
+│   ├── TeamQRGrid.tsx           # Grid of team-specific QR codes for projection
 │   ├── VoteAgreeDisagree.tsx    # Agree/Disagree voting buttons
 │   ├── VoteMultipleChoice.tsx   # Multiple choice voting cards
 │   └── ...
 │
+│   editor/                      # Template editor components
+│   ├── BatchEditor.tsx          # Inline batch editing
+│   ├── EditorMainArea.tsx       # Central editing workspace
+│   ├── EditorSidebar.tsx        # Left panel with sequence navigation
+│   ├── PreviewMode.tsx          # Live preview (projection + control + voting)
+│   └── SessionPreviewOverlay.tsx # Participant voting preview
+│
 ├── pages/               # Route components
 │   ├── Home.tsx                 # Landing page with join form
-│   ├── AdminList.tsx            # Session list for admins
-│   ├── AdminSession.tsx         # Main admin dashboard (~1400 LOC)
+│   ├── AdminSession.tsx         # Main admin dashboard
 │   ├── ParticipantSession.tsx   # Participant voting view
 │   ├── SessionReview.tsx        # Post-session results review
 │   ├── PresentationView.tsx     # Standalone projection window
-│   └── Demo.tsx                 # Realtime connection test page
+│   └── TemplateEditorPage.tsx   # Visual template editor (create/edit)
 │
 ├── hooks/               # Custom React hooks
 │   ├── use-auth.ts              # Anonymous auth handling
 │   ├── use-countdown.ts         # Timer hook
 │   ├── use-haptic.ts            # Mobile haptic feedback
 │   ├── use-keyboard-navigation.ts # Keyboard shortcut bindings
+│   ├── use-multi-select.ts      # Multi-select state for sequence items (Ctrl+Click)
 │   ├── use-presence.ts          # Participant presence tracking
 │   ├── use-read-reasons.ts      # Track read state of vote reasons
 │   ├── use-realtime-channel.ts  # Supabase realtime wrapper
@@ -183,11 +201,14 @@ src/
 ├── stores/              # Zustand state stores
 │   ├── session-store.ts         # Central session state
 │   ├── template-store.ts        # Zustand store for response templates
-│   └── session-template-store.ts # Zustand store for session templates
+│   ├── session-template-store.ts # Zustand store for session templates
+│   └── template-editor-store.ts # Working state for template editor
 │
 ├── lib/                 # Utilities
 │   ├── supabase.ts              # Supabase client instance
 │   ├── admin-auth.ts            # Password gate logic
+│   ├── chart-colors.ts          # Predefined color palettes for vote options
+│   ├── color-contrast.ts        # Compute text color from background hex
 │   ├── csv-import.ts            # CSV import utility
 │   ├── question-templates.ts    # Template save/load
 │   ├── sequence-api.ts          # Session items management + backfill
@@ -195,14 +216,15 @@ src/
 │   ├── session-import.ts        # JSON import logic
 │   ├── session-template-api.ts  # Template CRUD + serialization
 │   ├── slide-api.ts             # Slide CRUD operations
+│   ├── team-api.ts              # Team configuration validation + updates
 │   ├── template-api.ts          # Response template API
-│   └── vote-aggregation.ts      # Vote counting utilities
+│   └── vote-aggregation.ts      # Vote counting + team filtering
 │
 └── types/               # TypeScript definitions
     └── database.ts              # Entity type definitions
 ```
 
-~20,058 LOC across ~113 files.
+~27,520 LOC across ~90+ files.
 
 ## Key Workflows
 
@@ -266,6 +288,7 @@ QuickVote uses Supabase Realtime with two communication patterns:
    - `black_screen_toggle` - Toggle black screen
    - `result_reveal` - Reveal batch results in presentation
    - `reason_highlight` - Highlight specific reason
+   - `team_filter_changed` - Switch team filter in results
 
 2. **Presence** - Participant count tracking
    - Participants track presence in channel
@@ -293,6 +316,7 @@ Toggle QR          →  presentation_qr_toggle → Show/hide QR overlay
 Black Screen       →  black_screen_toggle  →  Show/hide black screen
 Reveal Batch       →  result_reveal        →  Display batch results in presentation
 Highlight Reason   →  reason_highlight     →  Highlight specific reason
+Filter by Team     →  team_filter_changed  →  Show filtered results in presentation
 ```
 
 ## State Management
@@ -320,6 +344,8 @@ interface SessionState {
   activeQuestionId: string | null;
   activeBatchId: string | null;
   timerEndTime: number | null;
+  activeSessionItemId: string | null;
+  navigationDirection: 'forward' | 'backward' | null;
 
   // Presentation
   activeItemIndex: number | null;
@@ -353,6 +379,15 @@ interface SessionTemplateState {
 }
 ```
 
+The `useTemplateEditorStore` holds working state for the visual template editor:
+
+```typescript
+interface TemplateEditorState {
+  // Drag-drop state, preview mode, item ordering
+  // Used by /templates/new and /templates/:id/edit routes
+}
+```
+
 ### Data Flow
 
 ```
@@ -365,7 +400,7 @@ Supabase DB ─────► useSessionStore ─────► React Componen
 
 ## Import/Export Format
 
-Sessions export to JSON with a v1.3 discriminated union format that supports both batches and slides:
+Sessions export to JSON with a v1.4 discriminated union format that supports batches, slides, and team data:
 
 ```json
 {
@@ -398,20 +433,21 @@ Sessions export to JSON with a v1.3 discriminated union format that supports bot
       "options": ["Strongly Agree", "Agree", "Neutral", "Disagree"]
     }
   ],
+  "teams": ["Red Team", "Blue Team"],
   "session_template_name": "My Template"
 }
 ```
 
-The `batches` array uses a discriminated union on the `type` field: `"batch"` entries contain questions, while `"slide"` entries contain image and caption data. The `_unbatched` pseudo-batch holds standalone questions. During import, items interleave based on their position values. Slide images reference Storage paths; missing images are flagged during import validation.
+The `batches` array uses a discriminated union on the `type` field: `"batch"` entries contain questions, while `"slide"` entries contain image and caption data. The `_unbatched` pseudo-batch holds standalone questions. During import, items interleave based on their position values. Slide images reference Storage paths; missing images are flagged during import validation. The optional `teams` array exports the session's team configuration.
 
 ## Security Model
 
 ### Row Level Security (RLS)
 
 Supabase RLS policies enforce:
-- Sessions: Anyone can read; only creator can update
+- Sessions: Anyone can read; only creator can update (including team configuration)
 - Questions: Anyone can read session questions; only session creator can modify
-- Votes: Participants can only modify their own votes
+- Votes: Participants can only modify their own votes; `team_id` set at vote time
 - Batches: Same as questions
 - Storage: RLS policies enforce path-based access for authenticated users
 
@@ -421,6 +457,7 @@ Supabase RLS policies enforce:
 - Admin access via `admin_token` in session record
 - Optional password gate via `VITE_ADMIN_PASSWORD` env var
 - PresentationView: No auth required (read-only projection content)
+- TemplateEditorPage: Uses admin password gate (if configured)
 
 ## Performance Considerations
 
@@ -430,12 +467,15 @@ Supabase RLS policies enforce:
 2. **Presence throttling** - Debounced presence updates
 3. **Memoized callbacks** - Stable references prevent re-renders
 4. **Position-based ordering** - Efficient drag-drop reordering
+5. **Team filtering** - Client-side filtering of vote aggregation by team
 
 ### Limits
 
 - Max 5MB import file size
 - Questions sorted by position (indexed column)
 - Votes indexed by `(question_id, participant_id)` for upsert
+- Composite index on `(session_id, team_id)` for team-filtered queries
+- Max 5 teams per session
 
 ## Testing
 

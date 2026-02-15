@@ -9,14 +9,18 @@ Real-time polling app for meetings, classrooms, and presentations. An admin crea
 - **Agree/Disagree and Multiple Choice** -- two question types with up to 10 options for multiple choice
 - **Batch questions** -- group questions into batches for participants to answer all at once via swipeable carousel
 - **Real-time results** -- bar charts update live as votes come in, sized for projection in large rooms
+- **Presentation mode** -- dedicated projection window with slides, live results, QR overlays, and keyboard navigation
+- **Team-based voting** -- divide participants into up to 5 teams; filter results by team on the projected display
+- **Visual template editor** -- drag-and-drop session builder with batch/question editing and 3-view preview
 - **Participant reasons** -- optionally let voters explain their choice; reasons display grouped under each vote column
 - **On-the-fly questions** -- type and launch a quick question mid-session without pre-planning
-- **Templates** -- save question sets as reusable templates, or import/export as JSON
+- **Session templates** -- save full session blueprints (batches, slides, questions) and reload them into new sessions
+- **Import/export** -- export sessions to JSON with full fidelity (votes, templates, slides, teams); import into new sessions
 - **Past sessions** -- resume a draft session or clone a past session's questions into a new one
 - **Admin password gate** -- optionally protect admin pages with a password (set via environment variable)
 - **Anonymous or named voting** -- toggle per question whether voter names are visible
 - **Countdown timers** -- set a timer on any question to keep things moving
-- **Drag-and-drop ordering** -- reorder questions and batches with drag handles
+- **Drag-and-drop ordering** -- reorder questions, batches, and slides with drag handles; multi-select with Ctrl+Click
 - **Mobile-first participant UI** -- full-screen voting with haptic feedback and slide transitions
 
 ## Tech Stack
@@ -105,16 +109,28 @@ You need a Supabase project to provide the database, authentication, and real-ti
 
 ### 3. Run the SQL migrations
 
-Open the **SQL Editor** in your Supabase dashboard and run each file from the `sql/` folder in this order:
+Open the **SQL Editor** in your Supabase dashboard and run each migration file from the `supabase/migrations/` folder in order:
 
 | Order | File | What it does |
 |-------|------|-------------|
-| 1 | `sql/schema.sql` | Creates the sessions, questions, and votes tables with indexes and Row Level Security policies |
-| 2 | `sql/moddatetime-trigger.sql` | Adds a trigger to auto-update the `updated_at` timestamp on votes |
-| 3 | `sql/realtime-publication.sql` | Enables real-time Postgres Changes on the votes and questions tables |
-| 4 | `sql/add-reasons.sql` | Adds the `reasons_enabled` column to sessions and `reason` column to votes |
-| 5 | `sql/add-batches.sql` | Creates the batches table for grouping questions |
-| 6 | `sql/add-batch-status.sql` | Adds status column to batches table |
+| 1 | `20250101_001_schema.sql` | Core tables (sessions, questions, votes) with indexes and RLS |
+| 2 | `20250101_002_moddatetime_trigger.sql` | Auto-update `updated_at` on votes |
+| 3 | `20250101_003_realtime_publication.sql` | Enable Realtime on votes and questions |
+| 4 | `20250101_004_add_reasons.sql` | Add `reasons_enabled` and `reason` columns |
+| 5 | `20250101_005_add_batches.sql` | Batches table for grouping questions |
+| 6 | `20250101_006_add_batch_status.sql` | Batch status column |
+| 7 | `20250101_008_test_vote_generator.sql` | Test data generation function |
+| 8 | `20250101_009_add_test_mode.sql` | Test mode toggle on sessions |
+| 9 | `20250129_007_add_timer_expires_at.sql` | Timer expiration tracking |
+| 10 | `20250209_010_response_templates.sql` | Response templates table + RLS |
+| 11 | `20250209_020_session_default_template.sql` | Default template for sessions |
+| 12 | `20250210_030_session_items.sql` | Unified sequence table (batch + slide) + Storage |
+| 13 | `20250211_040_claim_session.sql` | Session reclaim logic |
+| 14 | `20250211_050_session_templates.sql` | Full session blueprints + RLS |
+| 15 | `20250212_060_template_image_storage.sql` | Storage bucket for template images |
+| 16 | `20260213_070_batch_cover_images.sql` | Batch cover image support |
+| 17 | `20260215_080_add_teams.sql` | Teams array on sessions, team_id on votes |
+| 18 | `20260215_090_test_votes_teams.sql` | Test helpers for team voting |
 
 Paste the contents of each file into the SQL Editor and click **Run**.
 
@@ -163,13 +179,15 @@ The included `vercel.json` rewrites all routes to `index.html` so client-side ro
 
 ```
 src/
-  components/   UI components (BarChart, QRCode, VoteAgreeDisagree, etc.)
-  hooks/        Custom hooks (haptic feedback, realtime, countdown)
-  lib/          Supabase client, vote aggregation, template utilities
-  pages/        Route pages (Home, AdminSession, ParticipantSession)
-  stores/       Zustand state stores
-  types/        TypeScript type definitions
-sql/            Database migration scripts
+  components/        UI components (voting, admin, presentation, teams, editor)
+  components/editor/ Template editor components (batch editor, sidebar, preview)
+  hooks/             Custom hooks (realtime, countdown, haptic, multi-select)
+  lib/               Supabase client, vote aggregation, team API, import/export
+  pages/             Route pages (Home, AdminSession, ParticipantSession, PresentationView, TemplateEditorPage)
+  stores/            Zustand state stores (session, templates, editor)
+  types/             TypeScript type definitions
+supabase/
+  migrations/        Database migration scripts (18 files)
 ```
 
 ## License
