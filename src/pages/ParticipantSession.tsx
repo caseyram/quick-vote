@@ -157,6 +157,23 @@ export default function ParticipantSession() {
           .order('position');
 
         if (batchQs && batchQs.length > 0) {
+          // Check if participant already voted on all batch questions
+          const pid = participantIdRef.current;
+          if (pid) {
+            const batchQIds = batchQs.map(q => q.id);
+            const { data: existingVotes } = await supabase
+              .from('votes')
+              .select('question_id')
+              .in('question_id', batchQIds)
+              .eq('participant_id', pid);
+
+            if (existingVotes && existingVotes.length >= batchQs.length) {
+              setView('waiting');
+              setWaitingMessage('Votes submitted! Waiting for results...');
+              return;
+            }
+          }
+
           setBatchQuestions(batchQs);
           setActiveBatchId(activeBatch.id);
           setView('batch-voting');
@@ -332,6 +349,23 @@ export default function ParticipantSession() {
           .order('position');
 
         if (batchQs && batchQs.length > 0) {
+          // Check if participant already voted on all questions in this batch
+          const pid = participantIdRef.current;
+          if (pid) {
+            const { data: existingVotes } = await supabase
+              .from('votes')
+              .select('question_id')
+              .in('question_id', questionIds)
+              .eq('participant_id', pid);
+
+            if (existingVotes && existingVotes.length >= batchQs.length) {
+              // Already voted on all questions — skip to waiting
+              setView('waiting');
+              setWaitingMessage('Votes submitted! Waiting for results...');
+              return;
+            }
+          }
+
           setBatchQuestions(batchQs);
           setActiveBatchId(batchId);
           setView('batch-voting');
@@ -493,9 +527,22 @@ export default function ParticipantSession() {
             .order('position');
 
           if (!cancelled && batchQs && batchQs.length > 0) {
-            setBatchQuestions(batchQs);
-            setActiveBatchId(activeBatch.id);
-            hasBatchActive = true;
+            // Check if participant already voted on all batch questions
+            const batchQIds = batchQs.map(q => q.id);
+            const { data: batchVotes } = await supabase
+              .from('votes')
+              .select('question_id')
+              .in('question_id', batchQIds)
+              .eq('participant_id', uid);
+
+            if (batchVotes && batchVotes.length >= batchQs.length) {
+              // All voted — treat as already completed
+              alreadyVoted = true;
+            } else {
+              setBatchQuestions(batchQs);
+              setActiveBatchId(activeBatch.id);
+              hasBatchActive = true;
+            }
           }
         }
 

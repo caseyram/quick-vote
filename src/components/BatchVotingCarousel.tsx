@@ -48,6 +48,32 @@ export function BatchVotingCarousel({
   // Local state for pending votes - not persisted until Submit
   const [pendingVotes, setPendingVotes] = useState<Map<string, PendingVote>>(new Map());
 
+  // Pre-load existing votes on mount (handles re-activation with partial answers)
+  useEffect(() => {
+    async function loadExistingVotes() {
+      const questionIds = questions.map(q => q.id);
+      const { data: existing } = await supabase
+        .from('votes')
+        .select('question_id, value, reason')
+        .in('question_id', questionIds)
+        .eq('participant_id', participantId);
+
+      if (existing && existing.length > 0) {
+        setPendingVotes(prev => {
+          const next = new Map(prev);
+          for (const v of existing) {
+            // Only set if not already locally modified
+            if (!next.has(v.question_id)) {
+              next.set(v.question_id, { value: v.value, reason: v.reason ?? undefined });
+            }
+          }
+          return next;
+        });
+      }
+    }
+    loadExistingVotes();
+  }, [questions, participantId]);
+
   // Derive current question early so we can use it in memoized callbacks
   const currentQuestion = questions[currentIndex];
 
