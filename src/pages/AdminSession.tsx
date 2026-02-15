@@ -9,7 +9,6 @@ import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation'
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../components/BarChart';
 import { BatchCard } from '../components/BatchCard';
 import { SequenceManager } from '../components/SequenceManager';
-import { ImageUploader } from '../components/ImageUploader';
 import { SessionQRCode } from '../components/QRCode';
 import SessionResults from '../components/SessionResults';
 import { ConnectionBanner } from '../components/ConnectionBanner';
@@ -17,18 +16,12 @@ import { ParticipantCount } from '../components/ParticipantCount';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { AdminControlBar } from '../components/AdminControlBar';
 import { AdminPasswordGate } from '../components/AdminPasswordGate';
-import { SessionImportExport } from '../components/SessionImportExport';
-import { ResponseTemplatePanel } from '../components/ResponseTemplatePanel';
-import { TemplatePanel } from '../components/TemplatePanel';
-import { SessionTemplatePanel } from '../components/SessionTemplatePanel';
 import { SlideDisplay } from '../components/SlideDisplay';
 import { DevTestFab } from '../components/DevTestFab';
-import { TemplateSelector } from '../components/TemplateSelector';
-import { ConfirmDialog } from '../components/ConfirmDialog';
 import { PresentationControls } from '../components/PresentationControls';
-import { checkQuestionVotes, fetchTemplates } from '../lib/template-api';
+import { fetchTemplates } from '../lib/template-api';
 import { ensureSessionItems, createBatchSessionItem } from '../lib/sequence-api';
-import { createSlide, deleteSlide } from '../lib/slide-api';
+import { deleteSlide } from '../lib/slide-api';
 import { updateSessionTeams, validateTeamList } from '../lib/team-api';
 import type { Question, Vote, Batch, SessionItem } from '../types/database';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -63,9 +56,6 @@ export default function AdminSession() {
   const [quickQuestionLoading, setQuickQuestionLoading] = useState(false);
   const [lastClosedQuestionId, setLastClosedQuestionId] = useState<string | null>(null);
   const [_addingQuestionToBatchId, _setAddingQuestionToBatchId] = useState<string | null>(null);
-  const [pendingBatchId] = useState<string | null>(null);
-  const [bulkApplyConfirm, setBulkApplyConfirm] = useState<{ templateId: string; questionCount: number; skippedCount: number } | null>(null);
-  const [bulkApplying, setBulkApplying] = useState(false);
   const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
   const [addingToBatchId, setAddingToBatchId] = useState<string | null>(null);
 
@@ -460,7 +450,10 @@ export default function AdminSession() {
     if (!session || !text.trim()) return;
     setQuickQuestionLoading(true);
 
-    // Close any active questions first
+    // Close any active batch or questions first
+    if (activeBatchId) {
+      await handleCloseBatch(activeBatchId);
+    }
     await supabase
       .from('questions')
       .update({ status: 'closed' as const })
@@ -474,42 +467,109 @@ export default function AdminSession() {
     }
     stopCountdown();
 
-    // Find next position
-    const nextPosition = questions.length > 0
-      ? Math.max(...questions.map((q) => q.position)) + 1
-      : 0;
+    const store = useSessionStore.getState();
+    const items = store.sessionItems;
 
-    // Create and immediately activate the question
-    const { data, error: insertError } = await supabase
+    // Determine insert position: right after the current active item
+    const activeItemId = store.activeSessionItemId;
+    const activeIdx = activeItemId ? items.findIndex((i) => i.id === activeItemId) : -1;
+    const insertAfterPos = activeIdx >= 0 ? items[activeIdx].position : -1;
+
+    // Shift all items after the insert point to make room
+    const itemsToShift = items.filter((i) => i.position > insertAfterPos);
+    if (itemsToShift.length > 0) {
+      for (const item of itemsToShift) {
+        await supabase
+          .from('session_items')
+          .update({ position: item.position + 1 })
+          .eq('id', item.id);
+      }
+      // Update local store positions
+      const updatedItems = items.map((i) =>
+        i.position > insertAfterPos ? { ...i, position: i.position + 1 } : i
+      );
+      useSessionStore.getState().setSessionItems(updatedItems);
+    }
+
+    const newItemPosition = insertAfterPos + 1;
+
+    // Find next batch position
+    const maxBatchPos = store.batches.length > 0
+      ? Math.max(...store.batches.map((b) => b.position))
+      : -1;
+    const maxQuestionPos = questions.length > 0
+      ? Math.max(...questions.map((q) => q.position))
+      : -1;
+    const nextBatchPosition = Math.max(maxBatchPos, maxQuestionPos) + 1;
+
+    // 1. Create a batch to wrap the quick question
+    const { data: batch, error: batchErr } = await supabase
+      .from('batches')
+      .insert({
+        session_id: session.session_id,
+        name: text.trim(),
+        position: nextBatchPosition,
+      })
+      .select()
+      .single();
+
+    if (batchErr || !batch) {
+      console.error('Failed to create quick question batch:', batchErr);
+      setQuickQuestionLoading(false);
+      return;
+    }
+
+    useSessionStore.getState().addBatch(batch);
+
+    // 2. Create the question inside the batch
+    const { data: question, error: qErr } = await supabase
       .from('questions')
       .insert({
         session_id: session.session_id,
+        batch_id: batch.id,
         text: text.trim(),
         type: 'agree_disagree' as const,
         options: null,
-        position: nextPosition,
+        position: 0,
         status: 'active' as const,
       })
       .select()
       .single();
 
-    if (!insertError && data) {
-      useSessionStore.getState().addQuestion(data);
-      setLastClosedQuestionId(null);
-
-      channelRef.current?.send({
-        type: 'broadcast',
-        event: 'question_activated',
-        payload: { questionId: data.id, timerSeconds: timerDuration },
-      });
-
-      if (timerDuration) {
-        await setTimerExpiration(timerDuration);
-        startCountdown(timerDuration * 1000);
-      } else {
-        await clearTimerExpiration();
-      }
+    if (qErr || !question) {
+      console.error('Failed to create quick question:', qErr);
+      setQuickQuestionLoading(false);
+      return;
     }
+
+    useSessionStore.getState().addQuestion(question);
+
+    // 3. Create session item directly after current item
+    const { data: sessionItem, error: siErr } = await supabase
+      .from('session_items')
+      .insert({
+        session_id: session.session_id,
+        item_type: 'batch',
+        batch_id: batch.id,
+        position: newItemPosition,
+        slide_image_path: null,
+        slide_caption: null,
+      })
+      .select()
+      .single();
+
+    if (siErr || !sessionItem) {
+      console.error('Failed to create session item:', siErr);
+      setQuickQuestionLoading(false);
+      return;
+    }
+
+    useSessionStore.getState().addSessionItem(sessionItem);
+    useSessionStore.getState().setActiveSessionItemId(sessionItem.id);
+
+    // 4. Activate the batch (sends broadcast, starts timer)
+    await handleActivateBatch(batch.id, timerDuration);
+    setLastClosedQuestionId(null);
 
     setQuickQuestionLoading(false);
   }
@@ -734,16 +794,6 @@ export default function AdminSession() {
     }
   }
 
-  async function handleSlideUploaded(imagePath: string) {
-    if (!session) return;
-    try {
-      const newSlide = await createSlide(session.session_id, imagePath, null);
-      useSessionStore.getState().addSessionItem(newSlide);
-    } catch (err) {
-      console.error('Failed to create slide:', err);
-    }
-  }
-
   async function handleActivateBatch(batchId: string, timerDuration: number | null = null) {
     if (!session) return;
 
@@ -776,8 +826,9 @@ export default function AdminSession() {
     setActiveBatchId(batchId);
     useSessionStore.getState().updateBatch(batchId, { status: 'active' });
 
-    // 4. Get question IDs for this batch
-    const batchQuestions = questions.filter((q) => q.batch_id === batchId);
+    // 4. Get question IDs for this batch (read from store to avoid stale closure)
+    const latestQuestions = useSessionStore.getState().questions;
+    const batchQuestions = latestQuestions.filter((q) => q.batch_id === batchId);
     const questionIds = batchQuestions.map((q) => q.id);
 
     // 5. Broadcast to participants (include timer)
@@ -892,99 +943,6 @@ export default function AdminSession() {
     }
   }
 
-  // --- Default template handlers ---
-
-  async function handleDefaultTemplateChange(templateId: string | null) {
-    if (!session) return;
-
-    // Persist the default template setting
-    try {
-      await useSessionStore.getState().setSessionDefaultTemplate(templateId);
-    } catch (err) {
-      console.error('Failed to set default template:', err);
-      return;
-    }
-
-    // If setting a template (not clearing), check for templateless MC questions
-    if (templateId) {
-      // Find templateless MC questions
-      const templatelessQuestions = questions.filter(
-        q => q.type === 'multiple_choice' && !q.template_id
-      );
-
-      if (templatelessQuestions.length > 0) {
-        // Check each for votes
-        const voteChecks = await Promise.all(
-          templatelessQuestions.map(q => checkQuestionVotes(q.id))
-        );
-
-        // Count safe-to-update vs skipped (have votes)
-        const safeQuestions = templatelessQuestions.filter((_, idx) => !voteChecks[idx]);
-        const skippedCount = templatelessQuestions.length - safeQuestions.length;
-
-        if (safeQuestions.length > 0) {
-          setBulkApplyConfirm({
-            templateId,
-            questionCount: safeQuestions.length,
-            skippedCount,
-          });
-        }
-      }
-    }
-  }
-
-  async function handleBulkApplyConfirm() {
-    if (!bulkApplyConfirm || !session) return;
-
-    setBulkApplying(true);
-
-    try {
-      // Re-fetch templateless MC questions without votes to be safe
-      const templatelessQuestions = questions.filter(
-        q => q.type === 'multiple_choice' && !q.template_id
-      );
-
-      // Re-check for votes
-      const voteChecks = await Promise.all(
-        templatelessQuestions.map(q => checkQuestionVotes(q.id))
-      );
-      const safeQuestions = templatelessQuestions.filter((_, idx) => !voteChecks[idx]);
-
-      // Find the template to get its options
-      const template = templates.find(t => t.id === bulkApplyConfirm.templateId);
-      const templateOptions = template?.options ?? null;
-
-      // Update each safe question with template_id and options
-      await Promise.all(
-        safeQuestions.map(q =>
-          supabase
-            .from('questions')
-            .update({ template_id: bulkApplyConfirm.templateId, options: templateOptions })
-            .eq('id', q.id)
-        )
-      );
-
-      // Refresh questions from database to get updated template_id values
-      const { data: refreshedQuestions } = await supabase
-        .from('questions')
-        .select('*')
-        .eq('session_id', session.session_id)
-        .order('position', { ascending: true });
-
-      if (refreshedQuestions) {
-        useSessionStore.getState().setQuestions(refreshedQuestions);
-      }
-    } catch (error) {
-      console.error('Bulk apply failed:', error);
-    } finally {
-      setBulkApplying(false);
-      setBulkApplyConfirm(null);
-    }
-  }
-
-  function handleBulkApplyCancel() {
-    setBulkApplyConfirm(null);
-  }
 
   // --- Team management handlers ---
 
@@ -1136,21 +1094,6 @@ export default function AdminSession() {
                 </svg>
                 {session.test_mode ? 'Test Mode On' : 'Test Mode Off'}
               </button>
-
-              {/* Default Template */}
-              <div className="pt-3 border-t border-gray-200">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Default Template
-                </label>
-                <p className="text-xs text-gray-400 mb-2">
-                  Auto-applied to new multiple choice questions
-                </p>
-                <TemplateSelector
-                  value={session.default_template_id ?? null}
-                  onChange={handleDefaultTemplateChange}
-                  templates={templates}
-                />
-              </div>
             </div>
 
             {/* Team Configuration (draft mode only) */}
@@ -1272,51 +1215,7 @@ export default function AdminSession() {
                   </div>
                 );
               })()}
-
-              {/* Image uploader */}
-              <div className="pt-4 border-t border-gray-200">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Add Slide</h3>
-                <ImageUploader sessionId={session.session_id} onUploaded={handleSlideUploaded} />
-              </div>
-
-              <div className="pt-4 border-t border-gray-200">
-                <SessionImportExport
-                  sessionId={session.session_id}
-                  sessionName={session.title}
-                  onImportComplete={async () => {
-                    // Refetch questions, batches, and session items after import
-                    const { data: questionsData } = await supabase
-                      .from('questions')
-                      .select('*')
-                      .eq('session_id', session.session_id)
-                      .order('position');
-
-                    const { data: batchesData } = await supabase
-                      .from('batches')
-                      .select('*')
-                      .eq('session_id', session.session_id)
-                      .order('position');
-
-                    const { data: itemsData } = await supabase
-                      .from('session_items')
-                      .select('*')
-                      .eq('session_id', session.session_id)
-                      .order('position');
-
-                    if (questionsData) useSessionStore.getState().setQuestions(questionsData);
-                    if (batchesData) useSessionStore.getState().setBatches(batchesData);
-                    if (itemsData) useSessionStore.getState().setSessionItems(itemsData);
-                  }}
-                />
-              </div>
             </div>
-
-            {/* Templates */}
-            <ResponseTemplatePanel />
-            <TemplatePanel sessionId={session.session_id} />
-
-            {/* Session Templates */}
-            <SessionTemplatePanel sessionId={session.session_id} />
           </div>
         </div>
       )}
@@ -1415,6 +1314,7 @@ export default function AdminSession() {
         activeQuestion={activeQuestion}
         activeBatchId={activeBatchId}
         batchQuestionIds={activeBatchQuestionIds}
+        teams={session.teams}
       />
 
       {/* Admin Control Bar — hidden during active sessions (PresentationControls has its own controls) */}
@@ -1427,26 +1327,6 @@ export default function AdminSession() {
         onCopyLink={handleCopyLink}
         copied={copied}
       />}
-
-      {/* Bulk Apply Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={bulkApplyConfirm !== null}
-        onConfirm={handleBulkApplyConfirm}
-        onCancel={handleBulkApplyCancel}
-        title="Apply to existing questions?"
-        message={
-          bulkApplyConfirm
-            ? `${bulkApplyConfirm.questionCount} multiple choice question(s) without a template will be assigned this template.${
-                bulkApplyConfirm.skippedCount > 0
-                  ? ` ${bulkApplyConfirm.skippedCount} question(s) with votes will be skipped.`
-                  : ''
-              }`
-            : ''
-        }
-        confirmLabel="Apply"
-        confirmVariant="primary"
-        loading={bulkApplying}
-      />
     </AdminPasswordGate>
   );
 }
