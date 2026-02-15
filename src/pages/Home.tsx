@@ -43,6 +43,7 @@ export default function Home() {
           session_id: sessionId,
           title: title.trim() || 'Untitled Session',
           created_by: user.id,
+          reasons_enabled: true,
         })
         .select('admin_token')
         .single();

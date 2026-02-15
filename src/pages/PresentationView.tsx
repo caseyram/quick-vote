@@ -33,7 +33,7 @@ export default function PresentationView() {
 
   const [showFullscreenHint, setShowFullscreenHint] = useState(true);
   const [qrMode, setQrMode] = useState<QRMode>('hidden');
-  const [showTeamQR, setShowTeamQR] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [blackScreenActive, setBlackScreenActive] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
   const [sessionVotes, setSessionVotes] = useState<Record<string, Vote[]>>({});
@@ -44,6 +44,7 @@ export default function PresentationView() {
   const [activeInlineQuestion, setActiveInlineQuestion] = useState<Question | null>(null);
   const [inlineVotingClosed, setInlineVotingClosed] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [batchVotingActive, setBatchVotingActive] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const prevConnectionStatus = useRef<ConnectionStatus>('connecting');
 
@@ -120,6 +121,7 @@ export default function PresentationView() {
 
         if (activeBatch && !cancelled) {
           useSessionStore.getState().setActiveBatchId(activeBatch.id);
+          setBatchVotingActive(true);
           const batchItem = itemsData?.find(
             (item: any) => item.item_type === 'batch' && item.batch_id === activeBatch.id
           );
@@ -169,6 +171,7 @@ export default function PresentationView() {
       setHighlightedReason(null);
       setSelectedQuestionId(null);
       setActiveInlineQuestion(null); // Clear any inline question
+      setBatchVotingActive(true);
 
       useSessionStore.getState().setActiveBatchId(payload.batchId);
       // Find the corresponding session_item for this batch
@@ -179,6 +182,11 @@ export default function PresentationView() {
       if (batchItem) {
         useSessionStore.getState().setActiveSessionItemId(batchItem.id);
       }
+    });
+
+    // Listen for batch closed - voting ended
+    channel.on('broadcast', { event: 'batch_closed' }, () => {
+      setBatchVotingActive(false);
     });
 
     // Listen for inline question activation (Go Live quick question)
@@ -221,10 +229,6 @@ export default function PresentationView() {
       setQrMode(payload.mode);
     });
 
-    // Listen for team QR toggle
-    channel.on('broadcast', { event: 'team_qr_toggled' }, ({ payload }: any) => {
-      setShowTeamQR(payload.show);
-    });
 
     // Listen for black screen toggle
     channel.on('broadcast', { event: 'black_screen_toggle' }, ({ payload }: any) => {
@@ -297,8 +301,9 @@ export default function PresentationView() {
     prevConnectionStatus.current = connectionStatus;
   }, [connectionStatus, sessionId, setSession]);
 
-  // Subscribe to session status from store for vote polling dependency
+  // Subscribe to session status and teams from store
   const sessionStatus = useSessionStore((s) => s.session?.status);
+  const session = useSessionStore((s) => s.session);
 
   // Poll votes every 3 seconds when session is active
   useEffect(() => {
@@ -477,6 +482,7 @@ export default function PresentationView() {
             (() => {
               const currentBatch = batches.find((b) => b.id === currentItem.batch_id);
               const showCover = currentBatch?.cover_image_path && revealedQuestions.size === 0;
+              const showVotingScreen = batchVotingActive && revealedQuestions.size === 0 && !showCover;
               return (
                 <AnimatePresence mode="wait">
                   {showCover ? (
@@ -489,6 +495,20 @@ export default function PresentationView() {
                       className="w-full h-full"
                     >
                       <SlideDisplay imagePath={currentBatch!.cover_image_path!} caption={null} />
+                    </motion.div>
+                  ) : showVotingScreen ? (
+                    <motion.div
+                      key="batch-voting"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.4 }}
+                      className="w-full h-full flex flex-col items-center justify-center text-center px-8"
+                    >
+                      <h2 className={`text-5xl font-bold ${textColorClass} leading-tight mb-4`}>
+                        {currentBatch?.name ?? 'Untitled Batch'}
+                      </h2>
+                      <p className={`text-2xl ${textColorClass} opacity-50`}>Voting in progress...</p>
                     </motion.div>
                   ) : (
                     <motion.div
@@ -525,15 +545,24 @@ export default function PresentationView() {
         </AnimatePresence>
       </div>
 
-      {/* QR overlay - hidden when team QR is showing */}
-      {!showTeamQR && <QROverlay mode={qrMode} sessionUrl={sessionUrl} />}
-
-      {/* Team QR Grid overlay */}
-      {showTeamQR && useSessionStore.getState().session && useSessionStore.getState().session!.teams.length > 0 && (
-        <TeamQRGrid
-          sessionId={sessionId!}
-          teams={useSessionStore.getState().session!.teams}
-        />
+      {/* QR overlay — team grid when fullscreen + teams, otherwise regular overlay */}
+      {qrMode === 'fullscreen' && session?.teams && session.teams.length > 0 ? (
+        <div className="fixed inset-0 z-[100]">
+          <TeamQRGrid
+            sessionId={sessionId!}
+            teams={session.teams}
+            onClose={() => {}}
+            participantUrl={sessionUrl}
+            linkCopied={linkCopied}
+            onCopyLink={() => {
+              navigator.clipboard.writeText(sessionUrl);
+              setLinkCopied(true);
+              setTimeout(() => setLinkCopied(false), 2000);
+            }}
+          />
+        </div>
+      ) : (
+        <QROverlay mode={qrMode} sessionUrl={sessionUrl} />
       )}
 
       {/* Black screen overlay */}

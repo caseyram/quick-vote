@@ -101,7 +101,7 @@ export default function ParticipantSession() {
     // Fetch session status (include timer_expires_at for countdown restoration)
     const { data: statusData } = await supabase
       .from('sessions')
-      .select('id, session_id, title, status, reasons_enabled, test_mode, timer_expires_at, created_at, default_template_id')
+      .select('id, session_id, title, status, reasons_enabled, test_mode, timer_expires_at, created_at, default_template_id, teams')
       .eq('session_id', sessionId)
       .single();
 
@@ -111,6 +111,7 @@ export default function ParticipantSession() {
       ...statusData,
       admin_token: '',
       created_by: '',
+      teams: statusData.teams || [],
     };
     setSession(sessionForStore);
 

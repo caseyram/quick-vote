@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface UseMultiSelectOptions {
   itemIds: string[];      // Current ordered list of item IDs
@@ -7,7 +7,6 @@ interface UseMultiSelectOptions {
 
 interface UseMultiSelectReturn {
   selectedIds: Set<string>;
-  lastSelectedId: string | null;
   handleItemClick: (itemId: string, event: React.MouseEvent) => void;
   handleContainerClick: (event: React.MouseEvent) => void;
   clearSelection: () => void;
@@ -17,13 +16,14 @@ interface UseMultiSelectReturn {
 export function useMultiSelect(options: UseMultiSelectOptions): UseMultiSelectReturn {
   const { itemIds, enabled = true } = options;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+  // Use ref for lastSelectedId to avoid stale closure issues in callbacks
+  const lastSelectedIdRef = useRef<string | null>(null);
 
   // Clear selection when disabled
   useEffect(() => {
     if (!enabled) {
       setSelectedIds(new Set());
-      setLastSelectedId(null);
+      lastSelectedIdRef.current = null;
     }
   }, [enabled]);
 
@@ -32,7 +32,7 @@ export function useMultiSelect(options: UseMultiSelectOptions): UseMultiSelectRe
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         setSelectedIds(new Set());
-        setLastSelectedId(null);
+        lastSelectedIdRef.current = null;
       }
     }
 
@@ -44,9 +44,9 @@ export function useMultiSelect(options: UseMultiSelectOptions): UseMultiSelectRe
     (itemId: string, event: React.MouseEvent) => {
       if (!enabled) return;
 
-      if (event.shiftKey && lastSelectedId) {
-        // Shift-click: range select
-        const lastIndex = itemIds.indexOf(lastSelectedId);
+      if (event.shiftKey && lastSelectedIdRef.current) {
+        // Shift-click: range select from anchor to clicked item
+        const lastIndex = itemIds.indexOf(lastSelectedIdRef.current);
         const currentIndex = itemIds.indexOf(itemId);
 
         if (lastIndex !== -1 && currentIndex !== -1) {
@@ -68,14 +68,14 @@ export function useMultiSelect(options: UseMultiSelectOptions): UseMultiSelectRe
           }
           return next;
         });
-        setLastSelectedId(itemId);
+        lastSelectedIdRef.current = itemId;
       } else {
         // Regular click: select only this item
         setSelectedIds(new Set([itemId]));
-        setLastSelectedId(itemId);
+        lastSelectedIdRef.current = itemId;
       }
     },
-    [enabled, itemIds, lastSelectedId]
+    [enabled, itemIds]
   );
 
   const handleContainerClick = useCallback(
@@ -83,7 +83,7 @@ export function useMultiSelect(options: UseMultiSelectOptions): UseMultiSelectRe
       // Only clear if clicking on the container itself (not a child element)
       if (event.target === event.currentTarget) {
         setSelectedIds(new Set());
-        setLastSelectedId(null);
+        lastSelectedIdRef.current = null;
       }
     },
     []
@@ -91,7 +91,7 @@ export function useMultiSelect(options: UseMultiSelectOptions): UseMultiSelectRe
 
   const clearSelection = useCallback(() => {
     setSelectedIds(new Set());
-    setLastSelectedId(null);
+    lastSelectedIdRef.current = null;
   }, []);
 
   const isSelected = useCallback(
@@ -101,7 +101,6 @@ export function useMultiSelect(options: UseMultiSelectOptions): UseMultiSelectRe
 
   return {
     selectedIds,
-    lastSelectedId,
     handleItemClick,
     handleContainerClick,
     clearSelection,

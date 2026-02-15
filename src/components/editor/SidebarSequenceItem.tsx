@@ -9,10 +9,12 @@ import { SlideLightbox } from '../shared/SlideLightbox';
 interface SidebarSequenceItemProps {
   item: EditorItem;
   isSelected: boolean;
+  isMultiSelected?: boolean;
   isDragging: boolean;
+  onMultiSelect?: (event: React.MouseEvent) => void;
 }
 
-export function SidebarSequenceItem({ item, isSelected, isDragging }: SidebarSequenceItemProps) {
+export function SidebarSequenceItem({ item, isSelected, isMultiSelected = false, isDragging, onMultiSelect }: SidebarSequenceItemProps) {
   const { selectItem, removeItem } = useTemplateEditorStore();
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
@@ -29,7 +31,16 @@ export function SidebarSequenceItem({ item, isSelected, isDragging }: SidebarSeq
     transition,
   };
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    if (onMultiSelect) {
+      // Always notify multi-select hook (sets lastSelectedId for shift-click anchoring)
+      onMultiSelect(e);
+      // Also select item in store for editing panel (only on regular click)
+      if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        selectItem(item.id);
+      }
+      return;
+    }
     selectItem(item.id);
   };
 
@@ -119,6 +130,8 @@ export function SidebarSequenceItem({ item, isSelected, isDragging }: SidebarSeq
           flex items-center gap-2 p-2 rounded border cursor-pointer transition-all
           ${isSelected
             ? 'bg-indigo-50 border-indigo-300 shadow-sm'
+            : isMultiSelected
+            ? 'bg-indigo-50 border-indigo-300'
             : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
           }
           ${isDragging ? 'opacity-50' : ''}

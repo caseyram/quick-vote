@@ -8,6 +8,7 @@ interface DevTestFabProps {
   activeQuestion: Question | null;
   activeBatchId: string | null;
   batchQuestionIds: string[];
+  teams?: string[];
 }
 
 const VOTE_OPTIONS = [
@@ -22,6 +23,7 @@ export function DevTestFab({
   activeQuestion,
   activeBatchId,
   batchQuestionIds,
+  teams,
 }: DevTestFabProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -41,6 +43,7 @@ export function DevTestFab({
           p_session_id: sessionId,
           p_question_id: qId,
           p_count: count,
+          p_teams: teams && teams.length > 0 ? teams : [],
         });
         if (error) throw error;
         total += (data as number) ?? 0;

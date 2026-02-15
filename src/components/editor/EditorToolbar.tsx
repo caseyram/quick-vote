@@ -218,6 +218,7 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
           session_id: sessionId,
           title: templateName || 'Untitled Session',
           created_by: user.id,
+          reasons_enabled: true,
         })
         .select('admin_token')
         .single();

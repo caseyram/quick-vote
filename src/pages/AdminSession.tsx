@@ -12,7 +12,6 @@ import { SequenceManager } from '../components/SequenceManager';
 import { SessionQRCode } from '../components/QRCode';
 import SessionResults from '../components/SessionResults';
 import { ConnectionBanner } from '../components/ConnectionBanner';
-import { ParticipantCount } from '../components/ParticipantCount';
 import { CountdownTimer } from '../components/CountdownTimer';
 import { AdminControlBar } from '../components/AdminControlBar';
 import { AdminPasswordGate } from '../components/AdminPasswordGate';
@@ -265,10 +264,8 @@ export default function AdminSession() {
   }, []);
 
   const isDraft = session?.status === 'draft';
-  const isLobby = session?.status === 'lobby';
-  const isActive = session?.status === 'active';
+  const isActive = session?.status === 'active' || session?.status === 'lobby'; // lobby treated as active
   const isEnded = session?.status === 'ended';
-  const isLive = isLobby || isActive;
 
   // Vote counts per question for progress tracking
   const questionVoteCounts = useMemo(() => {
@@ -285,12 +282,12 @@ export default function AdminSession() {
     return questions.filter(q => q.batch_id === activeBatchId).map(q => q.id);
   }, [activeBatchId, questions]);
 
-  // Realtime channel
+  // Realtime channel — connect during draft too so broadcasts work on Go Live
   const presenceConfig = userId ? { userId, role: 'admin' as const } : undefined;
   const { channelRef, connectionStatus, participantCount } = useRealtimeChannel(
     session?.session_id ? `session:${session.session_id}` : '',
     setupChannel,
-    !!isLive && !!session?.session_id,
+    !!session?.session_id && !isEnded,
     presenceConfig
   );
 
@@ -589,26 +586,7 @@ export default function AdminSession() {
     setEditingQuestion(null);
   }
 
-  async function handleStartSession() {
-    if (!session) return;
-    setTransitioning(true);
-    const { error: err } = await supabase
-      .from('sessions')
-      .update({ status: 'lobby' as const })
-      .eq('session_id', session.session_id);
-
-    if (!err) {
-      setSession({ ...session, status: 'lobby' });
-      channelRef.current?.send({
-        type: 'broadcast',
-        event: 'session_lobby',
-        payload: {},
-      });
-    }
-    setTransitioning(false);
-  }
-
-  async function handleBeginVoting() {
+  async function handleGoLive() {
     if (!session) return;
     setTransitioning(true);
     const { error: err } = await supabase
@@ -1017,7 +995,7 @@ export default function AdminSession() {
 
   return (
     <AdminPasswordGate>
-      {isLive && <ConnectionBanner status={connectionStatus} />}
+      {isActive && <ConnectionBanner status={connectionStatus} />}
 
       {/* Draft View: preserved admin-focused layout */}
       {isDraft && (
@@ -1220,46 +1198,6 @@ export default function AdminSession() {
         </div>
       )}
 
-      {/* Lobby View: large centered QR for projection */}
-      {isLobby && (
-        <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 pb-20">
-          {/* Settings toggle in top-right corner */}
-          <div className="absolute top-4 right-4">
-            <button
-              onClick={handleToggleSessionReasons}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                session.reasons_enabled
-                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-              }`}
-              title={session.reasons_enabled ? 'Reasons enabled - click to disable' : 'Reasons disabled - click to enable'}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-              </svg>
-              {session.reasons_enabled ? 'Reasons On' : 'Reasons Off'}
-            </button>
-          </div>
-
-          <h1 className="text-5xl font-bold text-gray-900 mb-10 text-center">
-            {session.title}
-          </h1>
-
-          <SessionQRCode url={participantUrl} visible size={280} mode="centered" />
-
-          <div className="mt-8 text-center space-y-3">
-            <p className="text-lg text-gray-500">Scan to join or visit:</p>
-            <p className="text-xl font-mono text-indigo-600 break-all">
-              {participantUrl}
-            </p>
-          </div>
-
-          <div className="mt-8">
-            <ParticipantCount count={participantCount} size="large" />
-          </div>
-        </div>
-      )}
-
       {/* Presentation Controls View */}
       {isActive && (
         <PresentationControls
@@ -1317,13 +1255,12 @@ export default function AdminSession() {
         teams={session.teams}
       />
 
-      {/* Admin Control Bar — hidden during active sessions (PresentationControls has its own controls) */}
+      {/* Admin Control Bar — only shown in draft/ended (PresentationControls has its own controls) */}
       {!isActive && <AdminControlBar
         status={session.status}
         participantCount={participantCount}
         transitioning={transitioning}
-        onStartSession={handleStartSession}
-        onBeginVoting={handleBeginVoting}
+        onGoLive={handleGoLive}
         onCopyLink={handleCopyLink}
         copied={copied}
       />}

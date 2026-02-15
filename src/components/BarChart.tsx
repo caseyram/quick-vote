@@ -57,7 +57,7 @@ export function BarChart({ data, totalVotes, size = 'default', theme = 'dark', b
     : { height: isLarge ? 400 : 300 };
 
   const colTemplate = data.length > 0
-    ? `repeat(${data.length}, minmax(0, ${isLarge ? '200px' : '120px'}))`
+    ? `repeat(${data.length}, minmax(0, ${isLarge ? '1fr' : '120px'}))`
     : 'none';
 
   return (

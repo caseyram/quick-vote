@@ -45,6 +45,7 @@ interface TemplateEditorState {
   addItem: (item: EditorItem, afterItemId: string | null) => void;
   removeItem: (id: string) => void;
   reorderItems: (fromIndex: number, toIndex: number) => void;
+  reorderItemsGroup: (selectedIds: Set<string>, targetId: string) => void;
   updateItem: (id: string, updates: Partial<EditorItem>) => void;
   selectItem: (id: string | null) => void;
   markClean: () => void;
@@ -148,6 +149,28 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
 
       return {
         items: newItems,
+        isDirty: true,
+      };
+    }),
+
+  reorderItemsGroup: (selectedIds, targetId) =>
+    set((state) => {
+      const itemIds = state.items.map((i) => i.id);
+      const remainingIds = itemIds.filter((id) => !selectedIds.has(id));
+      const targetIndex = remainingIds.indexOf(targetId);
+      if (targetIndex === -1) return state;
+
+      // Preserve original relative order of selected items
+      const selectedInOrder = itemIds.filter((id) => selectedIds.has(id));
+      const newOrder = [
+        ...remainingIds.slice(0, targetIndex + 1),
+        ...selectedInOrder,
+        ...remainingIds.slice(targetIndex + 1),
+      ];
+
+      const itemMap = new Map(state.items.map((i) => [i.id, i]));
+      return {
+        items: newOrder.map((id) => itemMap.get(id)!),
         isDirty: true,
       };
     }),

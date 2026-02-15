@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { nanoid } from 'nanoid';
 import { supabase } from '../lib/supabase';
 import { bulkInsertQuestions, questionsToTemplates, batchesToTemplates } from '../lib/question-templates';
-import { exportSession, downloadJSON, generateExportFilename } from '../lib/session-export';
+import { exportSession, downloadJSON, downloadCSV, sessionToCSV, generateExportFilename } from '../lib/session-export';
 import { ConfirmDialog } from './ConfirmDialog';
 import type { Session, Question, Batch, SessionItem } from '../types/database';
 
@@ -165,12 +165,22 @@ export function PastSessions() {
     navigate(`/admin/review/${session.session_id}`);
   }
 
-  async function handleExport(session: SessionRow) {
+  async function handleExportJSON(session: SessionRow) {
     setExporting(session.session_id);
     try {
       const data = await exportSession(session.session_id);
-      const filename = generateExportFilename(session.title);
-      downloadJSON(data, filename);
+      downloadJSON(data, generateExportFilename(session.title, 'json'));
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  async function handleExportCSV(session: SessionRow) {
+    setExporting(session.session_id);
+    try {
+      const data = await exportSession(session.session_id);
+      const csv = sessionToCSV(data);
+      downloadCSV(csv, generateExportFilename(session.title, 'csv'));
     } finally {
       setExporting(null);
     }
@@ -270,11 +280,18 @@ export function PastSessions() {
                     {actionLoading === s.id ? 'Creating...' : 'Template'}
                   </button>
                   <button
-                    onClick={() => handleExport(s)}
+                    onClick={() => handleExportCSV(s)}
                     disabled={exporting === s.session_id}
                     className="px-2.5 py-1 text-xs font-medium text-emerald-400 hover:text-emerald-300 disabled:text-gray-600 transition-colors"
                   >
-                    {exporting === s.session_id ? 'Exporting...' : 'Export'}
+                    {exporting === s.session_id ? 'Exporting...' : 'CSV'}
+                  </button>
+                  <button
+                    onClick={() => handleExportJSON(s)}
+                    disabled={exporting === s.session_id}
+                    className="px-2.5 py-1 text-xs font-medium text-emerald-400 hover:text-emerald-300 disabled:text-gray-600 transition-colors"
+                  >
+                    JSON
                   </button>
                   <button
                     onClick={() => setDeleteTarget(s)}

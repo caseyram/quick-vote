@@ -89,14 +89,13 @@ export function BatchResultsProjection({
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [highlightedReason?.reasonId]);
 
-  // If no questions revealed, show batch name with "Results ready"
+  // If no questions revealed yet, show batch name
   if (!currentQuestion) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center px-8">
-        <h2 className={`text-5xl font-bold ${headingColor} leading-tight mb-4`}>
+        <h2 className={`text-5xl font-bold ${headingColor} leading-tight`}>
           {batchName}
         </h2>
-        <p className={`text-2xl ${subTextColor}`}>Results ready</p>
       </div>
     );
   }
@@ -199,27 +198,25 @@ export function BatchResultsProjection({
   );
 
   return (
-    <div className="flex flex-col h-full p-8">
-      {/* Question text */}
-      <div className="text-center shrink-0 mb-4">
-        <h2 className={`text-3xl font-bold ${headingColor}`}>
-          {currentQuestion.text}
-        </h2>
-        {teamFilter && (
-          <p className={`text-sm ${subTextColor} mt-1`}>
-            Showing: {teamFilter}
-          </p>
-        )}
-      </div>
+    <div className="flex h-full p-8 gap-8 min-h-0">
+      {/* Chart section: question text + highlighted reasons + bar chart */}
+      <div className="flex-1 flex flex-col items-center justify-center min-h-0">
+        {/* Question text */}
+        <div className="text-center shrink-0 mb-8 w-full">
+          <h2 className={`text-3xl font-bold ${headingColor}`}>
+            {currentQuestion.text}
+          </h2>
+          {teamFilter && (
+            <p className={`text-sm ${subTextColor} mt-1`}>
+              Showing: {teamFilter}
+            </p>
+          )}
+        </div>
 
-      {/* Chart + Reasons list layout */}
-      <div className="flex-1 flex gap-8 min-h-0">
-        {/* Chart section with highlighted reason(s) above the bars */}
-        <div className={`flex-1 flex items-center justify-center min-h-0`}>
-          <div className="w-full max-w-5xl">
-            {/* Reason cards above chart — shows 1, 2, or 4 at a time */}
+        <div className="w-full max-w-5xl">
+          {/* Reason cards above chart — shows 1, 2, or 4 at a time */}
             {reasonsPerPage === 1 && highlightedReasonData && (
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center mb-8">
                 <div
                   className={`${cardBg} backdrop-blur rounded-lg p-6 max-w-4xl w-full text-center`}
                   style={{
@@ -247,7 +244,7 @@ export function BatchResultsProjection({
               </div>
             )}
             {reasonsPerPage > 1 && pageReasons.length > 0 && (
-              <div className={`mb-6 ${reasonsPerPage === 4 ? 'grid grid-cols-2 gap-4' : 'flex flex-col gap-4'}`}>
+              <div className={`mb-8 ${reasonsPerPage === 4 ? 'grid grid-cols-2 gap-4' : 'flex flex-col gap-4'}`}>
                 {pageReasons.map((vote) => (
                   <div
                     key={vote.id}
@@ -286,57 +283,56 @@ export function BatchResultsProjection({
           </div>
         </div>
 
-        {/* Reasons panel (right side, scrollable) */}
-        {hasReasons && (
-          <div className={`w-80 shrink-0 flex flex-col min-h-0 ${cardBg} backdrop-blur rounded-lg overflow-hidden`}>
-            <div className="px-4 py-3 shrink-0 border-b border-white/10">
-              <h4 className={`text-sm font-semibold ${headingColor}`}>Reasons</h4>
-            </div>
-            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-              {Object.entries(reasonsByOption).map(([option, votes]) => (
-                <div key={option}>
-                  <div
-                    className="text-xs font-semibold mb-2 px-2 py-1 rounded inline-block"
-                    style={{
-                      backgroundColor: getReasonColor(option) + '20',
-                      borderLeft: `3px solid ${getReasonColor(option)}`,
-                      color: textMode === 'light' ? '#fff' : getReasonColor(option),
-                    }}
-                  >
-                    {option}
-                  </div>
-                  <div className="space-y-2">
-                    {votes.map((vote) => {
-                      const isActive = activePageReasonIds.has(vote.id);
-                      return (
-                        <div
-                          key={vote.id}
-                          data-reason-id={vote.id}
-                          className={`p-3 rounded-lg transition-all ${
-                            isActive
-                              ? `ring-2 ring-white/40 ${cardBg}`
-                              : ''
-                          }`}
-                          style={{
-                            borderLeft: `4px solid ${getReasonColor(vote.value)}`,
-                          }}
-                        >
-                          <p className={`text-sm ${isActive ? headingColor : reasonTextColor}`}>
-                            {vote.reason}
-                          </p>
-                          {vote.display_name && (
-                            <p className={`text-xs ${reasonNameColor} mt-1`}>— {vote.display_name}</p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
+      {/* Reasons panel (right side, full height, scrollable) */}
+      {hasReasons && (
+        <div className={`w-80 shrink-0 flex flex-col min-h-0 ${cardBg} backdrop-blur rounded-lg overflow-hidden`}>
+          <div className="px-4 py-3 shrink-0 border-b border-white/10">
+            <h4 className={`text-sm font-semibold ${headingColor}`}>Reasons</h4>
           </div>
-        )}
-      </div>
+          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+            {Object.entries(reasonsByOption).map(([option, votes]) => (
+              <div key={option}>
+                <div
+                  className="text-xs font-semibold mb-2 px-2 py-1 rounded inline-block"
+                  style={{
+                    backgroundColor: getReasonColor(option) + '20',
+                    borderLeft: `3px solid ${getReasonColor(option)}`,
+                    color: textMode === 'light' ? '#fff' : getReasonColor(option),
+                  }}
+                >
+                  {option}
+                </div>
+                <div className="space-y-2">
+                  {votes.map((vote) => {
+                    const isActive = activePageReasonIds.has(vote.id);
+                    return (
+                      <div
+                        key={vote.id}
+                        data-reason-id={vote.id}
+                        className={`p-3 rounded-lg transition-all ${
+                          isActive
+                            ? `ring-2 ring-white/40 ${cardBg}`
+                            : ''
+                        }`}
+                        style={{
+                          borderLeft: `4px solid ${getReasonColor(vote.value)}`,
+                        }}
+                      >
+                        <p className={`text-sm ${isActive ? headingColor : reasonTextColor}`}>
+                          {vote.reason}
+                        </p>
+                        {vote.display_name && (
+                          <p className={`text-xs ${reasonNameColor} mt-1`}>— {vote.display_name}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

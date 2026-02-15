@@ -14,8 +14,6 @@ interface SequenceItemCardProps {
   isActive?: boolean;
   onClick?: () => void;
   hideActions?: boolean;
-  isSelected?: boolean;
-  onSelect?: (event: React.MouseEvent) => void;
   batchQuestionIds?: string[];
   sessionVotes?: Record<string, Vote[]>;
   participantCount?: number;
@@ -31,8 +29,6 @@ export function SequenceItemCard({
   isActive = false,
   onClick,
   hideActions = false,
-  isSelected = false,
-  onSelect,
   batchQuestionIds,
   sessionVotes,
   participantCount,
@@ -55,19 +51,15 @@ export function SequenceItemCard({
   const isBatch = item.item_type === 'batch';
   const isSlide = item.item_type === 'slide';
 
-  // Color coding - active highlight overrides selected, selected overrides normal
   const colorClasses = isActive
     ? 'bg-blue-100 border-blue-500'
-    : isSelected
-    ? 'bg-indigo-100 border-indigo-400'
     : isBatch
     ? 'bg-blue-50 border-blue-200 hover:border-blue-300'
     : 'bg-purple-50 border-purple-200 hover:border-purple-300';
 
   const iconColor = isBatch ? 'text-blue-600' : 'text-purple-600';
 
-  // Determine click handler
-  const handleCardClick = onSelect || onClick;
+  const handleCardClick = onClick;
 
   return (
     <div

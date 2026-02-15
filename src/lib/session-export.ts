@@ -274,17 +274,65 @@ export async function exportSession(sessionId: string): Promise<SessionExport> {
 }
 
 // ============================================================================
+// CSV Export
+// ============================================================================
+
+function escapeCSV(value: string): string {
+  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+/**
+ * Converts a session export to CSV format (one row per vote).
+ * Columns: Session, Batch, Question, Question Type, Participant, Vote, Reason, Team
+ */
+export function sessionToCSV(data: SessionExport): string {
+  const headers = ['Session', 'Batch', 'Question', 'Question Type', 'Participant', 'Vote', 'Reason', 'Team'];
+  const rows: string[][] = [];
+
+  for (const entry of data.batches) {
+    if (entry.type !== 'batch') continue;
+    for (const question of entry.questions) {
+      if (question.votes.length === 0) {
+        // Include question even with no votes
+        rows.push([
+          data.session_name,
+          entry.name,
+          question.text,
+          question.type,
+          '', '', '', '',
+        ]);
+      } else {
+        for (const vote of question.votes) {
+          rows.push([
+            data.session_name,
+            entry.name,
+            question.text,
+            question.type,
+            vote.participant_id,
+            vote.value,
+            vote.reason ?? '',
+            vote.team_id ?? '',
+          ]);
+        }
+      }
+    }
+  }
+
+  const csvLines = [
+    headers.map(escapeCSV).join(','),
+    ...rows.map(row => row.map(escapeCSV).join(',')),
+  ];
+  return csvLines.join('\n');
+}
+
+// ============================================================================
 // Download Utilities
 // ============================================================================
 
-/**
- * Downloads data as a JSON file using Blob URL.
- * Properly cleans up the Blob URL after download to prevent memory leaks.
- */
-export function downloadJSON(data: object, filename: string): void {
-  const blob = new Blob([JSON.stringify(data, null, 2)], {
-    type: 'application/json',
-  });
+function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -292,7 +340,25 @@ export function downloadJSON(data: object, filename: string): void {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url); // Clean up to prevent memory leak
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Downloads data as a JSON file.
+ */
+export function downloadJSON(data: object, filename: string): void {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: 'application/json',
+  });
+  downloadBlob(blob, filename);
+}
+
+/**
+ * Downloads a string as a CSV file.
+ */
+export function downloadCSV(content: string, filename: string): void {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  downloadBlob(blob, filename);
 }
 
 /**
@@ -301,12 +367,12 @@ export function downloadJSON(data: object, filename: string): void {
  *
  * Example: "My Test Session!" -> "My-Test-Session-2026-01-28.json"
  */
-export function generateExportFilename(sessionName: string): string {
+export function generateExportFilename(sessionName: string, ext = 'json'): string {
   const safeName = sessionName
     .replace(/[^a-zA-Z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-') // Collapse multiple dashes
     .replace(/^-|-$/g, ''); // Remove leading/trailing dashes
   const date = new Date().toISOString().split('T')[0];
-  return `${safeName || 'session'}-${date}.json`;
+  return `${safeName || 'session'}-${date}.${ext}`;
 }
