@@ -12,6 +12,9 @@ interface SequenceItemCardProps {
   onExpandBatch?: (batchId: string) => void;
   isActive?: boolean;
   onClick?: () => void;
+  hideActions?: boolean;
+  isSelected?: boolean;
+  onSelect?: (event: React.MouseEvent) => void;
 }
 
 export function SequenceItemCard({
@@ -23,6 +26,9 @@ export function SequenceItemCard({
   onExpandBatch,
   isActive = false,
   onClick,
+  hideActions = false,
+  isSelected = false,
+  onSelect,
 }: SequenceItemCardProps) {
   const {
     attributes,
@@ -42,33 +48,40 @@ export function SequenceItemCard({
   const isBatch = item.item_type === 'batch';
   const isSlide = item.item_type === 'slide';
 
-  // Color coding - active highlight overrides normal colors
+  // Color coding - active highlight overrides selected, selected overrides normal
   const colorClasses = isActive
     ? 'bg-blue-100 border-blue-500'
+    : isSelected
+    ? 'bg-indigo-100 border-indigo-400'
     : isBatch
     ? 'bg-blue-50 border-blue-200 hover:border-blue-300'
     : 'bg-purple-50 border-purple-200 hover:border-purple-300';
 
   const iconColor = isBatch ? 'text-blue-600' : 'text-purple-600';
 
+  // Determine click handler
+  const handleCardClick = onSelect || onClick;
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-3 p-3 border-2 rounded-lg transition-colors ${colorClasses} ${onClick ? 'cursor-pointer' : ''}`}
-      onClick={onClick ? () => onClick() : undefined}
+      className={`flex items-center gap-3 p-3 border-2 rounded-lg transition-colors ${colorClasses} ${handleCardClick ? 'cursor-pointer' : ''}`}
+      onClick={handleCardClick}
     >
       {/* Drag handle */}
-      <div
-        {...attributes}
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm8-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
-        </svg>
-      </div>
+      {!hideActions && (
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm8-12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm0 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
+          </svg>
+        </div>
+      )}
 
       {/* Position number */}
       <div className="w-6 h-6 rounded-full bg-gray-200 text-gray-600 text-xs font-medium flex items-center justify-center shrink-0">
@@ -131,18 +144,20 @@ export function SequenceItemCard({
       </div>
 
       {/* Delete button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(item);
-        }}
-        className="p-2 text-gray-400 hover:text-red-500 transition-colors shrink-0"
-        title="Delete"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-      </button>
+      {!hideActions && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(item);
+          }}
+          className="p-2 text-gray-400 hover:text-red-500 transition-colors shrink-0"
+          title="Delete"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
