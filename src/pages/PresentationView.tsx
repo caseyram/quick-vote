@@ -15,7 +15,6 @@ import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../compone
 import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation';
 import { getTextColor } from '../lib/color-contrast';
 import { TeamQRGrid } from '../components/TeamQRGrid';
-import { TeamFilterTabs } from '../components/TeamFilterTabs';
 
 export default function PresentationView() {
   const { sessionId } = useParams();

@@ -12,7 +12,7 @@ import { ParticipantCount } from './ParticipantCount';
 import { KeyboardShortcutHelp } from './KeyboardShortcutHelp';
 import { CountdownTimer } from './CountdownTimer';
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from './BarChart';
-import { aggregateVotes, buildConsistentBarData, getTeamParticipantCount } from '../lib/vote-aggregation';
+import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation';
 import type { QRMode } from './QROverlay';
 import { TeamQRGrid } from './TeamQRGrid';
 import { TeamFilterTabs } from './TeamFilterTabs';
@@ -746,7 +746,7 @@ function BatchControlPanel({
   currentBatchQuestionIndex,
   onSelectQuestion,
   onRevealBatch,
-  onRevealQuestion,
+  onRevealQuestion: _onRevealQuestion,
   onHighlightReason,
   hasSeparateProjection,
   reasonsPerPage,

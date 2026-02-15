@@ -170,6 +170,7 @@ const makeSession = (overrides: Partial<Session> = {}): Session => ({
   created_by: '',
   created_at: '2025-01-01T00:00:00Z',
   default_template_id: null,
+  teams: [],
   ...overrides,
 });
 

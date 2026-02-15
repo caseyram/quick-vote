@@ -190,7 +190,6 @@ export function BatchResultsProjection({
     ? reasonPages.find((p) => p.some((v) => v.id === highlightedReason.reasonId))
     : null;
   const pageReasons = currentPageData ?? [];
-  const currentPageIdx = currentPageData ? reasonPages.indexOf(currentPageData) : -1;
   const activePageReasonIds = new Set(
     currentPageData
       ? currentPageData.map((v) => v.id)

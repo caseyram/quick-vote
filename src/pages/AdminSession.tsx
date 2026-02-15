@@ -2,20 +2,15 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams } from 'react-router';
 import { supabase } from '../lib/supabase';
 import { useSessionStore } from '../stores/session-store';
-import { useTemplateStore } from '../stores/template-store';
 import { useRealtimeChannel } from '../hooks/use-realtime-channel';
 import { useCountdown } from '../hooks/use-countdown';
-import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation';
-import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../components/BarChart';
 import { BatchCard } from '../components/BatchCard';
 import { SequenceManager } from '../components/SequenceManager';
 import { SessionQRCode } from '../components/QRCode';
 import SessionResults from '../components/SessionResults';
 import { ConnectionBanner } from '../components/ConnectionBanner';
-import { CountdownTimer } from '../components/CountdownTimer';
 import { AdminControlBar } from '../components/AdminControlBar';
 import { AdminPasswordGate } from '../components/AdminPasswordGate';
-import { SlideDisplay } from '../components/SlideDisplay';
 import { DevTestFab } from '../components/DevTestFab';
 import { PresentationControls } from '../components/PresentationControls';
 import { fetchTemplates } from '../lib/template-api';
@@ -31,7 +26,6 @@ export default function AdminSession() {
     session,
     questions,
     batches,
-    sessionItems,
     setSession,
     setQuestions,
     setBatches,
@@ -43,17 +37,13 @@ export default function AdminSession() {
     reset,
     activeBatchId,
     setActiveBatchId,
-    activeSessionItemId,
-    navigationDirection,
   } = useSessionStore();
-  const { templates } = useTemplateStore();
   const [copied, setCopied] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [transitioning, setTransitioning] = useState(false);
   const [userId, setUserId] = useState('');
   const [sessionVotes, setSessionVotes] = useState<Record<string, Vote[]>>({});
   const [quickQuestionLoading, setQuickQuestionLoading] = useState(false);
-  const [lastClosedQuestionId, setLastClosedQuestionId] = useState<string | null>(null);
   const [_addingQuestionToBatchId, _setAddingQuestionToBatchId] = useState<string | null>(null);
   const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
   const [addingToBatchId, setAddingToBatchId] = useState<string | null>(null);
@@ -267,15 +257,6 @@ export default function AdminSession() {
   const isActive = session?.status === 'active' || session?.status === 'lobby'; // lobby treated as active
   const isEnded = session?.status === 'ended';
 
-  // Vote counts per question for progress tracking
-  const questionVoteCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const qId of Object.keys(sessionVotes)) {
-      counts[qId] = sessionVotes[qId].length;
-    }
-    return counts;
-  }, [sessionVotes]);
-
   // Question IDs for the currently active batch
   const activeBatchQuestionIds = useMemo(() => {
     if (!activeBatchId) return [];
@@ -337,14 +318,6 @@ export default function AdminSession() {
     () => questions.find((q) => q.status === 'active') ?? null,
     [questions]
   );
-  const closedQuestions = useMemo(
-    () => questions.filter((q) => q.status === 'closed' || q.status === 'revealed'),
-    [questions]
-  );
-
-  // Show progress dashboard only during active batch voting
-  const showProgressDashboard = activeBatchId !== null;
-
   // --- Handler extraction ---
 
   // Helper to set timer_expires_at in database and local state
@@ -373,49 +346,6 @@ export default function AdminSession() {
     setSession({ ...session, timer_expires_at: null });
   }
 
-  async function handleActivateQuestion(questionId: string, timerDuration: number | null) {
-    if (!session) return;
-
-    // Close any currently active questions
-    await supabase
-      .from('questions')
-      .update({ status: 'closed' as const })
-      .eq('session_id', session.session_id)
-      .eq('status', 'active');
-
-    for (const q of questions) {
-      if (q.status === 'active') {
-        updateQuestion(q.id, { status: 'closed' });
-      }
-    }
-
-    stopCountdown();
-
-    // Activate target question
-    const { error } = await supabase
-      .from('questions')
-      .update({ status: 'active' as const })
-      .eq('id', questionId);
-
-    if (!error) {
-      updateQuestion(questionId, { status: 'active' });
-      setLastClosedQuestionId(null);
-
-      channelRef.current?.send({
-        type: 'broadcast',
-        event: 'question_activated',
-        payload: { questionId, timerSeconds: timerDuration },
-      });
-
-      if (timerDuration) {
-        await setTimerExpiration(timerDuration);
-        startCountdown(timerDuration * 1000);
-      } else {
-        await clearTimerExpiration();
-      }
-    }
-  }
-
   async function handleCloseVotingInternal(questionId: string) {
     stopCountdown();
     await clearTimerExpiration();
@@ -427,7 +357,6 @@ export default function AdminSession() {
 
     if (!error) {
       updateQuestion(questionId, { status: 'closed' });
-      setLastClosedQuestionId(questionId);
 
       channelRef.current?.send({
         type: 'broadcast',
@@ -566,7 +495,6 @@ export default function AdminSession() {
 
     // 4. Activate the batch (sends broadcast, starts timer)
     await handleActivateBatch(batch.id, timerDuration);
-    setLastClosedQuestionId(null);
 
     setQuickQuestionLoading(false);
   }
@@ -855,10 +783,6 @@ export default function AdminSession() {
       }
 
       // 3. Update local store
-      // Set lastClosedQuestionId to first batch question so navigation syncs
-      if (batchQuestionIds.length > 0) {
-        setLastClosedQuestionId(batchQuestionIds[0]);
-      }
       setActiveBatchId(null);
       useSessionStore.getState().updateBatch(batchId, { status: 'closed' });
 
@@ -1268,129 +1192,3 @@ export default function AdminSession() {
   );
 }
 
-// --- Hero component for active question display ---
-
-function ActiveQuestionHero({
-  question,
-  questionIndex,
-  totalQuestions,
-  votes,
-}: {
-  question: Question;
-  questionIndex: number;
-  totalQuestions: number;
-  votes: Vote[];
-}) {
-  const templates = useTemplateStore(state => state.templates);
-  const [reasonsCollapsed, setReasonsCollapsed] = useState(false);
-  const aggregated = useMemo(() => aggregateVotes(votes), [votes]);
-  const barData = useMemo(() => {
-    const template = question.template_id ? templates.find(t => t.id === question.template_id) : null;
-    const ordered = buildConsistentBarData(question, aggregated, template?.options);
-    return ordered.map((vc, index) => {
-      let color: string;
-      if (question.type === 'agree_disagree') {
-        const key = vc.value.toLowerCase() as 'agree' | 'disagree' | 'sometimes';
-        color =
-          AGREE_DISAGREE_COLORS[key] ??
-          MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
-      } else {
-        color = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
-      }
-      return {
-        label: vc.value,
-        count: vc.count,
-        percentage: vc.percentage,
-        color,
-      };
-    });
-  }, [aggregated, question.type, question.template_id, templates]);
-
-  const isClosed = question.status === 'closed' || question.status === 'revealed';
-
-  // Group reasons by vote value, aligned with barData columns
-  // Sort by id for stable ordering (prevents reordering while reading aloud)
-  const reasonsByColumn = useMemo(() => {
-    const sortedVotes = [...votes].sort((a, b) => a.id.localeCompare(b.id));
-    return barData.map((bar) => ({
-      label: bar.label,
-      color: bar.color,
-      reasons: sortedVotes
-        .filter((v) => v.value === bar.label && v.reason && v.reason.trim())
-        .map((v) => ({ id: v.id, text: v.reason! })),
-    }));
-  }, [barData, votes]);
-
-  const totalReasons = reasonsByColumn.reduce((sum, col) => sum + col.reasons.length, 0);
-
-  return (
-    <div className={`h-full flex flex-col text-center py-4 ${!isClosed ? 'justify-center' : ''}`}>
-      <div className="shrink-0">
-        <p className="text-2xl text-gray-500">
-          Question {questionIndex + 1} of {totalQuestions}
-        </p>
-
-        <h2 className="text-5xl font-bold text-gray-900 max-w-4xl mx-auto mt-3 leading-tight">
-          &ldquo;{question.text}&rdquo;
-        </h2>
-
-        <div className="flex items-center justify-center gap-6 mt-4">
-          <span className="text-2xl text-gray-600">
-            {votes.length} vote{votes.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-      </div>
-
-      {/* Bar chart fills remaining space when voting is closed */}
-      {isClosed && aggregated.length > 0 && (
-        <div className={`mt-4 mx-auto w-full max-w-4xl ${!reasonsCollapsed ? 'h-48 shrink-0' : 'flex-1 min-h-0'}`}>
-          <BarChart data={barData} totalVotes={votes.length} size="fill" theme="light" />
-        </div>
-      )}
-
-      {/* Reasons panel — shown by default when closed, grouped under bar columns */}
-      {isClosed && totalReasons > 0 && (
-        <div className="shrink-0 mt-3">
-          <button
-            onClick={() => setReasonsCollapsed((prev) => !prev)}
-            className="text-lg font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
-          >
-            {reasonsCollapsed ? 'Show' : 'Hide'} Reasons ({totalReasons})
-            <span className="ml-1">{reasonsCollapsed ? '\u25BC' : '\u25B2'}</span>
-          </button>
-          {!reasonsCollapsed && (
-            <div className="mt-3 max-h-[35vh] overflow-y-auto">
-              <div className="flex gap-6 justify-center max-w-6xl mx-auto px-4">
-                {reasonsByColumn.map((col) => (
-                  <div
-                    key={col.label}
-                    className="flex-1 min-w-0 space-y-2"
-                  >
-                    <p
-                      className="text-base font-semibold text-center"
-                      style={{ color: col.color }}
-                    >
-                      {col.label} ({col.reasons.length})
-                    </p>
-                    {col.reasons.map((reason) => (
-                      <div
-                        key={reason.id}
-                        className="bg-gray-50 rounded-lg px-3 py-2 text-left"
-                        style={{ borderLeft: `3px solid ${col.color}` }}
-                      >
-                        <span className="text-lg text-gray-800">{reason.text}</span>
-                      </div>
-                    ))}
-                    {col.reasons.length === 0 && (
-                      <p className="text-sm text-gray-300 text-center italic">No reasons</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}

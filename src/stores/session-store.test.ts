@@ -32,6 +32,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     created_by: 'user-1',
     created_at: new Date().toISOString(),
     default_template_id: null,
+    teams: [],
     ...overrides,
   };
 }
@@ -45,6 +46,7 @@ function makeVote(overrides: Partial<Vote> = {}): Vote {
     value: 'agree',
     reason: null,
     display_name: null,
+    team_id: null,
     locked_in: false,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),

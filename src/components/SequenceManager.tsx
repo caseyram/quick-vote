@@ -45,7 +45,7 @@ export function SequenceManager({
   participantCount,
 }: SequenceManagerProps) {
   const { sessionItems, batches, questions } = useSessionStore();
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [_activeId, setActiveId] = useState<string | null>(null);
 
   // Use navigation hook for keyboard shortcuts and navigation controls
   const { currentIndex, canGoNext, canGoPrev, goNext, goPrev, jumpTo } = useSequenceNavigation({

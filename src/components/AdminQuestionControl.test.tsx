@@ -38,8 +38,8 @@ const baseQuestion: Question = {
 };
 
 const baseVotes: Vote[] = [
-  { id: 'v1', question_id: 'q1', session_id: 's1', participant_id: 'p1', value: 'Agree', reason: null, display_name: null, locked_in: true, created_at: '2024-01-01', updated_at: '2024-01-01' },
-  { id: 'v2', question_id: 'q1', session_id: 's1', participant_id: 'p2', value: 'Disagree', reason: null, display_name: null, locked_in: true, created_at: '2024-01-01', updated_at: '2024-01-01' },
+  { id: 'v1', question_id: 'q1', session_id: 's1', participant_id: 'p1', value: 'Agree', reason: null, display_name: null, team_id: null, locked_in: true, created_at: '2024-01-01', updated_at: '2024-01-01' },
+  { id: 'v2', question_id: 'q1', session_id: 's1', participant_id: 'p2', value: 'Disagree', reason: null, display_name: null, team_id: null, locked_in: true, created_at: '2024-01-01', updated_at: '2024-01-01' },
 ];
 
 const channelRef = { current: { send: vi.fn() } };
@@ -164,7 +164,7 @@ describe('AdminQuestionControl', () => {
 
   it('shows voter details for named closed questions', () => {
     const namedVotes: Vote[] = [
-      { id: 'v1', question_id: 'q1', session_id: 's1', participant_id: 'p1', value: 'Agree', reason: null, display_name: 'Alice', locked_in: true, created_at: '2024-01-01', updated_at: '2024-01-01' },
+      { id: 'v1', question_id: 'q1', session_id: 's1', participant_id: 'p1', value: 'Agree', reason: null, display_name: 'Alice', team_id: null, locked_in: true, created_at: '2024-01-01', updated_at: '2024-01-01' },
     ];
     render(
       <AdminQuestionControl

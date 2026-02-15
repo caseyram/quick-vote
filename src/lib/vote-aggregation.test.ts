@@ -11,6 +11,7 @@ function makeVote(value: string, overrides: Partial<Vote> = {}): Vote {
     value,
     reason: null,
     display_name: null,
+    team_id: null,
     locked_in: false,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
