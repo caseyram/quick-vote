@@ -20,6 +20,7 @@ import { SequenceItemCard } from './SequenceItemCard';
 import { useSessionStore } from '../stores/session-store';
 import { reorderSessionItems } from '../lib/sequence-api';
 import { useSequenceNavigation } from '../hooks/use-sequence-navigation';
+import { useMultiSelect } from '../hooks/use-multi-select';
 
 interface SequenceManagerProps {
   sessionId: string;
@@ -52,6 +53,21 @@ export function SequenceManager({
 
   const dndId = useId();
 
+  // Sortable IDs
+  const sortableIds = useMemo(() => sessionItems.map((item) => item.id), [sessionItems]);
+
+  // Multi-select hook (draft mode only)
+  const {
+    selectedIds,
+    handleItemClick,
+    handleContainerClick,
+    clearSelection,
+    isSelected,
+  } = useMultiSelect({
+    itemIds: sortableIds,
+    enabled: !isLive,
+  });
+
   // Batch question counts lookup
   const batchQuestionCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -72,9 +88,6 @@ export function SequenceManager({
     return map;
   }, [batches]);
 
-  // Sortable IDs
-  const sortableIds = useMemo(() => sessionItems.map((item) => item.id), [sessionItems]);
-
   // Sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -88,7 +101,13 @@ export function SequenceManager({
   );
 
   function handleDragStart(event: DragStartEvent) {
-    setActiveId(event.active.id as string);
+    const draggedId = event.active.id as string;
+    setActiveId(draggedId);
+
+    // If dragged item is not selected, clear selection
+    if (!selectedIds.has(draggedId)) {
+      clearSelection();
+    }
   }
 
   async function handleDragEnd(event: DragEndEvent) {
@@ -96,17 +115,54 @@ export function SequenceManager({
 
     setActiveId(null);
 
-    if (!over || active.id === over.id) return;
+    if (!over || active.id === over.id) {
+      clearSelection();
+      return;
+    }
 
-    const oldIndex = sortableIds.indexOf(active.id as string);
-    const newIndex = sortableIds.indexOf(over.id as string);
+    const draggedId = active.id as string;
+    const isGroupDrag = selectedIds.has(draggedId) && selectedIds.size > 1;
 
-    if (oldIndex === -1 || newIndex === -1) return;
+    let newOrder: string[];
 
-    // Compute new order
-    const newOrder = [...sortableIds];
-    newOrder.splice(oldIndex, 1);
-    newOrder.splice(newIndex, 0, active.id as string);
+    if (isGroupDrag) {
+      // Group drag: move all selected items
+      const selectedArray = Array.from(selectedIds);
+
+      // Remove selected items from current order
+      const remainingIds = sortableIds.filter((id) => !selectedIds.has(id));
+
+      // Find target insertion index in remaining items
+      const targetIndex = remainingIds.indexOf(over.id as string);
+
+      if (targetIndex === -1) {
+        clearSelection();
+        return;
+      }
+
+      // Extract selected items in their original order
+      const selectedInOrder = sortableIds.filter((id) => selectedIds.has(id));
+
+      // Insert all selected items at target index
+      newOrder = [
+        ...remainingIds.slice(0, targetIndex + 1),
+        ...selectedInOrder,
+        ...remainingIds.slice(targetIndex + 1),
+      ];
+    } else {
+      // Single drag: existing logic
+      const oldIndex = sortableIds.indexOf(draggedId);
+      const newIndex = sortableIds.indexOf(over.id as string);
+
+      if (oldIndex === -1 || newIndex === -1) {
+        clearSelection();
+        return;
+      }
+
+      newOrder = [...sortableIds];
+      newOrder.splice(oldIndex, 1);
+      newOrder.splice(newIndex, 0, draggedId);
+    }
 
     // Optimistic update
     const updates = newOrder.map((id, idx) => ({ id, position: idx }));
@@ -115,6 +171,7 @@ export function SequenceManager({
     // Persist to database
     try {
       await reorderSessionItems(updates);
+      clearSelection(); // Clear selection after successful drag
     } catch (err) {
       console.error('Failed to reorder session items:', err);
       // Revert on error
@@ -182,6 +239,7 @@ export function SequenceManager({
                 onExpandBatch={undefined}
                 isActive={item.id === activeSessionItemId}
                 onClick={() => jumpTo(item.id)}
+                hideActions
               />
             ))}
           </div>
@@ -218,7 +276,15 @@ export function SequenceManager({
             onDragEnd={handleDragEnd}
           >
             <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-              <div className="space-y-2">
+              <div
+                className="space-y-2"
+                onClick={handleContainerClick}
+                onMouseDown={(e) => {
+                  if (e.shiftKey) {
+                    e.preventDefault(); // Prevent text selection during shift-click
+                  }
+                }}
+              >
                 {sessionItems.map((item, index) => (
                   <SequenceItemCard
                     key={item.id}
@@ -236,6 +302,8 @@ export function SequenceManager({
                     }
                     onDelete={handleDeleteItem}
                     onExpandBatch={onExpandBatch}
+                    isSelected={isSelected(item.id)}
+                    onSelect={(e) => handleItemClick(item.id, e)}
                   />
                 ))}
               </div>
@@ -245,7 +313,11 @@ export function SequenceManager({
               {activeItem && (
                 <div className="bg-white border-2 border-indigo-400 rounded-lg p-3 shadow-lg opacity-90">
                   <div className="flex items-center gap-2">
-                    {activeItem.item_type === 'batch' && activeItem.batch_id ? (
+                    {selectedIds.size > 1 ? (
+                      <span className="text-indigo-600 font-medium">
+                        {selectedIds.size} items
+                      </span>
+                    ) : activeItem.item_type === 'batch' && activeItem.batch_id ? (
                       <>
                         <span className="text-blue-600 font-medium">
                           {batchMap[activeItem.batch_id]?.name ?? 'Batch'}
