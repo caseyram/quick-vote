@@ -112,21 +112,21 @@ Plans:
 - [x] 25-03-PLAN.md — Team filter tabs, enhanced vote aggregation, projection broadcast sync
 - [x] 25-04-PLAN.md — Team QR grid overlay for projection, session export with team column
 
-#### Phase 26: Sequence & Results Enhancements
-**Goal**: Multi-select rearrangement, results polish, and UX fixes
+#### Phase 26: Sequence & Results Enhancements (DONE)
+**Goal**: Multi-select rearrangement, live vote progress display, and session config simplification
 **Depends on**: Phase 23
-**Requirements**: SEQE-01, SEQE-02, RESL-01, RESL-02, RESL-03
+**Requirements**: SEQE-02, RESL-01
 **Success Criteria** (what must be TRUE):
-  1. Drag handles hidden in live session view (no misleading edit affordances)
-  2. Admin can select multiple sequence items and rearrange as group
-  3. Active batch shows live completion count, not "Results ready" label
-  4. Admin can expand multiple reasons simultaneously
-  5. Displayed reasons automatically marked as read when shown
+  1. Admin can select multiple sequence items and rearrange as group
+  2. Active batch shows live completion count, not "Results ready" label
+  3. Draft session config shows only runtime settings (no content editing)
 **Plans**: 2 plans
 
+**Dropped (per user decision in CONTEXT.md):** SEQE-01 (drag handles stay visible), RESL-02 (existing reason review sufficient), RESL-03 (existing viewed tracking sufficient)
+
 Plans:
-- [ ] 26-01-PLAN.md — Multi-select rearrangement (shift/ctrl-click selection, group drag)
-- [ ] 26-02-PLAN.md — Live vote progress bar on active batches, session config simplification
+- [x] 26-01-PLAN.md — Multi-select rearrangement (shift/ctrl-click selection, group drag)
+- [x] 26-02-PLAN.md — Live vote progress bar on active batches, session config simplification
 
 ## Progress
 
@@ -144,11 +144,11 @@ Phases execute in numeric order: 22 → 23 → 24 → 25 → 26
 | 24. Presentation Polish | v1.4 | 5/5 | Done | 2026-02-14 |
 | 24.1 Presentation-Only Active Mode | v1.4 | 2/2 | Done | 2026-02-14 |
 | 25. Team-Based Voting | v1.4 | 4/4 | Done | 2026-02-14 |
-| 26. Sequence & Results Enhancements | v1.4 | 0/? | Not started | - |
+| 26. Sequence & Results Enhancements | v1.4 | 2/2 | Done | 2026-02-14 |
 
 ---
 *Created: 2026-01-27*
-*Updated: 2026-02-14 - Phase 25 complete (4/4 plans, verified). Team-based voting with QR codes, filter tabs, and export.*
+*Updated: 2026-02-14 - Phase 26 complete (2/2 plans, verified). Multi-select rearrangement, live vote progress, simplified session config. v1.4 milestone complete.*
 
 ### Phase 24.1: Presentation-Only Active Mode (DONE)
 
