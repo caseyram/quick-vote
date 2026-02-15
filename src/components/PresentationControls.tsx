@@ -75,7 +75,6 @@ export function PresentationControls({
   } = useSessionStore();
 
   const [qrMode, setQrMode] = useState<QRMode>('hidden');
-  const [showTeamQR, setShowTeamQR] = useState(false);
   const [blackScreenActive, setBlackScreenActive] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
   const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(new Set());
@@ -166,16 +165,6 @@ export function PresentationControls({
       type: 'broadcast',
       event: 'presentation_qr_toggle',
       payload: { mode },
-    });
-  }
-
-  function handleTeamQrToggle() {
-    const newState = !showTeamQR;
-    setShowTeamQR(newState);
-    channelRef.current?.send({
-      type: 'broadcast',
-      event: 'team_qr_toggled',
-      payload: { show: newState },
     });
   }
 
@@ -322,8 +311,8 @@ export function PresentationControls({
   return (
     <div className="flex h-screen bg-white">
       {/* Left sidebar: Sequence list */}
-      <div className="w-80 shrink-0 border-r border-gray-200 bg-gray-50 overflow-y-auto">
-        <div className="p-4 border-b border-gray-200 bg-white space-y-3">
+      <div className="w-80 shrink-0 border-r border-gray-200 bg-gray-50 flex flex-col">
+        <div className="p-4 border-b border-gray-200 bg-white space-y-3 shrink-0">
           <h2 className="text-lg font-semibold text-gray-900">{sessionTitle}</h2>
           <button
             onClick={handleOpenPresentation}
@@ -352,7 +341,7 @@ export function PresentationControls({
             )}
           </button>
         </div>
-        <div className="p-4">
+        <div className="p-4 overflow-y-auto min-h-0 flex-1">
           <SequenceManager
             sessionId={sessionId}
             onExpandBatch={() => {}}
@@ -362,9 +351,11 @@ export function PresentationControls({
             isLive={true}
             activeSessionItemId={activeSessionItemId}
             onActivateItem={handleActivateItem}
+            sessionVotes={sessionVotes}
+            participantCount={participantCount}
           />
         </div>
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-200 shrink-0">
           <button
             onClick={onEndSession}
             className="w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
@@ -456,37 +447,7 @@ export function PresentationControls({
               </AnimatePresence>
 
               {/* QR overlay (bottom-right corner) */}
-              {qrExpanded ? (
-                <div
-                  className="absolute inset-0 bg-white z-20 flex flex-col items-center justify-center cursor-pointer"
-                  onClick={() => setQrExpanded(false)}
-                >
-                  <QRCodeSVG value={participantUrl} size={400} level="M" marginSize={1} />
-                  <p className="text-2xl text-gray-600 text-center mt-6 font-medium">Scan to join</p>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigator.clipboard.writeText(participantUrl);
-                      setLinkCopied(true);
-                      setTimeout(() => setLinkCopied(false), 2000);
-                    }}
-                    className="mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
-                  >
-                    {linkCopied ? (
-                      <>
-                        <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
-                        Copy Link
-                      </>
-                    )}
-                  </button>
-                  <p className="text-sm text-gray-400 mt-2">Click anywhere to close</p>
-                </div>
-              ) : (
+              {!qrExpanded && (
                 <button
                   onClick={() => setQrExpanded(true)}
                   className="absolute bottom-4 right-4 z-10 bg-white p-3 rounded-xl shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
@@ -510,13 +471,55 @@ export function PresentationControls({
                 </span>
               </div>
 
-              {/* Team QR Grid overlay */}
-              {showTeamQR && session && session.teams.length > 0 && (
-                <div className="absolute inset-0 z-30">
-                  <TeamQRGrid sessionId={sessionId} teams={session.teams} />
-                </div>
-              )}
             </div>
+          )}
+
+          {/* Expanded QR overlay — team grid when teams exist, single QR otherwise */}
+          {qrExpanded && (
+            session?.teams && session.teams.length > 0 ? (
+              <TeamQRGrid
+                sessionId={sessionId}
+                teams={session.teams}
+                onClose={() => setQrExpanded(false)}
+                participantUrl={participantUrl}
+                linkCopied={linkCopied}
+                onCopyLink={() => {
+                  navigator.clipboard.writeText(participantUrl);
+                  setLinkCopied(true);
+                  setTimeout(() => setLinkCopied(false), 2000);
+                }}
+              />
+            ) : (
+              <div
+                className="absolute inset-0 bg-white z-20 flex flex-col items-center justify-center cursor-pointer"
+                onClick={() => setQrExpanded(false)}
+              >
+                <QRCodeSVG value={participantUrl} size={400} level="M" marginSize={1} />
+                <p className="text-2xl text-gray-600 text-center mt-6 font-medium">Scan to join</p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(participantUrl);
+                    setLinkCopied(true);
+                    setTimeout(() => setLinkCopied(false), 2000);
+                  }}
+                  className="mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium flex items-center gap-2"
+                >
+                  {linkCopied ? (
+                    <>
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+                      Copy Link
+                    </>
+                  )}
+                </button>
+                <p className="text-sm text-gray-400 mt-2">Click anywhere to close</p>
+              </div>
+            )
           )}
         </div>
 
@@ -666,18 +669,6 @@ export function PresentationControls({
               >
                 Full Screen
               </button>
-              {session && session.teams.length > 0 && (
-                <button
-                  onClick={handleTeamQrToggle}
-                  className={`w-full px-3 py-2 rounded text-sm transition-colors ${
-                    showTeamQR
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Team QR Grid
-                </button>
-              )}
             </div>
           </div>
 
@@ -872,8 +863,26 @@ function BatchControlPanel({
     }
   }
 
-  const [playState, setPlayState] = useState<'idle' | 'playing' | 'paused'>('idle');
-  const [viewedReasonIds, setViewedReasonIds] = useState<Set<string>>(new Set());
+  // Per-question state maps — preserves play state & viewed checkmarks when switching questions
+  const [playStateMap, setPlayStateMap] = useState<Record<string, 'idle' | 'playing' | 'paused'>>({});
+  const [viewedReasonIdsMap, setViewedReasonIdsMap] = useState<Record<string, Set<string>>>({});
+
+  // Derive current question's state from maps
+  const playState = playStateMap[currentQuestion.id] || 'idle';
+  const viewedReasonIds = viewedReasonIdsMap[currentQuestion.id] || new Set<string>();
+
+  // Wrappers that update only the current question's entry in the map
+  function setPlayState(state: 'idle' | 'playing' | 'paused') {
+    setPlayStateMap(prev => ({ ...prev, [currentQuestion.id]: state }));
+  }
+  function setViewedReasonIds(updater: Set<string> | ((prev: Set<string>) => Set<string>)) {
+    setViewedReasonIdsMap(prev => {
+      const current = prev[currentQuestion.id] || new Set<string>();
+      const next = typeof updater === 'function' ? updater(current) : updater;
+      return { ...prev, [currentQuestion.id]: next };
+    });
+  }
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Stable refs to avoid stale closures in effects/timeouts
@@ -944,6 +953,21 @@ function BatchControlPanel({
     onHighlightReason(currentQuestion.id, '');
   }
 
+  // Pause auto-play when switching away from a question (preserves state for return)
+  const prevQuestionIdRef = useRef(currentQuestion.id);
+  useEffect(() => {
+    if (prevQuestionIdRef.current !== currentQuestion.id) {
+      const departingId = prevQuestionIdRef.current;
+      setPlayStateMap(prev => {
+        if (prev[departingId] === 'playing') {
+          return { ...prev, [departingId]: 'paused' };
+        }
+        return prev;
+      });
+      prevQuestionIdRef.current = currentQuestion.id;
+    }
+  }, [currentQuestion.id]);
+
   // Mark all reasons on the active page as viewed whenever highlight changes
   useEffect(() => {
     if (highlightedReasonId) {
@@ -1001,9 +1025,11 @@ function BatchControlPanel({
     const curPage = reasonPages.find((p) => p.some((v) => v.id === highlightedReasonId));
     const pageLen = curPage?.length ?? 1;
     const maxLen = Math.max(...(curPage ?? []).map((v) => v.reason?.length ?? 0), 0);
-    // Base 2.5s, +0.5s per 40 chars, capped at 4s — scaled by items on this page
-    const baseDelay = Math.min(2500 + Math.floor(maxLen / 40) * 500, 4000);
-    const delay = reasonsPerPage > 1 ? baseDelay * pageLen : baseDelay;
+    // Base 3s, +0.5s per 40 chars, capped at 5s for single items
+    // Multi-item pages scale sub-linearly: 2-item = 1.6x, 4-item = 2.5x
+    const baseDelay = Math.min(3000 + Math.floor(maxLen / 40) * 500, 5000);
+    const pageScale = pageLen === 1 ? 1 : pageLen === 2 ? 1.6 : 2.5;
+    const delay = reasonsPerPage > 1 ? baseDelay * pageScale : baseDelay;
 
     const timeout = setTimeout(() => {
       goToNextReason(reasonsPerPage > 1);

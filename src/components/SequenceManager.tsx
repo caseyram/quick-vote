@@ -15,7 +15,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import type { SessionItem } from '../types/database';
+import type { SessionItem, Vote } from '../types/database';
 import { SequenceItemCard } from './SequenceItemCard';
 import { useSessionStore } from '../stores/session-store';
 import { reorderSessionItems } from '../lib/sequence-api';
@@ -31,6 +31,8 @@ interface SequenceManagerProps {
   isLive?: boolean;
   activeSessionItemId?: string | null;
   onActivateItem?: (item: SessionItem, direction: 'forward' | 'backward') => void;
+  sessionVotes?: Record<string, Vote[]>;
+  participantCount?: number;
 }
 
 export function SequenceManager({
@@ -41,6 +43,8 @@ export function SequenceManager({
   isLive = false,
   activeSessionItemId = null,
   onActivateItem,
+  sessionVotes,
+  participantCount,
 }: SequenceManagerProps) {
   const { sessionItems, batches, questions } = useSessionStore();
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -240,6 +244,13 @@ export function SequenceManager({
                 isActive={item.id === activeSessionItemId}
                 onClick={() => jumpTo(item.id)}
                 hideActions
+                batchQuestionIds={
+                  item.item_type === 'batch' && item.batch_id
+                    ? questions.filter(q => q.batch_id === item.batch_id).map(q => q.id)
+                    : undefined
+                }
+                sessionVotes={sessionVotes}
+                participantCount={participantCount}
               />
             ))}
           </div>
@@ -304,6 +315,13 @@ export function SequenceManager({
                     onExpandBatch={onExpandBatch}
                     isSelected={isSelected(item.id)}
                     onSelect={(e) => handleItemClick(item.id, e)}
+                    batchQuestionIds={
+                      item.item_type === 'batch' && item.batch_id
+                        ? questions.filter(q => q.batch_id === item.batch_id).map(q => q.id)
+                        : undefined
+                    }
+                    sessionVotes={sessionVotes}
+                    participantCount={participantCount}
                   />
                 ))}
               </div>

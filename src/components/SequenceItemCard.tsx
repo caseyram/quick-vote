@@ -1,7 +1,8 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { SessionItem, Batch } from '../types/database';
+import type { SessionItem, Batch, Vote } from '../types/database';
 import { getSlideImageUrl } from '../lib/slide-api';
+import { VoteProgressBar } from './VoteProgressBar';
 
 interface SequenceItemCardProps {
   item: SessionItem;
@@ -15,6 +16,9 @@ interface SequenceItemCardProps {
   hideActions?: boolean;
   isSelected?: boolean;
   onSelect?: (event: React.MouseEvent) => void;
+  batchQuestionIds?: string[];
+  sessionVotes?: Record<string, Vote[]>;
+  participantCount?: number;
 }
 
 export function SequenceItemCard({
@@ -29,6 +33,9 @@ export function SequenceItemCard({
   hideActions = false,
   isSelected = false,
   onSelect,
+  batchQuestionIds,
+  sessionVotes,
+  participantCount,
 }: SequenceItemCardProps) {
   const {
     attributes,
@@ -119,6 +126,17 @@ export function SequenceItemCard({
             <div className="text-sm text-gray-500">
               {questionCount ?? 0} {questionCount === 1 ? 'question' : 'questions'}
             </div>
+            {/* Progress bar for active batches with vote data */}
+            {batchQuestionIds &&
+              sessionVotes &&
+              participantCount !== undefined &&
+              batch.status === 'active' && (
+                <VoteProgressBar
+                  batchQuestionIds={batchQuestionIds}
+                  sessionVotes={sessionVotes}
+                  participantCount={participantCount}
+                />
+              )}
           </button>
         ) : isSlide ? (
           <div className="flex items-center gap-3">
