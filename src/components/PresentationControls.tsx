@@ -402,38 +402,39 @@ export function PresentationControls({
               />
             </div>
           ) : showNextPreview ? (
-            <div className="flex gap-6 h-full p-6">
-              <div className="flex-1 flex flex-col min-w-0">
-                <h2 className="text-sm font-medium text-gray-500 mb-2">Current</h2>
-
-                <div className="flex-1 bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center">
-                  {currentItem ? (
-                    <ProjectionPreview item={currentItem} />
-                  ) : (
-                    <p className="text-gray-500 text-sm">No active item</p>
-                  )}
-                </div>
-
-                {/* Presenter Notes - always visible under active slide when notes exist */}
-                {currentItem?.item_type === 'slide' && currentItem.slide_notes && (
-                  <div className="mt-3 p-4 bg-white rounded-lg border border-gray-200 max-h-48 overflow-y-auto">
-                    <div 
-                      className="prose prose-sm max-w-none text-gray-800 leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: currentItem.slide_notes }}
-                    />
+            <div className="flex flex-col h-full p-6">
+              <div className="flex gap-6 flex-1 min-h-0">
+                <div className="flex-1 flex flex-col min-w-0">
+                  <h2 className="text-sm font-medium text-gray-500 mb-2">Current</h2>
+                  <div className="flex-1 bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center">
+                    {currentItem ? (
+                      <ProjectionPreview item={currentItem} />
+                    ) : (
+                      <p className="text-gray-500 text-sm">No active item</p>
+                    )}
                   </div>
-                )}
-              </div>
-              <div className="w-1/3 flex flex-col min-w-0">
-                <h2 className="text-sm font-medium text-gray-500 mb-2">Next</h2>
-                <div className="flex-1 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-                  {nextItem ? (
-                    <ProjectionPreview item={nextItem} />
-                  ) : (
-                    <p className="text-gray-400 text-sm">End of sequence</p>
-                  )}
+                </div>
+                <div className="w-1/3 flex flex-col min-w-0">
+                  <h2 className="text-sm font-medium text-gray-500 mb-2">Next</h2>
+                  <div className="flex-1 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                    {nextItem ? (
+                      <ProjectionPreview item={nextItem} />
+                    ) : (
+                      <p className="text-gray-400 text-sm">End of sequence</p>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* Presenter Notes - full width below both columns */}
+              {currentItem?.item_type === 'slide' && currentItem.slide_notes && (
+                <div className="mt-3 p-4 bg-white rounded-lg border border-gray-200 max-h-48 overflow-y-auto">
+                  <div 
+                    className="prose prose-sm max-w-none text-gray-800 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: currentItem.slide_notes }}
+                  />
+                </div>
+              )}
             </div>
           ) : (
             /* Full view: projection-style with transitions */
