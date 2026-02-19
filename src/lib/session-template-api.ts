@@ -189,6 +189,7 @@ export function serializeSession(
         slide: {
           image_path: item.slide_image_path || '',
           caption: item.slide_caption,
+          notes: item.slide_notes,
         },
       };
     }
@@ -297,6 +298,7 @@ export async function loadTemplateIntoSession(
           position: item.position,
           slide_image_path: item.slide.image_path,
           slide_caption: item.slide.caption,
+          slide_notes: item.slide.notes,
         })
         .select()
         .single();

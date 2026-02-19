@@ -54,7 +54,7 @@ export function EditorMainArea() {
       const newSlide: EditorItem = {
         id: nanoid(),
         item_type: 'slide',
-        slide: { image_path: imagePath, caption: null },
+        slide: { image_path: imagePath, caption: null, notes: null },
       };
       addItem(newSlide, null);
     } catch (err) {

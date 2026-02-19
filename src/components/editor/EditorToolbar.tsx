@@ -199,7 +199,7 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
       const newSlide: EditorItem = {
         id: nanoid(),
         item_type: 'slide',
-        slide: { image_path: imagePath, caption: null },
+        slide: { image_path: imagePath, caption: null, notes: null },
       };
       addItem(newSlide, selectedItemId);
     } catch (err) {

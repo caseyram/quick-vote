@@ -74,6 +74,21 @@ export async function updateSlideCaption(
 }
 
 /**
+ * Update the notes of an existing slide.
+ */
+export async function updateSlideNotes(
+  itemId: string,
+  notes: string | null
+): Promise<void> {
+  const { error } = await supabase
+    .from('session_items')
+    .update({ slide_notes: notes })
+    .eq('id', itemId);
+
+  if (error) throw error;
+}
+
+/**
  * Delete a slide item and its associated Storage image.
  * Storage deletion happens first to prevent orphaned files.
  */

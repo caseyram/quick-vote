@@ -75,6 +75,7 @@ export async function ensureSessionItems(sessionId: string): Promise<SessionItem
       batch_id: batch.id,
       slide_image_path: null,
       slide_caption: null,
+      slide_notes: null,
       created_at: new Date().toISOString(),
     }));
     return [...virtualItems, ...items].sort((a, b) => a.position - b.position);

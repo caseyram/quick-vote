@@ -35,6 +35,7 @@ const SlideExportSchema = z.object({
   position: z.number(),
   image_path: z.string(), // relative Storage path, NOT full URL
   caption: z.string().nullable(),
+  notes: z.string().nullable(),
 });
 
 // Batch in export (now tagged with type for discriminated union)
@@ -209,6 +210,7 @@ export async function exportSession(sessionId: string): Promise<SessionExport> {
           position: item.position,
           image_path: item.slide_image_path,
           caption: item.slide_caption,
+          notes: item.slide_notes,
         });
       }
     }

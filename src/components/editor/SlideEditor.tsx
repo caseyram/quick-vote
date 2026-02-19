@@ -4,6 +4,7 @@ import { useTemplateEditorStore } from '../../stores/template-editor-store';
 import type { EditorItem } from '../../stores/template-editor-store';
 import { uploadSlideImage, getSlideImageUrl } from '../../lib/slide-api';
 import { SlideLightbox } from '../shared/SlideLightbox';
+import { SlideNotesEditor } from '../SlideNotesEditor';
 
 interface SlideEditorProps {
   item: EditorItem;
@@ -25,6 +26,16 @@ export function SlideEditor({ item }: SlideEditorProps) {
       slide: {
         ...item.slide!,
         caption: newCaption,
+      },
+    });
+  };
+
+  const handleNotesChange = (html: string) => {
+    const newNotes = html.trim() || null;
+    updateItem(item.id, {
+      slide: {
+        ...item.slide!,
+        notes: newNotes,
       },
     });
   };
@@ -156,6 +167,17 @@ export function SlideEditor({ item }: SlideEditorProps) {
           onChange={handleCaptionChange}
           placeholder="Add a caption for this slide..."
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+        />
+      </div>
+
+      {/* Presenter Notes */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">
+          Presenter Notes
+        </label>
+        <SlideNotesEditor
+          content={item.slide.notes}
+          onUpdate={handleNotesChange}
         />
       </div>
 

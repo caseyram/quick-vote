@@ -74,6 +74,7 @@ export interface SessionItem {
   batch_id: string | null;
   slide_image_path: string | null;
   slide_caption: string | null;
+  slide_notes: string | null;
   created_at: string;
 }
 
@@ -106,6 +107,7 @@ export interface SessionBlueprintItem {
   slide?: {
     image_path: string;
     caption: string | null;
+    notes: string | null;
   };
 }
 

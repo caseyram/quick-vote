@@ -74,7 +74,7 @@ export function exportSessionData(
   batches: Batch[],
   sessionName?: string,
   templates?: Array<{ id: string; name: string; options: string[] }>,
-  sessionItems?: Array<{ id: string; session_id: string; item_type: 'batch' | 'slide'; position: number; batch_id: string | null; slide_image_path: string | null; slide_caption: string | null }>,
+  sessionItems?: Array<{ id: string; session_id: string; item_type: 'batch' | 'slide'; position: number; batch_id: string | null; slide_image_path: string | null; slide_caption: string | null; slide_notes: string | null }>,
   sessionTemplateName?: string | null
 ): string {
   // Build ID-to-name map for templates
@@ -140,6 +140,7 @@ export function exportSessionData(
           position: item.position,
           image_path: item.slide_image_path,
           caption: item.slide_caption,
+          notes: item.slide_notes,
         });
       }
     }
@@ -449,7 +450,7 @@ export async function importSessionData(
 
   // Track inserted batches with their original positions
   const insertedBatches: Array<{ id: string; name: string; originalPosition: number }> = [];
-  const insertedSessionItems: Array<{ item_type: 'batch' | 'slide'; position: number; batch_id?: string; slide_image_path?: string; slide_caption?: string | null }> = [];
+  const insertedSessionItems: Array<{ item_type: 'batch' | 'slide'; position: number; batch_id?: string; slide_image_path?: string; slide_caption?: string | null; slide_notes?: string | null }> = [];
 
   let currentItemPosition = itemStartPos;
 
@@ -467,6 +468,7 @@ export async function importSessionData(
         position: currentItemPosition++,
         slide_image_path: entry.image_path,
         slide_caption: entry.caption,
+        slide_notes: entry.notes,
       });
       slideCount++;
     } else if ('questions' in entry && entry.name !== '_unbatched') {
@@ -558,6 +560,7 @@ export async function importSessionData(
       batch_id: item.batch_id ?? null,
       slide_image_path: item.slide_image_path ?? null,
       slide_caption: item.slide_caption ?? null,
+      slide_notes: item.slide_notes ?? null,
     }));
 
     const { error: itemError } = await supabase

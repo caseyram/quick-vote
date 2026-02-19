@@ -24,6 +24,7 @@ export interface EditorItem {
   slide?: {
     image_path: string;
     caption: string | null;
+    notes: string | null;
   };
 }
 
@@ -241,6 +242,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
           slide: {
             image_path: blueprintItem.slide.image_path,
             caption: blueprintItem.slide.caption,
+            notes: blueprintItem.slide.notes || null,
           },
         };
       }
@@ -301,6 +303,7 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
           slide: {
             image_path: item.slide.image_path,
             caption: item.slide.caption,
+            notes: item.slide.notes,
           },
         };
       }
