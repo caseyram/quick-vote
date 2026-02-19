@@ -26,6 +26,7 @@ const SlideImportSchema = z.object({
   position: z.number(),
   image_path: z.string(),
   caption: z.string().nullable(),
+  notes: z.string().nullable().optional(),
 });
 
 // Schema for batch import (type field optional for backward compat with v1.2)
@@ -109,6 +110,7 @@ export function exportSessionData(
     }>;
     image_path?: string;
     caption?: string | null;
+    notes?: string | null;
   }> = [];
 
   // If session_items provided, use them to interleave batches and slides

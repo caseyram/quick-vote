@@ -173,6 +173,7 @@ export async function exportSession(sessionId: string): Promise<SessionExport> {
     questions?: Array<any>;
     image_path?: string;
     caption?: string | null;
+    notes?: string | null;
   }> = [];
 
   if (sessionItemList.length > 0) {
