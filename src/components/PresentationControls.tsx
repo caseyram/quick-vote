@@ -88,7 +88,7 @@ export function PresentationControls({
   const [qrExpanded, setQrExpanded] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
-  const [showNotesPanel, setShowNotesPanel] = useState(false);
+  // Notes are always visible under active slide — no toggle needed
   const presentationWindowRef = useRef<Window | null>(null);
 
   // Auto-hide next preview when presentation window closes
@@ -296,11 +296,6 @@ export function PresentationControls({
 
       if (event.key === 'b' || event.key === 'B') {
         handleBlackScreenToggle();
-      } else if (event.key === 'n' || event.key === 'N') {
-        // Only toggle notes panel if current item is a slide with notes
-        if (currentItem?.item_type === 'slide' && currentItem.slide_notes) {
-          setShowNotesPanel((prev) => !prev);
-        }
       } else if (event.key === '?') {
         setShowShortcutHelp((prev) => !prev);
       } else if (event.key === 'Escape' && showShortcutHelp) {
@@ -310,7 +305,7 @@ export function PresentationControls({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [blackScreenActive, showShortcutHelp, currentItem, showNotesPanel]);
+  }, [blackScreenActive, showShortcutHelp, currentItem]);
 
   const isBatchActive = currentItem?.item_type === 'batch' && currentItem.batch_id;
 
@@ -411,46 +406,17 @@ export function PresentationControls({
               <div className="flex-1 flex flex-col min-w-0">
                 <h2 className="text-sm font-medium text-gray-500 mb-2">Current</h2>
 
-                <div className="flex-1 bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center relative">
+                <div className="flex-1 bg-[#1a1a1a] rounded-lg overflow-hidden flex items-center justify-center">
                   {currentItem ? (
                     <ProjectionPreview item={currentItem} />
                   ) : (
                     <p className="text-gray-500 text-sm">No active item</p>
                   )}
-                  
-                  {/* Notes toggle button - only show if current slide has notes */}
-                  {currentItem?.item_type === 'slide' && currentItem.slide_notes && (
-                    <button
-                      onClick={() => setShowNotesPanel(!showNotesPanel)}
-                      className={`absolute bottom-4 right-4 p-2 rounded-lg transition-colors ${
-                        showNotesPanel 
-                          ? 'bg-indigo-600 text-white shadow-lg' 
-                          : 'bg-white/90 text-gray-700 hover:bg-white shadow-md'
-                      }`}
-                      title={`${showNotesPanel ? 'Hide' : 'Show'} presenter notes (N)`}
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </button>
-                  )}
                 </div>
 
-                {/* Presenter Notes Panel */}
-                {showNotesPanel && currentItem?.item_type === 'slide' && currentItem.slide_notes && (
-                  <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200 max-h-48 overflow-y-auto">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-sm font-medium text-gray-700">Presenter Notes</h3>
-                      <button
-                        onClick={() => setShowNotesPanel(false)}
-                        className="text-gray-400 hover:text-gray-600 p-1"
-                        title="Close notes (N)"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
+                {/* Presenter Notes - always visible under active slide when notes exist */}
+                {currentItem?.item_type === 'slide' && currentItem.slide_notes && (
+                  <div className="mt-3 p-4 bg-white rounded-lg border border-gray-200 max-h-48 overflow-y-auto">
                     <div 
                       className="prose prose-sm max-w-none text-gray-800 leading-relaxed"
                       dangerouslySetInnerHTML={{ __html: currentItem.slide_notes }}
