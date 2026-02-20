@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { useAuth } from './hooks/use-auth';
+import { ThemeProvider } from './context/ThemeContext';
 import Home from './pages/Home';
 import SessionReview from './pages/SessionReview';
 import AdminSession from './pages/AdminSession';
@@ -19,6 +20,7 @@ function App() {
   }
 
   return (
+    <ThemeProvider>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
@@ -31,6 +33,7 @@ function App() {
         <Route path="/templates/:id/edit" element={<TemplateEditorPage />} />
       </Routes>
     </BrowserRouter>
+    </ThemeProvider>
   );
 }
 

@@ -12,7 +12,8 @@ interface SessionRow extends Session {
   participant_count: number;
 }
 
-export function PastSessions() {
+export function PastSessions({ theme = 'dark' }: { theme?: 'dark' | 'light' }) {
+  const light = theme === 'light';
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -211,7 +212,7 @@ export function PastSessions() {
   return (
     <>
       <div className="w-full max-w-md space-y-3">
-        <h2 className="text-lg font-semibold text-white">Past Sessions</h2>
+        <h2 className={`text-lg font-semibold ${light ? 'text-gray-900' : 'text-white'}`}>Past Sessions</h2>
 
         {/* Search */}
         {sessions.length > 3 && (
@@ -220,7 +221,7 @@ export function PastSessions() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search sessions..."
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm ${light ? 'bg-white border-gray-300 text-gray-900 placeholder-gray-400' : 'bg-gray-800 border-gray-700 text-white placeholder-gray-500'}`}
           />
         )}
 
@@ -233,10 +234,10 @@ export function PastSessions() {
             filteredSessions.map((s) => (
               <div
                 key={s.id}
-                className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 space-y-2"
+                className={`rounded-lg px-4 py-3 space-y-2 border ${light ? 'bg-white border-gray-200' : 'bg-gray-900 border-gray-800'}`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-white truncate">{s.title}</p>
+                  <p className={`text-sm font-medium truncate ${light ? 'text-gray-900' : 'text-white'}`}>{s.title}</p>
                   <span
                     className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${statusColors[s.status] ?? 'bg-gray-200 text-gray-700'}`}
                   >
@@ -256,7 +257,7 @@ export function PastSessions() {
                     {new Date(s.created_at).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-1.5 pt-1 border-t border-gray-800">
+                <div className={`flex flex-wrap gap-1.5 pt-1 border-t ${light ? 'border-gray-200' : 'border-gray-800'}`}>
                   {s.status !== 'ended' ? (
                     <button
                       onClick={() => handleOpen(s)}
