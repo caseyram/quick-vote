@@ -121,16 +121,26 @@ export default function Home() {
               <p className="text-sm text-[var(--text-secondary)]">New from Template:</p>
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {templates.slice(0, 5).map((template) => (
-                  <button
-                    key={template.id}
-                    onClick={() => navigate(`/templates/${template.id}/edit?from=template`)}
-                    className="w-full text-left px-4 py-3 border rounded-lg transition-colors bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border-[var(--border-primary)] text-[var(--text-primary)]"
-                  >
-                    <div className="font-medium">{template.name}</div>
-                    <div className="text-sm text-[var(--text-secondary)]">
-                      {template.item_count} {template.item_count === 1 ? 'item' : 'items'}
-                    </div>
-                  </button>
+                  <div key={template.id} className="flex items-center gap-2">
+                    <button
+                      onClick={() => navigate(`/templates/${template.id}/edit?from=template`)}
+                      className="flex-1 text-left px-4 py-3 border rounded-lg transition-colors bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border-[var(--border-primary)] text-[var(--text-primary)]"
+                    >
+                      <div className="font-medium">{template.name}</div>
+                      <div className="text-sm text-[var(--text-secondary)]">
+                        {template.item_count} {template.item_count === 1 ? 'item' : 'items'}
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => navigate(`/templates/${template.id}/edit`)}
+                      className="p-2 rounded-lg border transition-colors bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      title="Edit template"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                      </svg>
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
