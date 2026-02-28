@@ -434,15 +434,15 @@ export function PastSessions(_props?: { theme?: 'dark' | 'light' }) {
                   </span>
                 </div>
 
-                {/* ── Session cards ────────────────────────────────── */}
-                <div className="py-2 space-y-2">
+                {/* ── Session cards (grid) ─────────────────────────── */}
+                <div className="py-2 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-2">
                   {group.sessions.map((s) => (
                     <div
                       key={s.id}
-                      className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-surface)] overflow-hidden"
+                      className="rounded-xl border border-[var(--border-primary)] bg-[var(--bg-surface)] overflow-hidden flex flex-col h-[120px]"
                     >
                       {/* Card header row */}
-                      <div className="flex items-start gap-3 px-4 pt-3 pb-2">
+                      <div className="flex items-start gap-3 px-3 pt-2.5 pb-1.5 flex-1 min-h-0">
                         <div className="flex-1 min-w-0">
                           {renamingId === s.id ? (
                             <input
@@ -454,11 +454,11 @@ export function PastSessions(_props?: { theme?: 'dark' | 'light' }) {
                                 if (e.key === 'Enter') handleRename(s);
                                 if (e.key === 'Escape') setRenamingId(null);
                               }}
-                              className="text-sm font-semibold w-full rounded px-1.5 py-0.5 border bg-[var(--bg-input)] border-[var(--border-primary)] text-[var(--text-primary)]"
+                              className="text-xs font-semibold w-full rounded px-1.5 py-0.5 border bg-[var(--bg-input)] border-[var(--border-primary)] text-[var(--text-primary)]"
                             />
                           ) : (
                             <p
-                              className="text-sm font-semibold text-[var(--text-primary)] truncate cursor-pointer hover:underline"
+                              className="text-xs font-semibold text-[var(--text-primary)] truncate cursor-pointer hover:underline"
                               onClick={() => startRename(s)}
                               title="Click to rename"
                             >
@@ -499,7 +499,7 @@ export function PastSessions(_props?: { theme?: 'dark' | 'light' }) {
                       </div>
 
                       {/* Card action row */}
-                      <div className="flex items-center gap-1 px-3 pb-2.5 border-t border-[var(--border-primary)] pt-2 flex-wrap">
+                      <div className="flex items-center gap-1 px-3 pb-2 border-t border-[var(--border-primary)] pt-1.5 mt-auto">
                         {/* Primary action: Resume / Review / Edit */}
                         <button
                           onClick={() => handlePrimaryAction(s)}
