@@ -436,7 +436,7 @@ export function PastSessions(_props?: { theme?: 'dark' | 'light' }) {
                 </div>
 
                 {/* ── Session cards (grid) ─────────────────────────── */}
-                <div className="py-2 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-2">
+                <div className="py-2 grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] gap-3">
                   {group.sessions.map((s) => (
                     <div
                       key={s.id}
