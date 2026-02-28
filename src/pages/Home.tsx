@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { nanoid } from 'nanoid';
 import { supabase } from '../lib/supabase';
@@ -22,6 +22,34 @@ export default function Home() {
   const [renameTemplateValue, setRenameTemplateValue] = useState('');
   const [deleteTemplateTarget, setDeleteTemplateTarget] = useState<{ id: string; name: string } | null>(null);
   const [deletingTemplate, setDeletingTemplate] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const stored = localStorage.getItem('qv-sidebar-width');
+    return stored ? parseInt(stored, 10) : 280;
+  });
+  const resizingRef = useRef(false);
+
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!resizingRef.current) return;
+    const newWidth = Math.max(200, Math.min(500, e.clientX));
+    setSidebarWidth(newWidth);
+  }, []);
+
+  const handleResizeUp = useCallback(() => {
+    resizingRef.current = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    localStorage.setItem('qv-sidebar-width', String(sidebarWidth));
+    window.removeEventListener('mousemove', handleResizeMove);
+    window.removeEventListener('mouseup', handleResizeUp);
+  }, [sidebarWidth, handleResizeMove]);
+
+  const handleResizeDown = useCallback(() => {
+    resizingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', handleResizeMove);
+    window.addEventListener('mouseup', handleResizeUp);
+  }, [handleResizeMove, handleResizeUp]);
 
   async function handleRenameTemplate(templateId: string) {
     const trimmed = renameTemplateValue.trim();
@@ -111,9 +139,9 @@ export default function Home() {
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
           {/* ── Left panel ──────────────────────────────────────── */}
           <aside
-            className="border-r border-[var(--border-primary)] bg-[var(--bg-surface)]"
+            className="border-r border-[var(--border-primary)] bg-[var(--bg-surface)] relative"
             style={{
-              width: 280,
+              width: sidebarWidth,
               flexShrink: 0,
               display: 'flex',
               flexDirection: 'column',
@@ -239,6 +267,11 @@ export default function Home() {
                 </div>
               </div>
             )}
+            {/* Resize handle */}
+            <div
+              onMouseDown={handleResizeDown}
+              className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-indigo-500/30 active:bg-indigo-500/50 transition-colors"
+            />
           </aside>
 
           {/* ── Right panel ─────────────────────────────────────── */}
