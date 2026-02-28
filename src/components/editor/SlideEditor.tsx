@@ -21,7 +21,7 @@ export function SlideEditor({ item }: SlideEditorProps) {
   const hasImage = item.slide.image_path && item.slide.image_path.trim() !== '';
 
   const handleCaptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newCaption = e.target.value.trim() || null;
+    const newCaption = e.target.value || null;
     updateItem(item.id, {
       slide: {
         ...item.slide!,
@@ -30,8 +30,18 @@ export function SlideEditor({ item }: SlideEditorProps) {
     });
   };
 
+  const handleCaptionBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const trimmed = e.target.value.trim() || null;
+    updateItem(item.id, {
+      slide: {
+        ...item.slide!,
+        caption: trimmed,
+      },
+    });
+  };
+
   const handleNotesChange = (html: string) => {
-    const newNotes = html.trim() || null;
+    const newNotes = html || null;
     updateItem(item.id, {
       slide: {
         ...item.slide!,
@@ -165,6 +175,7 @@ export function SlideEditor({ item }: SlideEditorProps) {
           type="text"
           value={item.slide.caption || ''}
           onChange={handleCaptionChange}
+          onBlur={handleCaptionBlur}
           placeholder="Add a caption for this slide..."
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
         />

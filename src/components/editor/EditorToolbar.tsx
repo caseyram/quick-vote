@@ -7,10 +7,11 @@ import { useTemplateEditorStore } from '../../stores/template-editor-store';
 import type { EditorItem } from '../../stores/template-editor-store';
 import { useTemplateStore } from '../../stores/template-store';
 import { fetchTemplates } from '../../lib/template-api';
-import { saveSessionTemplate, overwriteSessionTemplate, loadTemplateIntoSession } from '../../lib/session-template-api';
+import { saveSessionTemplate, overwriteSessionTemplate, loadTemplateIntoSession, findSessionTemplateByName } from '../../lib/session-template-api';
 import { uploadSlideImage } from '../../lib/slide-api';
 import { validateTeamList } from '../../lib/team-api';
 import { supabase } from '../../lib/supabase';
+import { ConfirmDialog } from '../ConfirmDialog';
 
 interface EditorToolbarProps {
   onOpenPreview: (startIndex: number) => void;
@@ -44,6 +45,7 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
   const [uploadingSlide, setUploadingSlide] = useState(false);
   const [showPreviewDropdown, setShowPreviewDropdown] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [overwriteConfirm, setOverwriteConfirm] = useState<{ id: string; name: string } | null>(null);
 
   // Per-session settings (NOT stored in template blueprint)
   const [reasonsEnabled, setReasonsEnabled] = useState(true);
@@ -212,6 +214,20 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
   };
 
   const handleSave = async () => {
+    if (!templateId) {
+      try {
+        const existingTemplate = await findSessionTemplateByName(templateName);
+        if (existingTemplate) {
+          setOverwriteConfirm({ id: existingTemplate.id, name: existingTemplate.name });
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to check template name:', err);
+        alert(err instanceof Error ? err.message : 'Failed to check template name');
+        return;
+      }
+    }
+
     setSaving(true);
 
     try {
@@ -219,13 +235,10 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
       const itemCount = items.length;
 
       if (templateId) {
-        // Update existing template
         await overwriteSessionTemplate(templateId, blueprint, itemCount);
       } else {
-        // Create new template
         const newTemplate = await saveSessionTemplate(templateName, blueprint, itemCount);
 
-        // Update store with new ID and navigate to edit URL
         useTemplateEditorStore.setState({ templateId: newTemplate.id });
         navigate(`/templates/${newTemplate.id}/edit`, { replace: true });
       }
@@ -236,6 +249,31 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
     } catch (err) {
       console.error('Failed to save template:', err);
       alert(err instanceof Error ? err.message : 'Failed to save template');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOverwriteConfirm = async () => {
+    if (!overwriteConfirm) return;
+
+    setSaving(true);
+
+    try {
+      const blueprint = toBlueprint();
+      const itemCount = items.length;
+      const overwritten = await overwriteSessionTemplate(overwriteConfirm.id, blueprint, itemCount);
+
+      useTemplateEditorStore.setState({ templateId: overwritten.id });
+      navigate(`/templates/${overwritten.id}/edit`, { replace: true });
+
+      markClean();
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+      setOverwriteConfirm(null);
+    } catch (err) {
+      console.error('Failed to overwrite template:', err);
+      alert(err instanceof Error ? err.message : 'Failed to overwrite template');
     } finally {
       setSaving(false);
     }
@@ -598,6 +636,19 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={overwriteConfirm !== null}
+        onConfirm={handleOverwriteConfirm}
+        onCancel={() => setOverwriteConfirm(null)}
+        title="Template Name Already Exists"
+        message={overwriteConfirm
+          ? `A template named "${overwriteConfirm.name}" already exists. Overwrite it?`
+          : ''}
+        confirmLabel="Overwrite"
+        confirmVariant="danger"
+        loading={saving}
+      />
     </div>
   );
 }

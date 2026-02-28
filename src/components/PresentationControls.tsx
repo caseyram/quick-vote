@@ -233,10 +233,16 @@ export function PresentationControls({
 
   function handleSelectQuestion(questionId: string, index: number) {
     setCurrentBatchQuestionIndex(index);
+    setHighlightedReasonId('');
     channelRef.current?.send({
       type: 'broadcast',
       event: 'question_selected',
       payload: { questionId },
+    });
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'reason_highlight',
+      payload: { questionId, reasonId: '' },
     });
   }
 

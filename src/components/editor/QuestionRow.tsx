@@ -3,6 +3,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { EditorQuestion } from '../../stores/template-editor-store';
 import type { ResponseTemplate } from '../../types/database';
+import { createTemplate } from '../../lib/template-api';
 
 interface QuestionRowProps {
   question: EditorQuestion;
@@ -15,6 +16,10 @@ interface QuestionRowProps {
 
 export function QuestionRow({ question, onUpdate, onDelete, collapseSignal, responseTemplates, initialExpanded = false }: QuestionRowProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [saveTemplateError, setSaveTemplateError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const {
@@ -96,6 +101,24 @@ export function QuestionRow({ question, onUpdate, onDelete, collapseSignal, resp
     if ((question.options?.length || 0) <= 2) return; // Min 2 options
     const newOptions = question.options?.filter((_, i) => i !== index) || [];
     onUpdate({ options: newOptions });
+  };
+
+  const handleSaveAsTemplate = async () => {
+    if (!newTemplateName.trim() || !question.options || question.options.length === 0) return;
+
+    setSavingTemplate(true);
+    setSaveTemplateError(null);
+
+    try {
+      const template = await createTemplate(newTemplateName.trim(), question.options);
+      onUpdate({ template_id: template.id });
+      setShowSaveTemplate(false);
+      setNewTemplateName('');
+    } catch (err) {
+      setSaveTemplateError(err instanceof Error ? err.message : 'Failed to save template');
+    } finally {
+      setSavingTemplate(false);
+    }
   };
 
   // Type badge text
@@ -250,6 +273,55 @@ export function QuestionRow({ question, onUpdate, onDelete, collapseSignal, resp
             >
               + Add Option
             </button>
+
+            {(question.options?.length || 0) > 0 && (
+              <div className="pt-2">
+                {!showSaveTemplate ? (
+                  <button
+                    onClick={() => {
+                      setShowSaveTemplate(true);
+                      setSaveTemplateError(null);
+                    }}
+                    className="text-sm text-indigo-600 hover:text-indigo-500"
+                  >
+                    Save as Template
+                  </button>
+                ) : (
+                  <div className="space-y-2 p-3 border border-indigo-200 bg-indigo-50/40 rounded-lg">
+                    <input
+                      type="text"
+                      value={newTemplateName}
+                      onChange={(e) => setNewTemplateName(e.target.value)}
+                      placeholder="Template name"
+                      className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm"
+                    />
+                    {saveTemplateError && (
+                      <p className="text-xs text-red-600">{saveTemplateError}</p>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleSaveAsTemplate}
+                        disabled={savingTemplate || !newTemplateName.trim()}
+                        className="px-3 py-1.5 text-xs font-medium bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded"
+                      >
+                        {savingTemplate ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowSaveTemplate(false);
+                          setNewTemplateName('');
+                          setSaveTemplateError(null);
+                        }}
+                        disabled={savingTemplate}
+                        className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

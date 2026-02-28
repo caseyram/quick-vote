@@ -112,6 +112,22 @@ export async function deleteSessionTemplate(id: string): Promise<void> {
   useSessionTemplateStore.getState().removeTemplate(id);
 }
 
+
+/**
+ * Find a session template by exact name.
+ */
+export async function findSessionTemplateByName(name: string): Promise<SessionTemplate | null> {
+  const { data, error } = await supabase
+    .from('session_templates')
+    .select('*')
+    .eq('name', name)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  return data;
+}
+
 /**
  * Check if a template with the given name already exists.
  * Used for overwrite-or-save-as-new prompts.

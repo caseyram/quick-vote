@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router';
+import { useParams, useSearchParams, useBlocker } from 'react-router';
 import { supabase } from '../lib/supabase';
 import { useTemplateEditorStore } from '../stores/template-editor-store';
 import type { SessionTemplate } from '../types/database';
@@ -7,6 +7,7 @@ import { EditorToolbar } from '../components/editor/EditorToolbar';
 import { EditorSidebar } from '../components/editor/EditorSidebar';
 import { EditorMainArea } from '../components/editor/EditorMainArea';
 import { SessionPreviewOverlay } from '../components/editor/SessionPreviewOverlay';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export default function TemplateEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +16,8 @@ export default function TemplateEditorPage() {
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewStartIndex, setPreviewStartIndex] = useState(0);
+
+  const blocker = useBlocker(isDirty);
 
   // Only load template on mount or when the template ID changes
   // Do NOT depend on searchParams — mode/from changes should not re-trigger loading
@@ -91,6 +94,17 @@ export default function TemplateEditorPage() {
         onClose={() => setPreviewOpen(false)}
         startIndex={previewStartIndex}
       />
+      {blocker.state === 'blocked' && (
+        <ConfirmDialog
+          isOpen={true}
+          onConfirm={() => blocker.proceed()}
+          onCancel={() => blocker.reset()}
+          title="Unsaved Changes"
+          message="You have unsaved changes. Leave without saving?"
+          confirmLabel="Leave"
+          confirmVariant="danger"
+        />
+      )}
     </div>
   );
 }
