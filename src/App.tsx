@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
+import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router';
 import { useAuth } from './hooks/use-auth';
 import { ThemeProvider } from './context/ThemeContext';
 import { PresentationThemeProvider } from './context/PresentationThemeContext';
@@ -8,6 +8,32 @@ import AdminSession from './pages/AdminSession';
 import ParticipantSession from './pages/ParticipantSession';
 import PresentationView from './pages/PresentationView';
 import TemplateEditorPage from './pages/TemplateEditorPage';
+
+function RootLayout() {
+  return (
+    <ThemeProvider>
+      <PresentationThemeProvider>
+        <Outlet />
+      </PresentationThemeProvider>
+    </ThemeProvider>
+  );
+}
+
+const router = createBrowserRouter([
+  {
+    element: <RootLayout />,
+    children: [
+      { path: '/', element: <Home /> },
+      { path: '/admin', element: <Navigate to="/" replace /> },
+      { path: '/admin/review/:sessionId', element: <SessionReview /> },
+      { path: '/admin/:adminToken', element: <AdminSession /> },
+      { path: '/presentation/:sessionId', element: <PresentationView /> },
+      { path: '/session/:sessionId', element: <ParticipantSession /> },
+      { path: '/templates/new', element: <TemplateEditorPage /> },
+      { path: '/templates/:id/edit', element: <TemplateEditorPage /> },
+    ],
+  },
+]);
 
 function App() {
   const { ready } = useAuth();
@@ -20,24 +46,7 @@ function App() {
     );
   }
 
-  return (
-    <ThemeProvider>
-      <PresentationThemeProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/admin" element={<Navigate to="/" replace />} />
-            <Route path="/admin/review/:sessionId" element={<SessionReview />} />
-            <Route path="/admin/:adminToken" element={<AdminSession />} />
-            <Route path="/presentation/:sessionId" element={<PresentationView />} />
-            <Route path="/session/:sessionId" element={<ParticipantSession />} />
-            <Route path="/templates/new" element={<TemplateEditorPage />} />
-            <Route path="/templates/:id/edit" element={<TemplateEditorPage />} />
-          </Routes>
-        </BrowserRouter>
-      </PresentationThemeProvider>
-    </ThemeProvider>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;

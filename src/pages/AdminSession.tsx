@@ -13,6 +13,7 @@ import { AdminControlBar } from '../components/AdminControlBar';
 import { AdminPasswordGate } from '../components/AdminPasswordGate';
 import { DevTestFab } from '../components/DevTestFab';
 import { PresentationControls } from '../components/PresentationControls';
+import { ResponseTemplatePanel } from '../components/ResponseTemplatePanel';
 import { fetchTemplates } from '../lib/template-api';
 import { ensureSessionItems, createBatchSessionItem } from '../lib/sequence-api';
 import { deleteSlide } from '../lib/slide-api';
@@ -1118,6 +1119,9 @@ export default function AdminSession() {
                 );
               })()}
             </div>
+
+            {/* Response Templates Panel */}
+            <ResponseTemplatePanel />
           </div>
         </div>
       )}
