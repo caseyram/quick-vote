@@ -5,12 +5,10 @@ import { supabase } from '../lib/supabase';
 import { AdminPasswordGate } from '../components/AdminPasswordGate';
 import { PastSessions } from '../components/PastSessions';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { useTheme } from '../context/ThemeContext';
 import { useSessionTemplateStore } from '../stores/session-template-store';
 import { fetchSessionTemplates } from '../lib/session-template-api';
 
 export default function Home() {
-  const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +22,7 @@ export default function Home() {
     });
   }, []);
 
-  async function handleQuickSession() {
+  async function handleCreateSession() {
     if (submittingRef.current) return;
     submittingRef.current = true;
     setCreating(true);
@@ -32,7 +30,9 @@ export default function Home() {
 
     try {
       const sessionId = nanoid();
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (!user) {
         setError('Authentication failed. Please refresh and try again.');
@@ -66,88 +66,137 @@ export default function Home() {
 
   return (
     <AdminPasswordGate>
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 gap-12 bg-[var(--bg-primary)] text-[var(--text-primary)]">
-        <div className="fixed top-4 right-4 z-50">
+      <div
+        className="bg-[var(--bg-primary)] text-[var(--text-primary)]"
+        style={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}
+      >
+        {/* ── Header ─────────────────────────────────────────────── */}
+        <header className="shrink-0 flex items-center justify-between px-5 py-3 border-b border-[var(--border-primary)] bg-[var(--bg-surface)]">
+          <h1 className="text-lg font-bold tracking-tight">QuickVote</h1>
           <ThemeToggle />
-        </div>
+        </header>
 
-        <div className="w-full max-w-md text-center space-y-8">
-          <div>
-            <h1 className="text-5xl font-bold tracking-tight">QuickVote</h1>
-            <p className="mt-3 text-lg text-[var(--text-secondary)]">
+        {/* ── Two-panel body ──────────────────────────────────────── */}
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {/* ── Left panel ──────────────────────────────────────── */}
+          <aside
+            className="border-r border-[var(--border-primary)] bg-[var(--bg-surface)]"
+            style={{
+              width: 280,
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              overflowY: 'auto',
+              padding: '16px 12px',
+              gap: 20,
+            }}
+          >
+            {/* Tagline */}
+            <p className="text-xs text-[var(--text-muted)] px-1">
               Create a live voting session in seconds
             </p>
-          </div>
 
-          <div className="space-y-3">
+            {/* Primary: New Session via Template Editor */}
             <button
               onClick={() => navigate('/templates/new')}
-              className="w-full py-3 px-6 bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] font-semibold rounded-lg transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg transition-colors"
             >
-              Create New
-            </button>
-            <p className="text-sm text-[var(--text-muted)]">
-              Build a session in the template editor
-            </p>
-          </div>
-
-          <div className="border-t border-[var(--border-primary)] pt-6 space-y-4">
-            <p className="text-sm text-[var(--text-secondary)]">Or start a quick session directly:</p>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Session title (optional)"
-              className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-[var(--bg-input)] border-[var(--border-primary)] text-[var(--text-primary)] placeholder-[var(--text-placeholder)]"
-              disabled={creating}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleQuickSession();
-              }}
-            />
-
-            <button
-              onClick={handleQuickSession}
-              disabled={creating}
-              className="w-full py-3 px-6 font-semibold rounded-lg transition-colors disabled:cursor-not-allowed bg-[var(--bg-elevated)] hover:bg-[var(--bg-surface)] disabled:opacity-70 text-[var(--text-primary)]"
-            >
-              {creating ? 'Creating...' : 'Quick Session'}
+              <svg
+                className="w-4 h-4 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4.5v15m7.5-7.5h-15"
+                />
+              </svg>
+              New Session
             </button>
 
-            {error && <p className="text-red-400 text-sm">{error}</p>}
-          </div>
-
-          {templates.length > 0 && (
-            <div className="border-t border-[var(--border-primary)] pt-6 space-y-4">
-              <p className="text-sm text-[var(--text-secondary)]">New from Template:</p>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {templates.slice(0, 5).map((template) => (
-                  <div key={template.id} className="flex items-center gap-2">
-                    <button
-                      onClick={() => navigate(`/templates/${template.id}/edit?from=template`)}
-                      className="flex-1 text-left px-4 py-3 border rounded-lg transition-colors bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border-[var(--border-primary)] text-[var(--text-primary)]"
-                    >
-                      <div className="font-medium">{template.name}</div>
-                      <div className="text-sm text-[var(--text-secondary)]">
-                        {template.item_count} {template.item_count === 1 ? 'item' : 'items'}
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => navigate(`/templates/${template.id}/edit`)}
-                      className="p-2 rounded-lg border transition-colors bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                      title="Edit template"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
+            {/* Quick Session */}
+            <div className="space-y-2">
+              <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-widest px-1">
+                Quick Session
+              </p>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Session title (optional)"
+                className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-[var(--bg-input)] border-[var(--border-primary)] text-[var(--text-primary)] placeholder-[var(--text-placeholder)]"
+                disabled={creating}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreateSession();
+                }}
+              />
+              <button
+                onClick={handleCreateSession}
+                disabled={creating}
+                className="w-full py-2 px-4 text-sm font-semibold rounded-lg transition-colors disabled:cursor-not-allowed bg-[var(--bg-elevated)] hover:bg-[var(--bg-primary)] disabled:opacity-70 text-[var(--text-primary)] border border-[var(--border-primary)]"
+              >
+                {creating ? 'Creating...' : 'Create Session'}
+              </button>
+              {error && <p className="text-red-400 text-xs px-1">{error}</p>}
             </div>
-          )}
-        </div>
 
-        <PastSessions theme={resolvedTheme} />
+            {/* Templates list */}
+            {templates.length > 0 && (
+              <div className="space-y-1.5 flex-1">
+                <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-widest px-1">
+                  Templates
+                </p>
+                <div className="space-y-0.5">
+                  {templates.map((template) => (
+                    <div key={template.id} className="flex items-center gap-1 group rounded-lg">
+                      <button
+                        onClick={() =>
+                          navigate(`/templates/${template.id}/edit?from=template`)
+                        }
+                        className="flex-1 text-left px-3 py-2 rounded-lg transition-colors hover:bg-[var(--bg-elevated)] min-w-0"
+                      >
+                        <div className="text-sm font-medium text-[var(--text-primary)] truncate">
+                          {template.name}
+                        </div>
+                        <div className="text-xs text-[var(--text-muted)]">
+                          {template.item_count}{' '}
+                          {template.item_count === 1 ? 'item' : 'items'}
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => navigate(`/templates/${template.id}/edit`)}
+                        className="p-1.5 rounded-md transition-colors text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] opacity-0 group-hover:opacity-100 shrink-0"
+                        title="Edit template"
+                      >
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </aside>
+
+          {/* ── Right panel ─────────────────────────────────────── */}
+          <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <PastSessions />
+          </main>
+        </div>
       </div>
     </AdminPasswordGate>
   );
