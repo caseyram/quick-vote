@@ -75,7 +75,6 @@ export const useTemplateEditorStore = create<TemplateEditorState>()((set, get) =
   setTemplateName: (name) =>
     set({
       templateName: name,
-      isDirty: true,
     }),
 
   setBackgroundColor: (color) =>
