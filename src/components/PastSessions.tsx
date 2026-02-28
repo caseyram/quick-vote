@@ -97,6 +97,7 @@ export function PastSessions(_props?: { theme?: 'dark' | 'light' }) {
   const [deleting, setDeleting] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [exporting, setExporting] = useState<string | null>(null);
 
   // ── Load sessions ──────────────────────────────────────────────────────────
@@ -436,7 +437,7 @@ export function PastSessions(_props?: { theme?: 'dark' | 'light' }) {
                 </div>
 
                 {/* ── Session cards (grid) ─────────────────────────── */}
-                <div className="py-2 grid grid-cols-[repeat(auto-fill,minmax(400px,1fr))] gap-3">
+                <div className="py-2 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
                   {group.sessions.map((s) => (
                     <div
                       key={s.id}
@@ -513,43 +514,55 @@ export function PastSessions(_props?: { theme?: 'dark' | 'light' }) {
                           {primaryActionLabel(s.status)}
                         </button>
 
-                        <div className="w-px h-4 bg-[var(--border-primary)] mx-0.5" />
+                        <div className="flex-1" />
 
-                        {/* CSV */}
-                        <button
-                          onClick={() => handleExportCSV(s)}
-                          disabled={exporting === s.session_id}
-                          className="px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded-md transition-colors disabled:opacity-40"
-                        >
-                          CSV
-                        </button>
-
-                        {/* JSON */}
-                        <button
-                          onClick={() => handleExportJSON(s)}
-                          disabled={exporting === s.session_id}
-                          className="px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded-md transition-colors disabled:opacity-40"
-                        >
-                          JSON
-                        </button>
-
-                        {/* Use as Template */}
-                        <button
-                          onClick={() => handleSaveAsTemplate(s)}
-                          disabled={actionLoading === s.id || s.question_count === 0}
-                          className="px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded-md transition-colors disabled:opacity-40"
-                          title="Save as template and edit"
-                        >
-                          {actionLoading === s.id ? 'Saving…' : 'Template'}
-                        </button>
-
-                        {/* Delete — pushed right */}
-                        <button
-                          onClick={() => setDeleteTarget(s)}
-                          className="ml-auto px-2.5 py-1 text-xs font-medium text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
-                        >
-                          Delete
-                        </button>
+                        {/* Overflow menu */}
+                        <div className="relative">
+                          <button
+                            onClick={() => setMenuOpenId(menuOpenId === s.id ? null : s.id)}
+                            className="px-2 py-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded-md transition-colors"
+                            aria-label="More actions"
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                          </button>
+                          {menuOpenId === s.id && (
+                            <>
+                              <div className="fixed inset-0 z-20" onClick={() => setMenuOpenId(null)} />
+                              <div className="absolute right-0 bottom-full mb-1 z-30 bg-[var(--bg-elevated)] border border-[var(--border-primary)] rounded-lg shadow-lg py-1 min-w-[140px]">
+                                <button
+                                  onClick={() => { handleExportCSV(s); setMenuOpenId(null); }}
+                                  disabled={exporting === s.session_id}
+                                  className="w-full text-left px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)] disabled:opacity-40"
+                                >
+                                  Export CSV
+                                </button>
+                                <button
+                                  onClick={() => { handleExportJSON(s); setMenuOpenId(null); }}
+                                  disabled={exporting === s.session_id}
+                                  className="w-full text-left px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)] disabled:opacity-40"
+                                >
+                                  Export JSON
+                                </button>
+                                <button
+                                  onClick={() => { handleSaveAsTemplate(s); setMenuOpenId(null); }}
+                                  disabled={actionLoading === s.id || s.question_count === 0}
+                                  className="w-full text-left px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)] disabled:opacity-40"
+                                >
+                                  {actionLoading === s.id ? 'Saving…' : 'Save as Template'}
+                                </button>
+                                <div className="border-t border-[var(--border-primary)] my-1" />
+                                <button
+                                  onClick={() => { setDeleteTarget(s); setMenuOpenId(null); }}
+                                  className="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
