@@ -20,11 +20,13 @@ import type { EditorItem } from '../../stores/template-editor-store';
 import { uploadSlideImage } from '../../lib/slide-api';
 import { SidebarSequenceItem } from './SidebarSequenceItem';
 import { useMultiSelect } from '../../hooks/use-multi-select';
+import { ImportQuestionsModal } from './ImportQuestionsModal';
 
 export function EditorSidebar() {
   const { items, selectedItemId, reorderItems, reorderItemsGroup, addItem } = useTemplateEditorStore();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [uploadingSlide, setUploadingSlide] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const slideFileInputRef = useRef<HTMLInputElement>(null);
   const dndId = useId();
 
@@ -174,6 +176,12 @@ export function EditorSidebar() {
             + Question Set
           </button>
           <button
+            onClick={() => setImportOpen(true)}
+            className="w-full px-4 py-2 text-sm font-medium bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded transition-colors"
+          >
+            Import Questions
+          </button>
+          <button
             onClick={handleAddSlide}
             disabled={uploadingSlide}
             className="w-full px-4 py-2 text-sm font-medium bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -181,6 +189,7 @@ export function EditorSidebar() {
             {uploadingSlide ? 'Uploading...' : '+ Add Slide'}
           </button>
         </div>
+        <ImportQuestionsModal isOpen={importOpen} onClose={() => setImportOpen(false)} />
       </div>
     );
   }
@@ -236,6 +245,12 @@ export function EditorSidebar() {
           + Q. Set
         </button>
         <button
+          onClick={() => setImportOpen(true)}
+          className="flex-1 px-3 py-1.5 text-xs font-medium bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded transition-colors"
+        >
+          Import
+        </button>
+        <button
           onClick={handleAddSlide}
           disabled={uploadingSlide}
           className="flex-1 px-3 py-1.5 text-xs font-medium bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -243,6 +258,7 @@ export function EditorSidebar() {
           {uploadingSlide ? '...' : '+ Slide'}
         </button>
       </div>
+      <ImportQuestionsModal isOpen={importOpen} onClose={() => setImportOpen(false)} />
     </div>
   );
 }

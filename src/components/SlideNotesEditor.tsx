@@ -21,15 +21,22 @@ const PasteBulletConverter = Extension.create({
         key: new PluginKey('pasteBulletConverter'),
         props: {
           transformPastedText(text) {
-            return convertBulletText(text);
+            // Strip clipboard fragment markers
+            const cleaned = text.replace(/^StartFragment\s*|EndFragment\s*$/gm, '').trim();
+            return convertBulletText(cleaned);
           },
           transformPastedHTML(html) {
-            // If the HTML already contains proper list markup, leave it alone
-            if (/<[uo]l[\s>]/i.test(html)) return html;
+            // Strip clipboard fragment comments and text markers
+            let cleaned = html
+              .replace(/<!--\s*Start\s*Fragment\s*-->|<!--\s*End\s*Fragment\s*-->/gi, '')
+              .replace(/StartFragment|EndFragment/g, '');
+
+            // If the HTML already contains proper list markup, return cleaned
+            if (/<[uo]l[\s>]/i.test(cleaned)) return cleaned;
 
             // Parse as DOM and check for bullet-char lines in paragraphs/divs
             const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
+            const doc = parser.parseFromString(cleaned, 'text/html');
             const blocks = doc.body.querySelectorAll('p, div, span');
 
             let hasBullets = false;
@@ -39,7 +46,7 @@ const PasteBulletConverter = Extension.create({
               }
             });
 
-            if (!hasBullets) return html;
+            if (!hasBullets) return cleaned;
 
             // Convert: walk through body children, group consecutive bullet lines into <ul>
             return convertBulletHtml(doc.body);
@@ -238,7 +245,7 @@ export function SlideNotesEditor({ content, onUpdate }: SlideNotesEditorProps) {
       {/* Editor */}
       <EditorContent
         editor={editor}
-        className="prose prose-sm max-w-none p-4 min-h-[120px] focus-within:outline-none"
+        className="prose prose-sm max-w-none min-h-[120px] focus-within:outline-none [&_.tiptap]:p-4 [&_.tiptap]:min-h-[120px] [&_.tiptap]:outline-none"
       />
     </div>
   );
