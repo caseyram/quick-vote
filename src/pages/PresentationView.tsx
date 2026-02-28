@@ -13,11 +13,12 @@ import { KeyboardShortcutHelp } from '../components/KeyboardShortcutHelp';
 import { BatchResultsProjection } from '../components/BatchResultsProjection';
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../components/BarChart';
 import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation';
-import { getTextColor } from '../lib/color-contrast';
 import { TeamQRGrid } from '../components/TeamQRGrid';
+import { usePresentationTheme } from '../context/PresentationThemeContext';
 
 export default function PresentationView() {
   const { sessionId } = useParams();
+  const { theme, setTheme } = usePresentationTheme();
   const {
     activeSessionItemId,
     sessionItems,
@@ -289,8 +290,15 @@ export default function PresentationView() {
       setSelectedTeam(payload.teamId);
     });
 
+    // Listen for presentation theme change from admin controls
+    channel.on('broadcast', { event: 'presentation_theme_changed' }, ({ payload }: any) => {
+      if (payload?.theme === 'dark' || payload?.theme === 'light') {
+        setTheme(payload.theme);
+      }
+    });
+
     channelRef.current = channel;
-  }, []);
+  }, [setTheme]);
 
   const { connectionStatus } = useRealtimeChannel(
     sessionId ? `session:${sessionId}` : '',
@@ -450,17 +458,13 @@ export default function PresentationView() {
     }),
   };
 
-  // Background color and text color
-  const backgroundColor = '#1a1a2e'; // TODO: Load from session template
-  const textMode = getTextColor(backgroundColor);
-  const textColorClass = textMode === 'light' ? 'text-white' : 'text-gray-900';
-
   const sessionUrl = sessionId ? `${window.location.origin}/session/${sessionId}` : '';
 
   return (
     <div
-      className={`fixed inset-0 flex items-center justify-center overflow-hidden ${textColorClass}`}
-      style={{ backgroundColor }}
+      data-presentation-theme={theme}
+      className="fixed inset-0 flex items-center justify-center overflow-hidden text-[var(--pres-text)]"
+      style={{ backgroundColor: 'var(--pres-bg)' }}
     >
       {/* Main projection content */}
       <div className="relative w-full h-full overflow-hidden">
@@ -477,7 +481,7 @@ export default function PresentationView() {
           >
           {activeInlineQuestion ? (
             <div className="flex flex-col items-center justify-center h-full px-12">
-              <h2 className={`text-4xl font-bold mb-8 text-center ${textColorClass}`}>
+              <h2 className="text-4xl font-bold mb-8 text-center text-[var(--pres-text)]">
                 {activeInlineQuestion.text}
               </h2>
               {inlineVotingClosed && sessionVotes[activeInlineQuestion.id] ? (
@@ -501,12 +505,12 @@ export default function PresentationView() {
                   });
                   return (
                     <div className="w-full max-w-2xl">
-                      <BarChart data={chartData} totalVotes={votes.length} size="large" backgroundColor={backgroundColor} />
+                      <BarChart data={chartData} totalVotes={votes.length} size="large" backgroundColor="var(--pres-bg)" />
                     </div>
                   );
                 })()
               ) : (
-                <p className={`text-xl opacity-50 ${textColorClass}`}>
+                <p className="text-xl opacity-50 text-[var(--pres-text-secondary)]">
                   Voting in progress...
                 </p>
               )}
@@ -543,10 +547,10 @@ export default function PresentationView() {
                       transition={{ duration: 0.4 }}
                       className="w-full h-full flex flex-col items-center justify-center text-center px-8"
                     >
-                      <h2 className={`text-5xl font-bold ${textColorClass} leading-tight mb-4`}>
+                      <h2 className="text-5xl font-bold text-[var(--pres-text)] leading-tight mb-4">
                         {currentBatch?.name ?? 'Untitled Batch'}
                       </h2>
-                      <p className={`text-2xl ${textColorClass} opacity-50`}>Voting in progress...</p>
+                      <p className="text-2xl text-[var(--pres-text-secondary)] opacity-70">Voting in progress...</p>
                     </motion.div>
                   ) : (
                     <motion.div
@@ -565,7 +569,7 @@ export default function PresentationView() {
                         revealedQuestions={revealedQuestions}
                         highlightedReason={highlightedReason}
                         selectedQuestionId={selectedQuestionId}
-                        backgroundColor="#1a1a2e"
+                        
                         reasonsPerPage={reasonsPerPage}
                         teamFilter={selectedTeam}
                       />
@@ -576,7 +580,7 @@ export default function PresentationView() {
             })()
           ) : (
             <div className="flex items-center justify-center h-full">
-              <p className="text-2xl text-gray-500">Waiting for presentation to start...</p>
+              <p className="text-2xl text-[var(--pres-text-secondary)]">Waiting for presentation to start...</p>
             </div>
           )}
           </motion.div>
@@ -633,7 +637,7 @@ export default function PresentationView() {
       <AnimatePresence>
         {showFullscreenHint && (
           <motion.div
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 text-gray-500 text-sm z-40"
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 text-[var(--pres-text-secondary)] text-sm z-40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

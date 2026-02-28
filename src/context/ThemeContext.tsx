@@ -1,33 +1,53 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
-type Theme = 'dark' | 'light';
+type ThemePreference = 'dark' | 'light' | 'system';
+type ResolvedTheme = 'dark' | 'light';
 
 interface ThemeContextValue {
-  theme: Theme;
-  toggleTheme: () => void;
+  preference: ThemePreference;
+  resolvedTheme: ResolvedTheme;
+  setPreference: (pref: ThemePreference) => void;
+  cycleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-function getInitialTheme(): Theme {
-  if (typeof window === 'undefined') return 'dark';
+function getInitialPreference(): ThemePreference {
+  if (typeof window === 'undefined') return 'system';
   const stored = localStorage.getItem('quickvote-theme');
-  if (stored === 'light' || stored === 'dark') return stored;
-  return 'dark';
+  if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
+  return 'system';
+}
+
+function getInitialSystemPreference(): ResolvedTheme {
+  if (typeof window === 'undefined') return 'dark';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [preference, setPreference] = useState<ThemePreference>(getInitialPreference);
+  const [systemPreference, setSystemPreference] = useState<ResolvedTheme>(getInitialSystemPreference);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('quickvote-theme', theme);
-  }, [theme]);
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => setSystemPreference(e.matches ? 'dark' : 'light');
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
-  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
+  const resolvedTheme: ResolvedTheme = preference === 'system' ? systemPreference : preference;
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', resolvedTheme);
+    localStorage.setItem('quickvote-theme', preference);
+  }, [resolvedTheme, preference]);
+
+  const cycleTheme = () => {
+    setPreference((prev) => (prev === 'dark' ? 'light' : prev === 'light' ? 'system' : 'dark'));
+  };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ preference, resolvedTheme, setPreference, cycleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

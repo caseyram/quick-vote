@@ -13,6 +13,7 @@ import VoteMultipleChoice from '../components/VoteMultipleChoice';
 import { BatchVotingCarousel } from '../components/BatchVotingCarousel';
 import { TeamPicker } from '../components/TeamPicker';
 import { TeamBadge } from '../components/TeamBadge';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { fetchTemplates } from '../lib/template-api';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Session, Question, SessionStatus } from '../types/database';
@@ -692,7 +693,7 @@ export default function ParticipantSession() {
       <>
         <TeamPicker teams={session!.teams} onJoinTeam={handleJoinTeam} />
         {showTeamJoinedToast && (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50">
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-green-600 text-[var(--text-primary)] px-4 py-2 rounded-lg shadow-lg z-50">
             Joined {participantTeam}!
           </div>
         )}
@@ -703,8 +704,8 @@ export default function ParticipantSession() {
   // Loading state
   if (view === 'loading') {
     return (
-      <div className="min-h-dvh bg-gray-950 flex items-center justify-center">
-        <p className="text-gray-400 text-lg">Loading session...</p>
+      <div className="min-h-dvh bg-[var(--bg-primary)] flex items-center justify-center">
+        <p className="text-[var(--text-secondary)] text-lg">Loading session...</p>
       </div>
     );
   }
@@ -712,10 +713,10 @@ export default function ParticipantSession() {
   // Error state
   if (view === 'error') {
     return (
-      <div className="min-h-dvh bg-gray-950 flex items-center justify-center">
+      <div className="min-h-dvh bg-[var(--bg-primary)] flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-red-400 text-lg">{errorMessage ?? 'Something went wrong'}</p>
-          <p className="text-gray-500 text-sm">Please check the link and try again.</p>
+          <p className="text-[var(--text-muted)] text-sm">Please check the link and try again.</p>
         </div>
       </div>
     );
@@ -724,14 +725,15 @@ export default function ParticipantSession() {
   // Lobby state
   if (view === 'lobby') {
     return (
-      <div className="min-h-dvh bg-gray-950 flex flex-col">
+      <div className="min-h-dvh bg-[var(--bg-primary)] flex flex-col">
         <ConnectionPill status={connectionStatus} />
+        <div className="fixed top-4 left-4 z-50"><ThemeToggle size="sm" /></div>
         {participantTeam && <TeamBadge teamName={participantTeam} />}
         <div className="flex-1 flex flex-col items-center justify-center px-4">
-          <h1 className="text-3xl font-bold text-white mb-4 text-center">
+          <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-4 text-center">
             {session?.title ?? 'Session'}
           </h1>
-          <p className="text-gray-400 text-lg mb-6">Waiting for host to start...</p>
+          <p className="text-[var(--text-secondary)] text-lg mb-6">Waiting for host to start...</p>
           <ParticipantCount count={participantCount} />
         </div>
       </div>
@@ -741,13 +743,14 @@ export default function ParticipantSession() {
   // Waiting between questions / results being shown
   if (view === 'waiting') {
     return (
-      <div className="min-h-dvh bg-gray-950 flex flex-col">
+      <div className="min-h-dvh bg-[var(--bg-primary)] flex flex-col">
         <ConnectionPill status={connectionStatus} />
+        <div className="fixed top-4 left-4 z-50"><ThemeToggle size="sm" /></div>
         {participantTeam && <TeamBadge teamName={participantTeam} />}
         <div className="flex-1 flex items-center justify-center px-4">
           <div className="text-center space-y-4">
-            <h1 className="text-2xl font-bold text-white">{session?.title ?? 'Session'}</h1>
-            <p className="text-gray-400 text-lg">{waitingMessage}</p>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">{session?.title ?? 'Session'}</h1>
+            <p className="text-[var(--text-secondary)] text-lg">{waitingMessage}</p>
             <ParticipantCount count={participantCount} />
           </div>
         </div>
@@ -758,15 +761,16 @@ export default function ParticipantSession() {
   // Results state (session complete)
   if (view === 'results') {
     return (
-      <div className="min-h-dvh bg-gray-950 flex flex-col">
+      <div className="min-h-dvh bg-[var(--bg-primary)] flex flex-col">
         <ConnectionPill status={connectionStatus} />
+        <div className="fixed top-4 left-4 z-50"><ThemeToggle size="sm" /></div>
         {participantTeam && <TeamBadge teamName={participantTeam} />}
         <div className="flex-1 py-8 px-4">
           <div className="max-w-lg mx-auto space-y-6">
-            <h1 className="text-3xl font-bold text-white text-center">
+            <h1 className="text-3xl font-bold text-[var(--text-primary)] text-center">
               {session?.title ?? 'Session'} - Complete
             </h1>
-            <p className="text-gray-400 text-center">Session has ended. Thank you for participating!</p>
+            <p className="text-[var(--text-secondary)] text-center">Session has ended. Thank you for participating!</p>
             {participantCount > 0 && (
               <div className="flex justify-center">
                 <ParticipantCount count={participantCount} />
@@ -774,14 +778,14 @@ export default function ParticipantSession() {
             )}
             <div className="space-y-3">
               {allQuestions.map((q, i) => (
-                <div key={q.id} className="bg-gray-900 rounded-lg p-4">
-                  <p className="text-sm text-gray-500 mb-1">Question {i + 1}</p>
-                  <p className="text-white font-medium">{q.text}</p>
-                  <p className="text-gray-500 text-sm mt-1 capitalize">{q.type.replace('_', '/')}</p>
+                <div key={q.id} className="bg-[var(--bg-surface)] rounded-lg p-4">
+                  <p className="text-sm text-[var(--text-muted)] mb-1">Question {i + 1}</p>
+                  <p className="text-[var(--text-primary)] font-medium">{q.text}</p>
+                  <p className="text-[var(--text-muted)] text-sm mt-1 capitalize">{q.type.replace('_', '/')}</p>
                 </div>
               ))}
             </div>
-            <p className="text-center text-gray-500 text-sm pt-4">
+            <p className="text-center text-[var(--text-muted)] text-sm pt-4">
               Thank you for participating!
             </p>
           </div>
@@ -793,8 +797,9 @@ export default function ParticipantSession() {
   // Batch voting state
   if (view === 'batch-voting' && batchQuestions.length > 0 && participantId) {
     return (
-      <div className="min-h-dvh bg-gray-950 flex flex-col">
+      <div className="min-h-dvh bg-[var(--bg-primary)] flex flex-col">
         <ConnectionPill status={connectionStatus} />
+        <div className="fixed top-4 left-4 z-50"><ThemeToggle size="sm" /></div>
         {participantTeam && <TeamBadge teamName={participantTeam} />}
         {/* Timer at top when running */}
         {isRunning && (
@@ -825,10 +830,11 @@ export default function ParticipantSession() {
     // Name prompt overlay for named questions
     if (namePromptVisible) {
       return (
-        <div className="h-dvh bg-gray-950 flex items-center justify-center px-4">
+        <div className="h-dvh bg-[var(--bg-primary)] flex items-center justify-center px-4">
           <ConnectionPill status={connectionStatus} />
-          <div className="bg-gray-900 rounded-xl p-6 w-full max-w-sm space-y-4">
-            <p className="text-gray-300 text-sm font-medium text-center">
+        <div className="fixed top-4 left-4 z-50"><ThemeToggle size="sm" /></div>
+          <div className="bg-[var(--bg-surface)] rounded-xl p-6 w-full max-w-sm space-y-4">
+            <p className="text-[var(--text-secondary)] text-sm font-medium text-center">
               This question shows voter names
             </p>
             <form onSubmit={handleNameSubmit} className="space-y-3">
@@ -837,13 +843,13 @@ export default function ParticipantSession() {
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-4 py-3 bg-[var(--bg-elevated)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 autoFocus
               />
               <button
                 type="submit"
                 disabled={!nameInput.trim()}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-[var(--text-primary)] font-semibold rounded-lg transition-colors"
               >
                 Continue
               </button>
@@ -855,9 +861,10 @@ export default function ParticipantSession() {
 
     // Full-screen voting takeover
     return (
-      <div className="min-h-dvh bg-gray-950 flex flex-col">
+      <div className="min-h-dvh bg-[var(--bg-primary)] flex flex-col">
         {/* Connection pill - always visible in top-right */}
         <ConnectionPill status={connectionStatus} />
+        <div className="fixed top-4 left-4 z-50"><ThemeToggle size="sm" /></div>
         {participantTeam && <TeamBadge teamName={participantTeam} />}
 
         {/* Minimal top bar - only timer when active, no header/nav */}
@@ -872,7 +879,7 @@ export default function ParticipantSession() {
 
         {/* Full-screen voting area */}
         <div className="flex-1 lg:flex lg:items-center lg:justify-center lg:p-8">
-          <div className="w-full lg:max-w-2xl lg:rounded-2xl lg:bg-gray-900/50 lg:overflow-hidden">
+          <div className="w-full lg:max-w-2xl lg:rounded-2xl lg:bg-[var(--bg-surface-overlay)] lg:overflow-hidden">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={activeQuestion.id}
@@ -919,8 +926,8 @@ export default function ParticipantSession() {
 
   // Fallback
   return (
-    <div className="min-h-dvh bg-gray-950 flex items-center justify-center">
-      <p className="text-gray-400 text-lg">Loading...</p>
+    <div className="min-h-dvh bg-[var(--bg-primary)] flex items-center justify-center">
+      <p className="text-[var(--text-secondary)] text-lg">Loading...</p>
     </div>
   );
 }

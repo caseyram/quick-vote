@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { useAuth } from './hooks/use-auth';
 import { ThemeProvider } from './context/ThemeContext';
+import { PresentationThemeProvider } from './context/PresentationThemeContext';
 import Home from './pages/Home';
 import SessionReview from './pages/SessionReview';
 import AdminSession from './pages/AdminSession';
@@ -21,18 +22,20 @@ function App() {
 
   return (
     <ThemeProvider>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/admin" element={<Navigate to="/" replace />} />
-        <Route path="/admin/review/:sessionId" element={<SessionReview />} />
-        <Route path="/admin/:adminToken" element={<AdminSession />} />
-        <Route path="/presentation/:sessionId" element={<PresentationView />} />
-        <Route path="/session/:sessionId" element={<ParticipantSession />} />
-        <Route path="/templates/new" element={<TemplateEditorPage />} />
-        <Route path="/templates/:id/edit" element={<TemplateEditorPage />} />
-      </Routes>
-    </BrowserRouter>
+      <PresentationThemeProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/admin" element={<Navigate to="/" replace />} />
+            <Route path="/admin/review/:sessionId" element={<SessionReview />} />
+            <Route path="/admin/:adminToken" element={<AdminSession />} />
+            <Route path="/presentation/:sessionId" element={<PresentationView />} />
+            <Route path="/session/:sessionId" element={<ParticipantSession />} />
+            <Route path="/templates/new" element={<TemplateEditorPage />} />
+            <Route path="/templates/:id/edit" element={<TemplateEditorPage />} />
+          </Routes>
+        </BrowserRouter>
+      </PresentationThemeProvider>
     </ThemeProvider>
   );
 }

@@ -202,13 +202,13 @@ export function BatchVotingCarousel({
   const answeredCount = pendingVotes.size;
 
   return (
-    <div className="flex flex-col min-h-full bg-gray-950">
+    <div className="flex flex-col min-h-full bg-[var(--bg-primary)]">
       {/* Progress indicator - text counter at top */}
       <div ref={progressRef} className="px-4 py-3 text-center shrink-0">
         <div aria-live="polite" className="sr-only">
           Question {currentIndex + 1} of {questions.length}
         </div>
-        <p className="text-gray-400 text-sm font-medium">
+        <p className="text-[var(--text-secondary)] text-sm font-medium">
           Question {currentIndex + 1} of {questions.length}
           {answeredCount > 0 && (
             <span className="ml-2 text-green-400">
@@ -220,7 +220,7 @@ export function BatchVotingCarousel({
 
       {/* Question area with slide transitions */}
       <div className="flex-1 lg:flex lg:items-center lg:justify-center lg:p-8">
-        <div className="w-full lg:max-w-2xl lg:rounded-2xl lg:bg-gray-900/50 lg:overflow-hidden">
+        <div className="w-full lg:max-w-2xl lg:rounded-2xl lg:bg-[var(--bg-surface-overlay)] lg:overflow-hidden">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={currentQuestion.id}
@@ -261,11 +261,11 @@ export function BatchVotingCarousel({
       </div>
 
       {/* Navigation footer - fixed at bottom */}
-      <div className="px-4 py-4 flex gap-3 bg-gray-950 shrink-0">
+      <div className="px-4 py-4 flex gap-3 bg-[var(--bg-primary)] shrink-0">
         <button
           onClick={handlePrevious}
           disabled={isFirstQuestion}
-          className="px-6 py-3 rounded-xl font-semibold bg-gray-800 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
+          className="px-6 py-3 rounded-xl font-semibold bg-[var(--bg-elevated)] text-[var(--text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
           aria-label="Previous question"
         >
           Previous
@@ -276,7 +276,7 @@ export function BatchVotingCarousel({
             onClick={handleSubmitAll}
             disabled={submitting}
             aria-label={`Submit votes for ${answeredCount} answered questions`}
-            className="flex-1 px-6 py-3 rounded-xl font-bold text-lg bg-green-600 hover:bg-green-500 disabled:bg-green-800 disabled:cursor-not-allowed text-white transition-colors"
+            className="flex-1 px-6 py-3 rounded-xl font-bold text-lg bg-green-600 hover:bg-green-500 disabled:bg-green-800 disabled:cursor-not-allowed text-[var(--text-primary)] transition-colors"
           >
             {submitting ? 'Submitting...' : 'Submit'}
           </button>
@@ -284,7 +284,7 @@ export function BatchVotingCarousel({
           <button
             onClick={handleNext}
             aria-label="Next question"
-            className="flex-1 px-6 py-3 rounded-xl font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+            className="flex-1 px-6 py-3 rounded-xl font-semibold bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] transition-colors"
           >
             Next
           </button>

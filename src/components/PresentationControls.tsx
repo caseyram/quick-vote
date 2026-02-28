@@ -16,6 +16,7 @@ import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation'
 import type { QRMode } from './QROverlay';
 import { TeamQRGrid } from './TeamQRGrid';
 import { TeamFilterTabs } from './TeamFilterTabs';
+import { usePresentationTheme } from '../context/PresentationThemeContext';
 
 interface PresentationControlsProps {
   sessionId: string;
@@ -73,6 +74,7 @@ export function PresentationControls({
     questions,
     session,
   } = useSessionStore();
+  const { theme: presentationTheme, toggleTheme } = usePresentationTheme();
 
   const [qrMode, setQrMode] = useState<QRMode>('hidden');
   const [blackScreenActive, setBlackScreenActive] = useState(false);
@@ -176,6 +178,16 @@ export function PresentationControls({
       type: 'broadcast',
       event: 'black_screen_toggle',
       payload: { active: newState },
+    });
+  }
+
+  function handlePresentationThemeToggle() {
+    const nextTheme = presentationTheme === 'dark' ? 'light' : 'dark';
+    toggleTheme();
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'presentation_theme_changed',
+      payload: { theme: nextTheme },
     });
   }
 
@@ -444,7 +456,11 @@ export function PresentationControls({
             </div>
           ) : (
             /* Full view: projection-style with transitions */
-            <div className="h-full bg-[#1a1a2e] relative overflow-hidden">
+            <div
+              data-presentation-theme={presentationTheme}
+              className="h-full relative overflow-hidden"
+              style={{ backgroundColor: 'var(--pres-bg)' }}
+            >
               <AnimatePresence initial={false} custom={navigationDirection}>
                 <motion.div
                   key={activeSessionItemId ?? 'none'}
@@ -693,6 +709,14 @@ export function PresentationControls({
           {/* Presentation controls */}
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Presentation</h3>
+            <button
+              onClick={handlePresentationThemeToggle}
+              className="w-full mb-2 px-3 py-2 rounded text-sm transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200"
+              title={`Presentation theme: ${presentationTheme}`}
+              aria-label={`Presentation theme: ${presentationTheme}. Click to toggle.`}
+            >
+              {presentationTheme === 'dark' ? '🌙 Dark Projection' : '☀️ Light Projection'}
+            </button>
             <button
               onClick={handleBlackScreenToggle}
               className={`w-full px-3 py-2 rounded text-sm transition-colors ${

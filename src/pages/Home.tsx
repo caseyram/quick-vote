@@ -10,8 +10,7 @@ import { useSessionTemplateStore } from '../stores/session-template-store';
 import { fetchSessionTemplates } from '../lib/session-template-api';
 
 export default function Home() {
-  const { theme } = useTheme();
-  const light = theme === 'light';
+  const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +18,6 @@ export default function Home() {
   const submittingRef = useRef(false);
   const { templates } = useSessionTemplateStore();
 
-  // Fetch templates on mount
   useEffect(() => {
     fetchSessionTemplates().catch((err) => {
       console.error('Failed to fetch templates:', err);
@@ -66,54 +64,41 @@ export default function Home() {
     }
   }
 
-  function handleCreateNew() {
-    navigate('/templates/new');
-  }
-
-  function handleNewFromTemplate(templateId: string) {
-    navigate(`/templates/${templateId}/edit?from=template`);
-  }
-
   return (
     <AdminPasswordGate>
-      <div className={`min-h-screen flex flex-col items-center justify-center px-4 py-12 gap-12 ${light ? 'bg-gray-50' : 'bg-gray-950'}`}>
-        {/* Theme toggle */}
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 gap-12 bg-[var(--bg-primary)] text-[var(--text-primary)]">
         <div className="fixed top-4 right-4 z-50">
           <ThemeToggle />
         </div>
 
         <div className="w-full max-w-md text-center space-y-8">
           <div>
-            <h1 className={`text-5xl font-bold tracking-tight ${light ? 'text-gray-900' : 'text-white'}`}>
-              QuickVote
-            </h1>
-            <p className={`mt-3 text-lg ${light ? 'text-gray-500' : 'text-gray-400'}`}>
+            <h1 className="text-5xl font-bold tracking-tight">QuickVote</h1>
+            <p className="mt-3 text-lg text-[var(--text-secondary)]">
               Create a live voting session in seconds
             </p>
           </div>
 
-          {/* Main action buttons */}
           <div className="space-y-3">
             <button
-              onClick={handleCreateNew}
-              className="w-full py-3 px-6 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg transition-colors"
+              onClick={() => navigate('/templates/new')}
+              className="w-full py-3 px-6 bg-indigo-600 hover:bg-indigo-500 text-[var(--text-primary)] font-semibold rounded-lg transition-colors"
             >
               Create New
             </button>
-            <p className={`text-sm ${light ? 'text-gray-500' : 'text-gray-500'}`}>
+            <p className="text-sm text-[var(--text-muted)]">
               Build a session in the template editor
             </p>
           </div>
 
-          {/* Quick Session section */}
-          <div className={`border-t pt-6 space-y-4 ${light ? 'border-gray-200' : 'border-gray-800'}`}>
-            <p className={`text-sm ${light ? 'text-gray-500' : 'text-gray-400'}`}>Or start a quick session directly:</p>
+          <div className="border-t border-[var(--border-primary)] pt-6 space-y-4">
+            <p className="text-sm text-[var(--text-secondary)]">Or start a quick session directly:</p>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Session title (optional)"
-              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${light ? 'bg-white border-gray-300 text-gray-900 placeholder-gray-400' : 'bg-gray-900 border-gray-700 text-white placeholder-gray-500'}`}
+              className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-[var(--bg-input)] border-[var(--border-primary)] text-[var(--text-primary)] placeholder-[var(--text-placeholder)]"
               disabled={creating}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleQuickSession();
@@ -123,29 +108,26 @@ export default function Home() {
             <button
               onClick={handleQuickSession}
               disabled={creating}
-              className={`w-full py-3 px-6 font-semibold rounded-lg transition-colors disabled:cursor-not-allowed ${light ? 'bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-900' : 'bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 text-white'}`}
+              className="w-full py-3 px-6 font-semibold rounded-lg transition-colors disabled:cursor-not-allowed bg-[var(--bg-elevated)] hover:bg-[var(--bg-surface)] disabled:opacity-70 text-[var(--text-primary)]"
             >
               {creating ? 'Creating...' : 'Quick Session'}
             </button>
 
-            {error && (
-              <p className="text-red-400 text-sm">{error}</p>
-            )}
+            {error && <p className="text-red-400 text-sm">{error}</p>}
           </div>
 
-          {/* New from Template section */}
           {templates.length > 0 && (
-            <div className={`border-t pt-6 space-y-4 ${light ? 'border-gray-200' : 'border-gray-800'}`}>
-              <p className={`text-sm ${light ? 'text-gray-500' : 'text-gray-400'}`}>New from Template:</p>
+            <div className="border-t border-[var(--border-primary)] pt-6 space-y-4">
+              <p className="text-sm text-[var(--text-secondary)]">New from Template:</p>
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {templates.slice(0, 5).map((template) => (
                   <button
                     key={template.id}
-                    onClick={() => handleNewFromTemplate(template.id)}
-                    className={`w-full text-left px-4 py-3 border rounded-lg transition-colors ${light ? 'bg-white hover:bg-gray-50 border-gray-200 text-gray-900' : 'bg-gray-900 hover:bg-gray-800 border-gray-700 text-white'}`}
+                    onClick={() => navigate(`/templates/${template.id}/edit?from=template`)}
+                    className="w-full text-left px-4 py-3 border rounded-lg transition-colors bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] border-[var(--border-primary)] text-[var(--text-primary)]"
                   >
                     <div className="font-medium">{template.name}</div>
-                    <div className={`text-sm ${light ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <div className="text-sm text-[var(--text-secondary)]">
                       {template.item_count} {template.item_count === 1 ? 'item' : 'items'}
                     </div>
                   </button>
@@ -155,7 +137,7 @@ export default function Home() {
           )}
         </div>
 
-        <PastSessions theme={theme} />
+        <PastSessions theme={resolvedTheme} />
       </div>
     </AdminPasswordGate>
   );
