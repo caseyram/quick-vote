@@ -7,7 +7,7 @@ import { useRealtimeChannel } from '../hooks/use-realtime-channel';
 import { useCountdown } from '../hooks/use-countdown';
 import { ConnectionPill } from '../components/ConnectionPill';
 import { CountdownTimer } from '../components/CountdownTimer';
-import { ParticipantCount } from '../components/ParticipantCount';
+
 import VoteAgreeDisagree from '../components/VoteAgreeDisagree';
 import VoteMultipleChoice from '../components/VoteMultipleChoice';
 import { BatchVotingCarousel } from '../components/BatchVotingCarousel';
@@ -235,7 +235,7 @@ export default function ParticipantSession() {
     setActiveBatchId(null);
     // Transition to waiting screen
     setView('waiting');
-    setWaitingMessage('Batch submitted! Waiting for results...');
+    setWaitingMessage('Questions submitted! Waiting for results...');
   }, [setBatchQuestions, setActiveBatchId]);
 
   // Channel setup callback -- registers all Broadcast listeners
@@ -405,7 +405,7 @@ export default function ParticipantSession() {
   // Realtime channel -- only enabled when we have a sessionId and we're not in error state
   // Presence is configured here so listeners are registered BEFORE subscribe
   const presenceConfig = participantId ? { userId: participantId, role: 'participant' as const } : undefined;
-  const { connectionStatus, participantCount } = useRealtimeChannel(
+  const { connectionStatus } = useRealtimeChannel(
     sessionId ? `session:${sessionId}` : '',
     setupChannel,
     !!sessionId && view !== 'error',
@@ -734,7 +734,7 @@ export default function ParticipantSession() {
             {session?.title ?? 'Session'}
           </h1>
           <p className="text-[var(--text-secondary)] text-lg mb-6">Waiting for host to start...</p>
-          <ParticipantCount count={participantCount} />
+
         </div>
       </div>
     );
@@ -751,7 +751,7 @@ export default function ParticipantSession() {
           <div className="text-center space-y-4">
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">{session?.title ?? 'Session'}</h1>
             <p className="text-[var(--text-secondary)] text-lg">{waitingMessage}</p>
-            <ParticipantCount count={participantCount} />
+  
           </div>
         </div>
       </div>
@@ -771,11 +771,7 @@ export default function ParticipantSession() {
               {session?.title ?? 'Session'} - Complete
             </h1>
             <p className="text-[var(--text-secondary)] text-center">Session has ended. Thank you for participating!</p>
-            {participantCount > 0 && (
-              <div className="flex justify-center">
-                <ParticipantCount count={participantCount} />
-              </div>
-            )}
+
             <div className="space-y-3">
               {allQuestions.map((q, i) => (
                 <div key={q.id} className="bg-[var(--bg-surface)] rounded-lg p-4">

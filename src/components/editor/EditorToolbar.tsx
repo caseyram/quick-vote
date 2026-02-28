@@ -238,9 +238,9 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
         await overwriteSessionTemplate(templateId, blueprint, itemCount);
       } else {
         const newTemplate = await saveSessionTemplate(templateName, blueprint, itemCount);
-
         useTemplateEditorStore.setState({ templateId: newTemplate.id });
-        navigate(`/templates/${newTemplate.id}/edit`, { replace: true });
+        // Update URL without triggering a re-render/reload
+        window.history.replaceState({}, '', `/templates/${newTemplate.id}/edit`);
       }
 
       markClean();
@@ -263,10 +263,9 @@ export function EditorToolbar({ onOpenPreview }: EditorToolbarProps) {
       const blueprint = toBlueprint();
       const itemCount = items.length;
       const overwritten = await overwriteSessionTemplate(overwriteConfirm.id, blueprint, itemCount);
-
       useTemplateEditorStore.setState({ templateId: overwritten.id });
-      navigate(`/templates/${overwritten.id}/edit`, { replace: true });
-
+      // Update URL without triggering a route change (avoids useBlocker race)
+      window.history.replaceState({}, '', `/templates/${overwritten.id}/edit`);
       markClean();
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);

@@ -38,7 +38,13 @@ export function BarChart({ data, totalVotes, size = 'default', theme = 'dark', b
   const isFill = size === 'fill';
 
   // When backgroundColor is provided, compute text colors from it; otherwise use theme
-  const isLight = backgroundColor ? getTextColor(backgroundColor) === 'dark' : theme === 'light';
+  // Resolve CSS custom properties (e.g. "var(--pres-bg)") to actual hex values
+  let resolvedBg = backgroundColor;
+  if (resolvedBg?.startsWith('var(')) {
+    const varName = resolvedBg.replace(/^var\(/, '').replace(/\)$/, '').trim();
+    resolvedBg = getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || undefined;
+  }
+  const isLight = resolvedBg ? getTextColor(resolvedBg) === 'dark' : theme === 'light';
 
   const countClass = isLarge
     ? `text-xl font-bold ${isLight ? 'text-gray-800' : 'text-white'}`

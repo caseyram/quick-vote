@@ -1,7 +1,110 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import { Extension } from '@tiptap/core';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { useCallback, useEffect, useRef } from 'react';
+
+// Bullet characters commonly pasted from PowerPoint, Google Slides, Keynote, etc.
+const BULLET_CHARS = /^[\u2022\u2023\u2043\u25E6\u25AA\u25AB\u25CF\u25CB\u2013\u2014\u00B7\u2219\-\*]\s*/;
+
+/**
+ * Converts plain-text bullet lines into HTML <ul><li> on paste.
+ * Handles both plain text paste and HTML paste where bullets came through as text.
+ */
+const PasteBulletConverter = Extension.create({
+  name: 'pasteBulletConverter',
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('pasteBulletConverter'),
+        props: {
+          transformPastedText(text) {
+            return convertBulletText(text);
+          },
+          transformPastedHTML(html) {
+            // If the HTML already contains proper list markup, leave it alone
+            if (/<[uo]l[\s>]/i.test(html)) return html;
+
+            // Parse as DOM and check for bullet-char lines in paragraphs/divs
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const blocks = doc.body.querySelectorAll('p, div, span');
+
+            let hasBullets = false;
+            blocks.forEach((el) => {
+              if (BULLET_CHARS.test(el.textContent?.trim() || '')) {
+                hasBullets = true;
+              }
+            });
+
+            if (!hasBullets) return html;
+
+            // Convert: walk through body children, group consecutive bullet lines into <ul>
+            return convertBulletHtml(doc.body);
+          },
+        },
+      }),
+    ];
+  },
+});
+
+function convertBulletText(text: string): string {
+  const lines = text.split('\n');
+  let result = '';
+  let inList = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (BULLET_CHARS.test(trimmed)) {
+      if (!inList) {
+        result += '<ul>';
+        inList = true;
+      }
+      result += `<li>${trimmed.replace(BULLET_CHARS, '')}</li>`;
+    } else {
+      if (inList) {
+        result += '</ul>';
+        inList = false;
+      }
+      result += trimmed ? `<p>${trimmed}</p>` : '';
+    }
+  }
+  if (inList) result += '</ul>';
+
+  return result;
+}
+
+function convertBulletHtml(body: HTMLElement): string {
+  const children = Array.from(body.childNodes);
+  let result = '';
+  let inList = false;
+
+  for (const node of children) {
+    const text = node.textContent?.trim() || '';
+    if (BULLET_CHARS.test(text)) {
+      if (!inList) {
+        result += '<ul>';
+        inList = true;
+      }
+      result += `<li>${text.replace(BULLET_CHARS, '')}</li>`;
+    } else {
+      if (inList) {
+        result += '</ul>';
+        inList = false;
+      }
+      if (node instanceof HTMLElement) {
+        result += node.outerHTML;
+      } else if (text) {
+        result += `<p>${text}</p>`;
+      }
+    }
+  }
+  if (inList) result += '</ul>';
+
+  return result;
+}
 
 interface SlideNotesEditorProps {
   content: string | null;
@@ -38,6 +141,7 @@ export function SlideNotesEditor({ content, onUpdate }: SlideNotesEditorProps) {
       Placeholder.configure({
         placeholder: 'Add presenter notes...',
       }),
+      PasteBulletConverter,
     ],
     content: content || '',
     onUpdate: ({ editor }) => {
