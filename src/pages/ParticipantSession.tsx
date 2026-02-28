@@ -14,11 +14,30 @@ import { BatchVotingCarousel } from '../components/BatchVotingCarousel';
 import { TeamPicker } from '../components/TeamPicker';
 import { TeamBadge } from '../components/TeamBadge';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { BarChart } from '../components/BarChart';
 import { fetchTemplates } from '../lib/template-api';
+import { useTheme } from '../context/ThemeContext';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Session, Question, SessionStatus } from '../types/database';
 
 type ParticipantView = 'loading' | 'lobby' | 'voting' | 'waiting' | 'results' | 'error' | 'batch-voting';
+
+/** Payload broadcast from admin when results are revealed for a question. */
+interface RevealedResultData {
+  questionId: string;
+  questionText: string;
+  chartData: Array<{ label: string; count: number; percentage: number; color: string }>;
+  totalVotes: number;
+}
+
+/** Shape of the `participant_results` broadcast payload (reveal or dismiss). */
+interface ParticipantResultsPayload {
+  questionId: string;
+  revealed: boolean;
+  questionText?: string;
+  chartData?: Array<{ label: string; count: number; percentage: number; color: string }>;
+  totalVotes?: number;
+}
 
 // Slide transition variants for question changes (AnimatePresence)
 const questionSlideVariants = {
@@ -35,6 +54,7 @@ const questionTransition = {
 export default function ParticipantSession() {
   const { sessionId } = useParams();
   const { session, setSession, reset, setBatchQuestions, setActiveBatchId, batchQuestions } = useSessionStore();
+  const { resolvedTheme } = useTheme();
 
   const [view, setView] = useState<ParticipantView>('loading');
   const [activeQuestion, setActiveQuestion] = useState<Question | null>(null);
@@ -45,6 +65,8 @@ export default function ParticipantSession() {
   const [nameInput, setNameInput] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [waitingMessage, setWaitingMessage] = useState('Waiting for next question...');
+  /** Results broadcast from admin when they reveal a question — shown in the waiting view. */
+  const [revealedResults, setRevealedResults] = useState<RevealedResultData | null>(null);
 
   // Team state
   const [participantTeam, setParticipantTeam] = useState<string | null>(null);
@@ -241,6 +263,28 @@ export default function ParticipantSession() {
   // Channel setup callback -- registers all Broadcast listeners
   const setupChannel = useCallback(
     (channel: RealtimeChannel) => {
+      // 0. participant_results: admin revealed (or un-revealed) aggregated results for a question
+      channel.on('broadcast', { event: 'participant_results' }, ({ payload }) => {
+        const p = payload as ParticipantResultsPayload;
+        if (
+          p.revealed &&
+          p.questionText !== undefined &&
+          p.chartData !== undefined &&
+          p.totalVotes !== undefined
+        ) {
+          setRevealedResults({
+            questionId: p.questionId,
+            questionText: p.questionText,
+            chartData: p.chartData,
+            totalVotes: p.totalVotes,
+          });
+          setWaitingMessage('Results are being shown...');
+        } else {
+          setRevealedResults(null);
+          setWaitingMessage('Waiting for next question...');
+        }
+      });
+
       // 1. question_activated: admin activated a new question
       channel.on('broadcast', { event: 'question_activated' }, async ({ payload }) => {
         const { questionId, timerSeconds } = payload as { questionId: string; timerSeconds: number | null };
@@ -264,12 +308,14 @@ export default function ParticipantSession() {
               .maybeSingle();
 
             if (existing) {
+              setRevealedResults(null);
               setView('waiting');
               setWaitingMessage('Vote submitted! Waiting for results...');
               return;
             }
           }
 
+          setRevealedResults(null);
           setActiveQuestion(data);
           setView('voting');
           setWaitingMessage('Waiting for next question...');
@@ -361,12 +407,14 @@ export default function ParticipantSession() {
 
             if (existingVotes && existingVotes.length >= batchQs.length) {
               // Already voted on all questions — skip to waiting
+              setRevealedResults(null);
               setView('waiting');
               setWaitingMessage('Votes submitted! Waiting for results...');
               return;
             }
           }
 
+          setRevealedResults(null);
           setBatchQuestions(batchQs);
           setActiveBatchId(batchId);
           setView('batch-voting');
@@ -391,9 +439,10 @@ export default function ParticipantSession() {
 
       // 9. slide_activated: admin navigated to a content slide
       channel.on('broadcast', { event: 'slide_activated' }, () => {
-        // Clear any active voting state
+        // Clear any active voting state and revealed results
         stopCountdown();
         setActiveQuestion(null);
+        setRevealedResults(null);
         // Show waiting state — participants don't see slide images
         setView('waiting');
         setWaitingMessage('Waiting for next question...');
@@ -747,12 +796,35 @@ export default function ParticipantSession() {
         <ConnectionPill status={connectionStatus} />
         <div className="fixed top-4 left-4 z-50"><ThemeToggle size="sm" /></div>
         {participantTeam && <TeamBadge teamName={participantTeam} />}
-        <div className="flex-1 flex items-center justify-center px-4">
-          <div className="text-center space-y-4">
-            <h1 className="text-2xl font-bold text-[var(--text-primary)]">{session?.title ?? 'Session'}</h1>
-            <p className="text-[var(--text-secondary)] text-lg">{waitingMessage}</p>
-  
-          </div>
+        <div className="flex-1 flex items-center justify-center px-4 py-8">
+          {revealedResults ? (
+            <div className="w-full max-w-sm space-y-6">
+              <h2 className="text-xl font-bold text-[var(--text-primary)] text-center leading-snug">
+                {revealedResults.questionText}
+              </h2>
+              <BarChart
+                data={revealedResults.chartData}
+                totalVotes={revealedResults.totalVotes}
+                size="large"
+                theme={resolvedTheme}
+              />
+              {/* Accessible text summary for screen readers */}
+              <p
+                className="sr-only"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {revealedResults.chartData
+                  .map((d) => `${d.label}: ${d.count} (${d.percentage}%)`)
+                  .join(' · ')}
+              </p>
+            </div>
+          ) : (
+            <div className="text-center space-y-4">
+              <h1 className="text-2xl font-bold text-[var(--text-primary)]">{session?.title ?? 'Session'}</h1>
+              <p className="text-[var(--text-secondary)] text-lg">{waitingMessage}</p>
+            </div>
+          )}
         </div>
       </div>
     );

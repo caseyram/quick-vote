@@ -191,8 +191,56 @@ export function PresentationControls({
     });
   }
 
+  // Broadcast aggregated results to the participant waiting view.
+  // When revealed=true, computes chart data from current votes and sends it.
+  // When revealed=false, sends a dismiss signal.
+  function broadcastParticipantResults(questionId: string, revealed: boolean) {
+    if (!revealed) {
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'participant_results',
+        payload: { questionId, revealed: false },
+      });
+      return;
+    }
+
+    const question = questions.find((q) => q.id === questionId);
+    const votes = sessionVotes[questionId] ?? [];
+    if (!question) return;
+
+    const aggregated = aggregateVotes(votes, null);
+    const barData = buildConsistentBarData(question, aggregated);
+    const chartData = barData.map((item, index) => {
+      let color: string;
+      if (question.type === 'agree_disagree') {
+        const colorMap: Record<string, string> = {
+          Agree: AGREE_DISAGREE_COLORS.agree,
+          Sometimes: AGREE_DISAGREE_COLORS.sometimes,
+          Disagree: AGREE_DISAGREE_COLORS.disagree,
+        };
+        color = colorMap[item.value] ?? (MULTI_CHOICE_COLORS[0] as string);
+      } else {
+        color = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length] as string;
+      }
+      return { label: item.value, count: item.count, percentage: item.percentage, color };
+    });
+
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'participant_results',
+      payload: {
+        questionId,
+        questionText: question.text,
+        chartData,
+        totalVotes: votes.length,
+        revealed: true,
+      },
+    });
+  }
+
   function handleRevealQuestion(questionId: string) {
     const isRevealed = revealedQuestions.has(questionId);
+    const willBeRevealed = !isRevealed;
     setRevealedQuestions((prev) => {
       const next = new Set(prev);
       if (isRevealed) {
@@ -206,8 +254,11 @@ export function PresentationControls({
     channelRef.current?.send({
       type: 'broadcast',
       event: 'result_reveal',
-      payload: { questionId, revealed: !isRevealed },
+      payload: { questionId, revealed: willBeRevealed },
     });
+
+    // Push aggregated results to participant waiting view
+    broadcastParticipantResults(questionId, willBeRevealed);
   }
 
   function handleRevealBatch(questionIds: string[]) {
@@ -226,7 +277,7 @@ export function PresentationControls({
       });
     });
 
-    // Also sync the currently viewed question to the projection
+    // Sync the currently viewed question to the projection
     if (!allRevealed && questionIds.length > 0) {
       // Determine which question the admin is viewing based on batch question index
       const batchQuestions = questions
@@ -238,6 +289,18 @@ export function PresentationControls({
           type: 'broadcast',
           event: 'question_selected',
           payload: { questionId: currentQ.id },
+        });
+        // Push results for the currently-selected question to participant waiting view
+        broadcastParticipantResults(currentQ.id, true);
+      }
+    } else if (allRevealed) {
+      // Un-reveal: dismiss results on participant view (use first question id as signal)
+      const firstId = questionIds[0];
+      if (firstId) {
+        channelRef.current?.send({
+          type: 'broadcast',
+          event: 'participant_results',
+          payload: { questionId: firstId, revealed: false },
         });
       }
     }
@@ -256,6 +319,10 @@ export function PresentationControls({
       event: 'reason_highlight',
       payload: { questionId, reasonId: '' },
     });
+    // Update participant results when switching to a question that's already revealed
+    if (revealedQuestions.has(questionId)) {
+      broadcastParticipantResults(questionId, true);
+    }
   }
 
   function handleReasonsPerPage(count: 1 | 2 | 4) {
