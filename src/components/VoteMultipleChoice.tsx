@@ -163,11 +163,15 @@ export default function VoteMultipleChoice({
     <div className="flex flex-col">
       {/* Question text */}
       <div className="px-4 py-6 text-center shrink-0">
-        <h2 className="text-2xl font-bold text-white">{question.text}</h2>
+        <h2 id={`question-${question.id}`} className="text-2xl font-bold text-white">{question.text}</h2>
       </div>
 
       {/* Option cards */}
-      <div className="flex flex-col gap-3 px-4">
+      <div
+        role="radiogroup"
+        aria-labelledby={`question-${question.id}`}
+        className="flex flex-col gap-3 px-4"
+      >
         {displayOptions.map((option, index) => {
           const isSelected = pendingSelection === option;
           const optionColor = MULTI_CHOICE_COLORS[index % MULTI_CHOICE_COLORS.length];
@@ -176,12 +180,14 @@ export default function VoteMultipleChoice({
             <motion.button
               key={option}
               onClick={() => handleSelect(option)}
+              role="radio"
+              aria-checked={isSelected}
               animate={{
                 backgroundColor: isSelected ? optionColor : UNSELECTED,
               }}
               whileTap={{ scale: 0.97 }}
               transition={{ backgroundColor: { duration: 0.15 }, scale: { duration: 0.1 } }}
-              className={`relative rounded-xl text-white font-semibold text-left ${
+              className={`relative rounded-xl text-white font-semibold text-left focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                 isCompact ? 'px-4 py-3 text-base' : 'px-5 py-5 text-lg'
               }`}
               style={{
@@ -201,11 +207,13 @@ export default function VoteMultipleChoice({
           <textarea
             value={reason}
             onChange={(e) => { setReason(e.target.value); setSubmitted(false); }}
+            aria-label="Reason (optional)"
             placeholder="Why? (optional)"
             rows={2}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none text-base"
           />
         )}
+        <div aria-live="polite" className="sr-only">{submitted ? 'Vote submitted' : ''}</div>
         {!batchMode && (
           <button
             onClick={submitVote}

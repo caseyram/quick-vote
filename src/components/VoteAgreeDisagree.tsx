@@ -163,21 +163,27 @@ export default function VoteAgreeDisagree({
     <div className="flex flex-col">
       {/* Question text */}
       <div className="px-4 py-6 text-center shrink-0">
-        <h2 className="text-2xl font-bold text-white">{question.text}</h2>
+        <h2 id={`question-${question.id}`} className="text-2xl font-bold text-white">{question.text}</h2>
       </div>
 
       {/* Voting buttons */}
-      <div className="flex flex-col gap-3 px-4">
+      <div
+        role="radiogroup"
+        aria-labelledby={`question-${question.id}`}
+        className="flex flex-col gap-3 px-4"
+      >
         {/* Agree button */}
         <motion.button
           ref={agreeRef}
           onClick={() => handleSelect('agree')}
+          role="radio"
+          aria-checked={pendingSelection === 'agree'}
           animate={{
             backgroundColor: pendingSelection === 'agree' ? AGREE_DISAGREE_COLORS.agree : UNSELECTED,
           }}
           whileTap={{ scale: 0.97 }}
           transition={{ backgroundColor: { duration: 0.15 }, scale: { duration: 0.1 } }}
-          className="h-[120px] flex flex-col items-center justify-center rounded-2xl text-white text-2xl font-bold"
+          className="h-[120px] flex flex-col items-center justify-center rounded-2xl text-white text-2xl font-bold focus-visible:ring-2 focus-visible:ring-indigo-500"
           style={{
             touchAction: 'manipulation',
             WebkitTapHighlightColor: 'transparent',
@@ -198,12 +204,14 @@ export default function VoteAgreeDisagree({
         <motion.button
           ref={sometimesRef}
           onClick={() => handleSelect('sometimes')}
+          role="radio"
+          aria-checked={pendingSelection === 'sometimes'}
           animate={{
             backgroundColor: pendingSelection === 'sometimes' ? AGREE_DISAGREE_COLORS.sometimes : UNSELECTED,
           }}
           whileTap={{ scale: 0.97 }}
           transition={{ backgroundColor: { duration: 0.15 }, scale: { duration: 0.1 } }}
-          className="h-[100px] flex flex-col items-center justify-center rounded-2xl text-white text-xl font-bold"
+          className="h-[100px] flex flex-col items-center justify-center rounded-2xl text-white text-xl font-bold focus-visible:ring-2 focus-visible:ring-indigo-500"
           style={{
             touchAction: 'manipulation',
             WebkitTapHighlightColor: 'transparent',
@@ -224,12 +232,14 @@ export default function VoteAgreeDisagree({
         <motion.button
           ref={disagreeRef}
           onClick={() => handleSelect('disagree')}
+          role="radio"
+          aria-checked={pendingSelection === 'disagree'}
           animate={{
             backgroundColor: pendingSelection === 'disagree' ? AGREE_DISAGREE_COLORS.disagree : UNSELECTED,
           }}
           whileTap={{ scale: 0.97 }}
           transition={{ backgroundColor: { duration: 0.15 }, scale: { duration: 0.1 } }}
-          className="h-[120px] flex flex-col items-center justify-center rounded-2xl text-white text-2xl font-bold"
+          className="h-[120px] flex flex-col items-center justify-center rounded-2xl text-white text-2xl font-bold focus-visible:ring-2 focus-visible:ring-indigo-500"
           style={{
             touchAction: 'manipulation',
             WebkitTapHighlightColor: 'transparent',
@@ -253,11 +263,13 @@ export default function VoteAgreeDisagree({
           <textarea
             value={reason}
             onChange={(e) => { setReason(e.target.value); setSubmitted(false); }}
+            aria-label="Reason (optional)"
             placeholder="Why? (optional)"
             rows={2}
             className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none text-base"
           />
         )}
+        <div aria-live="polite" className="sr-only">{submitted ? 'Vote submitted' : ''}</div>
         {!batchMode && (
           <button
             onClick={submitVote}
