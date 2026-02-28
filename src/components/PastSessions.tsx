@@ -1,12 +1,7 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import { nanoid } from 'nanoid';
+
 import { supabase } from '../lib/supabase';
-import {
-  bulkInsertQuestions,
-  questionsToTemplates,
-  batchesToTemplates,
-} from '../lib/question-templates';
 import {
   exportSession,
   downloadJSON,
@@ -14,8 +9,9 @@ import {
   sessionToCSV,
   generateExportFilename,
 } from '../lib/session-export';
+import { saveSessionTemplate } from '../lib/session-template-api';
 import { ConfirmDialog } from './ConfirmDialog';
-import type { Session, Question, Batch, SessionItem } from '../types/database';
+import type { Session, Question, Batch, SessionItem, SessionBlueprint, SessionBlueprintItem } from '../types/database';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -184,7 +180,7 @@ export function PastSessions(_props?: { theme?: 'dark' | 'light' }) {
     else handleOpen(session);
   }
 
-  async function handleUseAsTemplate(session: SessionRow) {
+  async function handleSaveAsTemplate(session: SessionRow) {
     setActionLoading(session.id);
     try {
       const [questionsResult, batchesResult, itemsResult] = await Promise.all([
@@ -205,64 +201,69 @@ export function PastSessions(_props?: { theme?: 'dark' | 'light' }) {
           .order('position', { ascending: true }),
       ]);
 
-      const srcQuestions = questionsResult.data as Question[] | null;
-      const srcBatches = batchesResult.data as Batch[] | null;
-      const srcItems = itemsResult.data as SessionItem[] | null;
+      const srcQuestions = (questionsResult.data ?? []) as Question[];
+      const srcBatches = (batchesResult.data ?? []) as Batch[];
+      const srcItems = (itemsResult.data ?? []) as SessionItem[];
 
-      if (
-        (!srcQuestions || srcQuestions.length === 0) &&
-        (!srcItems || srcItems.length === 0)
-      ) {
+      if (srcQuestions.length === 0 && srcItems.length === 0) {
         setActionLoading(null);
         return;
       }
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
+      // Build blueprint from session data
+      const blueprintItems: SessionBlueprintItem[] = srcItems.map((item, index) => {
+        if (item.item_type === 'batch' && item.batch_id) {
+          const batch = srcBatches.find((b) => b.id === item.batch_id);
+          const batchQuestions = srcQuestions
+            .filter((q) => q.batch_id === item.batch_id)
+            .sort((a, b) => a.position - b.position);
 
-      const newSessionId = nanoid();
-      const { data: newSession, error: insertErr } = await supabase
-        .from('sessions')
-        .insert({ session_id: newSessionId, title: session.title, created_by: user.id })
-        .select('admin_token')
-        .single();
-
-      if (insertErr || !newSession) return;
-
-      const questionTemplates = questionsToTemplates(srcQuestions ?? [], srcBatches ?? []);
-      const batchTemplates = batchesToTemplates(srcBatches ?? []);
-      const { batches: newBatches } = await bulkInsertQuestions(
-        newSessionId,
-        questionTemplates,
-        batchTemplates,
-        0,
-        0
-      );
-
-      const sortedSrcBatches = [...(srcBatches ?? [])].sort((a, b) => a.position - b.position);
-      const sortedNewBatches = [...newBatches].sort((a, b) => a.position - b.position);
-      const batchIdMap = new Map<string, string>();
-      sortedSrcBatches.forEach((srcBatch, idx) => {
-        if (idx < sortedNewBatches.length) {
-          batchIdMap.set(srcBatch.id, sortedNewBatches[idx].id);
+          return {
+            item_type: 'batch' as const,
+            position: index,
+            batch: {
+              name: batch?.name ?? 'Question Set',
+              timer_duration: null,
+              template_id: null,
+              cover_image_path: batch?.cover_image_path ?? null,
+              questions: batchQuestions.map((q, qi) => ({
+                text: q.text,
+                type: q.type as 'agree_disagree' | 'multiple_choice',
+                options: q.options as string[] | null,
+                anonymous: q.anonymous,
+                position: qi,
+                template_id: q.template_id ?? null,
+              })),
+            },
+          };
         }
+
+        return {
+          item_type: 'slide' as const,
+          position: index,
+          slide: {
+            image_path: item.slide_image_path ?? '',
+            caption: item.slide_caption ?? null,
+            notes: null,
+          },
+        };
       });
 
-      if (srcItems && srcItems.length > 0) {
-        const newItems = srcItems.map((item) => ({
-          session_id: newSessionId,
-          item_type: item.item_type,
-          position: item.position,
-          batch_id: item.batch_id ? (batchIdMap.get(item.batch_id) ?? null) : null,
-          slide_image_path: item.slide_image_path,
-          slide_caption: item.slide_caption,
-        }));
-        await supabase.from('session_items').insert(newItems);
-      }
+      const blueprint: SessionBlueprint = {
+        version: 1,
+        sessionItems: blueprintItems,
+      };
 
-      navigate(`/admin/${newSession.admin_token}`);
+      const template = await saveSessionTemplate(
+        `${session.title} (Template)`,
+        blueprint,
+        blueprintItems.length
+      );
+
+      navigate(`/templates/${template.id}/edit`);
+    } catch (err) {
+      console.error('Failed to save as template:', err);
+      alert(err instanceof Error ? err.message : 'Failed to save as template');
     } finally {
       setActionLoading(null);
     }
@@ -534,12 +535,12 @@ export function PastSessions(_props?: { theme?: 'dark' | 'light' }) {
 
                         {/* Use as Template */}
                         <button
-                          onClick={() => handleUseAsTemplate(s)}
+                          onClick={() => handleSaveAsTemplate(s)}
                           disabled={actionLoading === s.id || s.question_count === 0}
                           className="px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded-md transition-colors disabled:opacity-40"
-                          title="Use as template"
+                          title="Save as template and edit"
                         >
-                          {actionLoading === s.id ? 'Creating…' : 'Template'}
+                          {actionLoading === s.id ? 'Saving…' : 'Template'}
                         </button>
 
                         {/* Delete — pushed right */}
