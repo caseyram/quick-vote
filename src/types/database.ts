@@ -62,6 +62,8 @@ export interface Vote {
   locked_in: boolean;
   created_at: string;
   updated_at: string;
+  moderated_at?: string | null;
+  moderated_by?: string | null;
 }
 
 export type SessionItemType = 'batch' | 'slide';

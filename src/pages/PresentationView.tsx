@@ -38,6 +38,7 @@ export default function PresentationView() {
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
   const [sessionVotes, setSessionVotes] = useState<Record<string, Vote[]>>({});
   const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(new Set());
+  const [moderatedVoteIds, setModeratedVoteIds] = useState<Set<string>>(new Set());
   const [highlightedReason, setHighlightedReason] = useState<{ questionId: string; reasonId: string } | null>(null);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
   const [reasonsPerPage, setReasonsPerPage] = useState<1 | 2 | 4>(1);
@@ -297,6 +298,19 @@ export default function PresentationView() {
       }
     });
 
+    // Listen for response moderation from admin controls
+    channel.on('broadcast', { event: 'response_moderated' }, ({ payload }: { payload: { voteId: string; moderated: boolean } }) => {
+      setModeratedVoteIds((prev) => {
+        const next = new Set(prev);
+        if (payload.moderated) {
+          next.add(payload.voteId);
+        } else {
+          next.delete(payload.voteId);
+        }
+        return next;
+      });
+    });
+
     channelRef.current = channel;
   }, [setTheme]);
 
@@ -351,6 +365,19 @@ export default function PresentationView() {
           votesByQuestion[vote.question_id].push(vote);
         });
         setSessionVotes(votesByQuestion);
+
+        // Sync moderated IDs from DB (handles page reload case)
+        const dbModeratedIds = new Set<string>();
+        data.forEach((vote) => {
+          if (vote.moderated_at) dbModeratedIds.add(vote.id);
+        });
+        setModeratedVoteIds((prev) => {
+          // Merge: keep broadcast-applied removes, add any DB-sourced moderations
+          // Strategy: rebuild from DB truth on each poll (broadcast updates are immediate)
+          const next = new Set(prev);
+          for (const id of dbModeratedIds) next.add(id);
+          return next;
+        });
       }
     }
 
@@ -569,7 +596,7 @@ export default function PresentationView() {
                         revealedQuestions={revealedQuestions}
                         highlightedReason={highlightedReason}
                         selectedQuestionId={selectedQuestionId}
-                        
+                        moderatedVoteIds={moderatedVoteIds}
                         reasonsPerPage={reasonsPerPage}
                         teamFilter={selectedTeam}
                         theme={theme}

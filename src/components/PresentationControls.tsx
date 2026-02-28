@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { ConnectionStatus } from '../hooks/use-realtime-channel';
-import type { SessionItem, Vote } from '../types/database';
+import type { Question, SessionItem, Vote } from '../types/database';
 import { useSessionStore } from '../stores/session-store';
 import { useSequenceNavigation } from '../hooks/use-sequence-navigation';
 import { SequenceManager } from './SequenceManager';
@@ -17,6 +17,7 @@ import type { QRMode } from './QROverlay';
 import { TeamQRGrid } from './TeamQRGrid';
 import { TeamFilterTabs } from './TeamFilterTabs';
 import { usePresentationTheme } from '../context/PresentationThemeContext';
+import { moderateVote } from '../lib/vote-api';
 
 interface PresentationControlsProps {
   sessionId: string;
@@ -484,6 +485,7 @@ export function PresentationControls({
                 reasonsPerPage={reasonsPerPage}
                 onReasonsPerPageChange={handleReasonsPerPage}
                 selectedTeam={selectedTeam}
+                channelRef={channelRef}
               />
             </div>
           ) : showNextPreview ? (
@@ -861,9 +863,10 @@ function BatchControlPanel({
   reasonsPerPage,
   onReasonsPerPageChange,
   selectedTeam,
+  channelRef,
 }: {
   batchId: string;
-  questions: any[];
+  questions: Question[];
   sessionVotes: Record<string, Vote[]>;
   revealedQuestions: Set<string>;
   highlightedReasonId: string | null;
@@ -876,7 +879,41 @@ function BatchControlPanel({
   reasonsPerPage: 1 | 2 | 4;
   onReasonsPerPageChange: (count: 1 | 2 | 4) => void;
   selectedTeam: string | null;
+  channelRef: React.RefObject<RealtimeChannel | null>;
 }) {
+  // Moderation: track locally for optimistic UI; persist to DB in background
+  const [moderatedVoteIds, setModeratedVoteIds] = useState<Set<string>>(() => {
+    const ids = new Set<string>();
+    for (const votes of Object.values(sessionVotes)) {
+      for (const vote of votes) {
+        if (vote.moderated_at) ids.add(vote.id);
+      }
+    }
+    return ids;
+  });
+
+  function handleToggleModeration(e: React.MouseEvent, vote: Vote) {
+    e.stopPropagation();
+    const willBeModerated = !moderatedVoteIds.has(vote.id);
+
+    // Optimistic update
+    setModeratedVoteIds((prev) => {
+      const next = new Set(prev);
+      if (willBeModerated) next.add(vote.id);
+      else next.delete(vote.id);
+      return next;
+    });
+
+    // Broadcast for instant presentation update
+    channelRef.current?.send({
+      type: 'broadcast',
+      event: 'response_moderated',
+      payload: { voteId: vote.id, moderated: willBeModerated },
+    });
+
+    // Persist to DB in background
+    moderateVote(vote.id, willBeModerated);
+  }
   const batchQuestions = questions
     .filter((q) => q.batch_id === batchId)
     .sort((a, b) => a.position - b.position);
@@ -1373,6 +1410,7 @@ function BatchControlPanel({
                       const isActive = reasonsPerPage > 1
                         ? activePageReasonIds.has(vote.id)
                         : highlightedReasonId === vote.id;
+                      const isModerated = moderatedVoteIds.has(vote.id);
                       return (
                         <button
                           key={vote.id}
@@ -1387,11 +1425,13 @@ function BatchControlPanel({
                             }
                           }}
                           className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
-                            isActive
-                              ? 'border-indigo-600 bg-indigo-50'
-                              : isViewed
-                                ? 'border-transparent bg-green-50/60'
-                                : 'border-transparent bg-gray-50 hover:bg-gray-100'
+                            isModerated
+                              ? 'border-transparent bg-gray-50 opacity-50'
+                              : isActive
+                                ? 'border-indigo-600 bg-indigo-50'
+                                : isViewed
+                                  ? 'border-transparent bg-green-50/60'
+                                  : 'border-transparent bg-gray-50 hover:bg-gray-100'
                           }`}
                           style={{
                             borderLeftWidth: '4px',
@@ -1400,12 +1440,35 @@ function BatchControlPanel({
                         >
                           <div className="flex items-start gap-2">
                             <div className="flex-1 min-w-0">
-                              <p className={`text-sm ${isViewed && !isActive ? 'text-gray-500' : 'text-gray-800'}`}>{vote.reason}</p>
+                              <p className={`text-sm ${isModerated ? 'text-gray-400 line-through' : isViewed && !isActive ? 'text-gray-500' : 'text-gray-800'}`}>{vote.reason}</p>
                               {vote.display_name && (
                                 <p className="text-xs text-gray-500 mt-1">— {vote.display_name}</p>
                               )}
                             </div>
-                            {isViewed && !isActive && (
+                            {/* Eye toggle — moderation action */}
+                            <button
+                              onClick={(e) => handleToggleModeration(e, vote)}
+                              className={`shrink-0 mt-0.5 p-0.5 rounded transition-colors ${
+                                isModerated
+                                  ? 'text-orange-500 hover:text-orange-600 hover:bg-orange-50'
+                                  : 'text-gray-300 hover:text-gray-500 hover:bg-gray-200'
+                              }`}
+                              title={isModerated ? 'Restore response (show in presentation)' : 'Hide response from presentation'}
+                            >
+                              {isModerated ? (
+                                /* Eye slash — currently hidden */
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                </svg>
+                              ) : (
+                                /* Open eye — currently visible */
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                              )}
+                            </button>
+                            {isViewed && !isActive && !isModerated && (
                               <svg className="w-4 h-4 text-green-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                               </svg>

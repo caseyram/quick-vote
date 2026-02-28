@@ -364,7 +364,7 @@ function QuestionCard({ question, index, markAsRead, isUnread, cardRef, isActive
       color: bar.color,
       reasons: sortedVotes
         .filter((v) => v.value === bar.label && v.reason && v.reason.trim())
-        .map((v) => ({ id: v.id, text: v.reason! })),
+        .map((v) => ({ id: v.id, text: v.reason!, moderated: !!v.moderated_at })),
     }));
   }, [barData, question.votes]);
 
@@ -443,9 +443,16 @@ function QuestionCard({ question, index, markAsRead, isUnread, cardRef, isActive
                         }`}
                         style={{ borderLeft: `2px solid ${col.color}` }}
                       >
-                        <span className="text-sm lg:text-base text-gray-700">
-                          {reason.text}
-                        </span>
+                        <div className="flex items-start gap-2 flex-wrap">
+                          <span className={`text-sm lg:text-base ${reason.moderated ? 'text-gray-400' : 'text-gray-700'}`}>
+                            {reason.text}
+                          </span>
+                          {reason.moderated && (
+                            <span className="shrink-0 text-xs font-medium px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 border border-orange-200">
+                              Moderated
+                            </span>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>

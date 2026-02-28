@@ -11,6 +11,7 @@ interface BatchResultsProjectionProps {
   revealedQuestions: Set<string>;
   highlightedReason: { questionId: string; reasonId: string } | null;
   selectedQuestionId?: string | null;
+  moderatedVoteIds?: Set<string>;
   reasonsPerPage?: 1 | 2 | 4;
   teamFilter?: string | null;
   theme?: 'dark' | 'light';
@@ -24,6 +25,7 @@ export function BatchResultsProjection({
   revealedQuestions,
   highlightedReason,
   selectedQuestionId,
+  moderatedVoteIds,
   reasonsPerPage = 1,
   teamFilter,
   theme = 'dark',
@@ -95,7 +97,9 @@ export function BatchResultsProjection({
 
   const highlightedReasonData =
     highlightedReason?.questionId === currentQuestion.id
-      ? questionVotes.find((v) => v.id === highlightedReason.reasonId)
+      ? questionVotes.find(
+          (v) => v.id === highlightedReason.reasonId && !moderatedVoteIds?.has(v.id)
+        )
       : null;
 
   const getReasonColor = (voteValue: string): string => {
@@ -121,6 +125,8 @@ export function BatchResultsProjection({
   for (const opt of optionOrder) reasonsByOption[opt] = [];
 
   questionVotes.forEach((vote) => {
+    // Skip moderated responses — no indication to audience that anything was removed
+    if (moderatedVoteIds?.has(vote.id)) return;
     if (vote.reason && vote.reason.trim()) {
       const groupKey = currentQuestion.type === 'agree_disagree'
         ? (canonicalAgreeValues[vote.value.toLowerCase()] || vote.value)
