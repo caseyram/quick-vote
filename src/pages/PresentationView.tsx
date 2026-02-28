@@ -505,7 +505,7 @@ export default function PresentationView() {
                   });
                   return (
                     <div className="w-full max-w-2xl">
-                      <BarChart data={chartData} totalVotes={votes.length} size="large" backgroundColor="var(--pres-bg)" />
+                      <BarChart data={chartData} totalVotes={votes.length} size="large" theme={theme} />
                     </div>
                   );
                 })()
@@ -572,6 +572,7 @@ export default function PresentationView() {
                         
                         reasonsPerPage={reasonsPerPage}
                         teamFilter={selectedTeam}
+                        theme={theme}
                       />
                     </motion.div>
                   )}

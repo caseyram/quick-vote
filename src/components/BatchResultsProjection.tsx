@@ -13,6 +13,7 @@ interface BatchResultsProjectionProps {
   selectedQuestionId?: string | null;
   reasonsPerPage?: 1 | 2 | 4;
   teamFilter?: string | null;
+  theme?: 'dark' | 'light';
 }
 
 export function BatchResultsProjection({
@@ -25,6 +26,7 @@ export function BatchResultsProjection({
   selectedQuestionId,
   reasonsPerPage = 1,
   teamFilter,
+  theme = 'dark',
 }: BatchResultsProjectionProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -186,7 +188,7 @@ export function BatchResultsProjection({
             </div>
           )}
 
-          <BarChart data={chartData} totalVotes={questionVotes.length} size="large" backgroundColor="var(--pres-bg)" />
+          <BarChart data={chartData} totalVotes={questionVotes.length} size="large" theme={theme} />
         </div>
       </div>
 
