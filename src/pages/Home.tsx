@@ -1,7 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import { nanoid } from 'nanoid';
-import { supabase } from '../lib/supabase';
 import { AdminPasswordGate } from '../components/AdminPasswordGate';
 import { PastSessions } from '../components/PastSessions';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -11,10 +9,7 @@ import { fetchSessionTemplates, renameSessionTemplate, deleteSessionTemplate } f
 
 export default function Home() {
   const navigate = useNavigate();
-  const [title, setTitle] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
-  const submittingRef = useRef(false);
+  const [error] = useState<string | null>(null);
   const { templates } = useSessionTemplateStore();
 
   // Template management state
@@ -81,48 +76,6 @@ export default function Home() {
     });
   }, []);
 
-  async function handleCreateSession() {
-    if (submittingRef.current) return;
-    submittingRef.current = true;
-    setCreating(true);
-    setError(null);
-
-    try {
-      const sessionId = nanoid();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        setError('Authentication failed. Please refresh and try again.');
-        return;
-      }
-
-      const { data, error: insertError } = await supabase
-        .from('sessions')
-        .insert({
-          session_id: sessionId,
-          title: title.trim() || 'Untitled Session',
-          created_by: user.id,
-          reasons_enabled: true,
-        })
-        .select('admin_token')
-        .single();
-
-      if (insertError) {
-        setError(insertError.message);
-        return;
-      }
-
-      navigate(`/admin/${data.admin_token}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
-    } finally {
-      setCreating(false);
-      submittingRef.current = false;
-    }
-  }
-
   return (
     <AdminPasswordGate>
       <div
@@ -176,31 +129,7 @@ export default function Home() {
               New Session
             </button>
 
-            {/* Quick Session */}
-            <div className="space-y-2">
-              <p className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-widest px-1">
-                Quick Session
-              </p>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Session title (optional)"
-                className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-[var(--bg-input)] border-[var(--border-primary)] text-[var(--text-primary)] placeholder-[var(--text-placeholder)]"
-                disabled={creating}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCreateSession();
-                }}
-              />
-              <button
-                onClick={handleCreateSession}
-                disabled={creating}
-                className="w-full py-2 px-4 text-sm font-semibold rounded-lg transition-colors disabled:cursor-not-allowed bg-[var(--bg-elevated)] hover:bg-[var(--bg-primary)] disabled:opacity-70 text-[var(--text-primary)] border border-[var(--border-primary)]"
-              >
-                {creating ? 'Creating...' : 'Create Session'}
-              </button>
-              {error && <p className="text-red-400 text-xs px-1">{error}</p>}
-            </div>
+            {error && <p className="text-red-400 text-xs px-1">{error}</p>}
 
             {/* Templates list */}
             {templates.length > 0 && (

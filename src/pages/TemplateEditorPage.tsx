@@ -52,7 +52,7 @@ export default function TemplateEditorPage() {
 
         if (fromTemplate) {
           // Load as a copy (no template ID, so it saves as new)
-          loadFromBlueprint(null, `${template.name} (Copy)`, template.blueprint);
+          loadFromBlueprint(null, template.name, template.blueprint);
           // Clear the from parameter after loading
           window.history.replaceState({}, '', window.location.pathname);
         } else {
