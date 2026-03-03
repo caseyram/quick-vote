@@ -56,30 +56,28 @@ export function BarChart({ data, totalVotes, size = 'default', theme = 'dark', b
     ? { height: '100%' }
     : { height: isLarge ? 400 : 300 };
 
+  // Minimum px per column — enforces horizontal scroll on mobile rather than compression
+  const minColPx = isLarge ? 80 : 72;
   const colTemplate = data.length > 0
-    ? `repeat(${data.length}, minmax(0, ${isLarge ? '1fr' : '120px'}))`
+    ? `repeat(${data.length}, minmax(${minColPx}px, ${isLarge ? '1fr' : '120px'}))`
     : 'none';
-
-  // Min pixel width per column so the chart scrolls horizontally on small screens
-  const minChartWidth = data.length > 0 ? data.length * (isLarge ? 100 : 72) : 0;
 
   return (
     <div className={isFill ? 'h-full flex flex-col' : ''}>
-      {/* Horizontal scroll wrapper for mobile */}
-      <div className={`${isFill ? 'flex-1 min-h-0 overflow-x-auto' : 'overflow-x-auto'}`}>
+      {/* Horizontal scroll wrapper — prevents compression on narrow screens */}
+      <div className={`${isFill ? 'flex-1 min-h-0 ' : ''}overflow-x-auto`}>
       <div
         className={`grid justify-center ${isFill ? 'h-full' : ''}`}
         style={{
           gridTemplateColumns: colTemplate,
           gridTemplateRows: 'auto 1fr auto',
-          gap: `0 ${isLarge ? '2rem' : '1rem'}`,
-          minWidth: minChartWidth,
+          gap: `0 ${isLarge ? '1.5rem' : '1rem'}`,
           ...(isFill ? undefined : heightStyle),
         }}
       >
         {/* Row 1: counts */}
         {data.map((item) => (
-          <div key={`count-${item.label}`} className={`${countClass} text-center break-words mb-1`}>
+          <div key={`count-${item.label}`} className={`${countClass} text-center whitespace-nowrap mb-1`}>
             {item.count} ({item.percentage}%)
           </div>
         ))}
