@@ -571,7 +571,7 @@ export function PresentationControls({
                       </button>
                     </div>
                     <div className="w-12 h-1 bg-gray-300 group-hover:bg-indigo-400 rounded-full transition-colors" />
-                    <div className="w-16" {/* spacer to center the handle */} />
+                    <div className="w-16" />
                   </div>
                   <div
                     className="overflow-y-auto p-4 bg-white rounded-lg border border-gray-200"
