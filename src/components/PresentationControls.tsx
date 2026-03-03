@@ -33,6 +33,7 @@ interface PresentationControlsProps {
   countdownRemaining: number;
   countdownRunning: boolean;
   onCloseVoting: (questionId: string) => void;
+  presenterKey: string;
 }
 
 const timerOptions = [
@@ -68,6 +69,7 @@ export function PresentationControls({
   countdownRemaining,
   countdownRunning,
   onCloseVoting,
+  presenterKey,
 }: PresentationControlsProps) {
   const {
     sessionItems,
@@ -95,6 +97,8 @@ export function PresentationControls({
   const [notesFontSize, setNotesFontSize] = useState(14); // px
   // Notes are always visible under active slide — no toggle needed
   const presentationWindowRef = useRef<Window | null>(null);
+
+  // presenterKey is passed down from AdminSession — gates navigation broadcasts
   const isDraggingNotesRef = useRef(false);
   const dragStartYRef = useRef(0);
   const dragStartHeightRef = useRef(0);
@@ -158,7 +162,7 @@ export function PresentationControls({
   const participantUrl = `${window.location.origin}/session/${sessionId}`;
 
   function handleOpenPresentation() {
-    const url = `${window.location.origin}/presentation/${sessionId}`;
+    const url = `${window.location.origin}/presentation/${sessionId}?pk=${presenterKey}`;
     const win = window.open(
       url,
       'QuickVotePresentation',
@@ -183,13 +187,13 @@ export function PresentationControls({
         channelRef.current?.send({
           type: 'broadcast',
           event: 'slide_activated',
-          payload: { itemId: item.id, direction: null },
+          payload: { itemId: item.id, direction: null, presenterKey },
         });
       } else if (item.item_type === 'batch' && item.batch_id) {
         channelRef.current?.send({
           type: 'broadcast',
           event: 'batch_activated',
-          payload: { batchId: item.batch_id },
+          payload: { batchId: item.batch_id, presenterKey },
         });
       }
     }, 3000);

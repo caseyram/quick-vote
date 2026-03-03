@@ -19,6 +19,10 @@ import { usePresentationTheme } from '../context/PresentationThemeContext';
 export default function PresentationView() {
   const { sessionId } = useParams();
   const { theme, setTheme } = usePresentationTheme();
+
+  // Read the presenterKey from URL — only nav broadcasts with matching key are accepted.
+  // If no key in URL (e.g. direct load), accept all broadcasts for backward compat.
+  const presenterKey = new URLSearchParams(window.location.search).get('pk');
   const {
     activeSessionItemId,
     sessionItems,
@@ -159,15 +163,17 @@ export default function PresentationView() {
 
   // Realtime channel setup
   const setupChannel = useCallback((channel: RealtimeChannel) => {
-    // Listen for slide activations
+    // Listen for slide activations — only accept from the linked admin (presenterKey guard)
     channel.on('broadcast', { event: 'slide_activated' }, ({ payload }: any) => {
+      if (presenterKey && payload.presenterKey && payload.presenterKey !== presenterKey) return;
       useSessionStore.getState().setActiveSessionItemId(payload.itemId);
       useSessionStore.getState().setNavigationDirection(payload.direction ?? 'forward');
       setActiveInlineQuestion(null); // Clear any inline question
     });
 
-    // Listen for batch activations - also reset reveal state
+    // Listen for batch activations — only accept from the linked admin (presenterKey guard)
     channel.on('broadcast', { event: 'batch_activated' }, async ({ payload }: any) => {
+      if (presenterKey && payload.presenterKey && payload.presenterKey !== presenterKey) return;
       setRevealedQuestions(new Set());
       setHighlightedReason(null);
       setSelectedQuestionId(null);
