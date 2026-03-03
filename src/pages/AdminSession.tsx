@@ -704,7 +704,16 @@ export default function AdminSession() {
   async function handleActivateBatch(batchId: string, timerDuration: number | null = null) {
     if (!session) return;
 
-    // 1. Close any active live questions first
+    // 1. Close any previously active batches in DB (prevents duplicate active batches
+    //    which breaks participant maybeSingle() queries on refresh)
+    await supabase
+      .from('batches')
+      .update({ status: 'closed' as const })
+      .eq('session_id', session.session_id)
+      .eq('status', 'active')
+      .neq('id', batchId);
+
+    // Close any active live questions
     await supabase
       .from('questions')
       .update({ status: 'closed' as const })

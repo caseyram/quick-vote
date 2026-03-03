@@ -159,13 +159,16 @@ export default function ParticipantSession() {
     }
 
     if (statusData.status === 'active') {
-      // First check for an active batch (participant may have disconnected during batch voting)
-      const { data: activeBatch, error: batchError } = await supabase
+      // First check for an active batch (participant may have disconnected during batch voting).
+      // Use limit(1) instead of maybeSingle() so duplicate-active-batch DB state doesn't error.
+      const { data: activeBatchRows, error: batchError } = await supabase
         .from('batches')
         .select('*')
         .eq('session_id', sessionId)
         .eq('status', 'active')
-        .maybeSingle();
+        .order('id', { ascending: false })
+        .limit(1);
+      const activeBatch = activeBatchRows?.[0] ?? null;
 
       if (batchError) {
         console.warn('Failed to query active batch:', batchError.message);
@@ -556,13 +559,16 @@ export default function ParticipantSession() {
       let hasBatchActive = false;
       let alreadyVoted = false;
       if (sessionData.status === 'active') {
-        // First check for active batch
-        const { data: activeBatch, error: batchErr } = await supabase
+        // First check for active batch. Use limit(1) to avoid maybeSingle() error
+        // when multiple batches are incorrectly left active in the DB.
+        const { data: activeBatchRows, error: batchErr } = await supabase
           .from('batches')
           .select('*')
           .eq('session_id', sessionId)
           .eq('status', 'active')
-          .maybeSingle();
+          .order('id', { ascending: false })
+          .limit(1);
+        const activeBatch = activeBatchRows?.[0] ?? null;
 
         if (batchErr) {
           console.warn('Failed to query active batch on load:', batchErr.message);
