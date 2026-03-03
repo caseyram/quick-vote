@@ -783,7 +783,7 @@ export default function ParticipantSession() {
       <div className="min-h-dvh bg-[var(--bg-primary)] flex flex-col">
         <ConnectionPill status={connectionStatus} />
         <div className="fixed top-4 left-4 z-50"><ThemeToggle size="sm" /></div>
-        {participantTeam && <TeamBadge teamName={participantTeam} />}
+        
         <div className="flex-1 flex flex-col items-center justify-center px-4">
           <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-4 text-center">
             {session?.title ?? 'Session'}
@@ -801,7 +801,7 @@ export default function ParticipantSession() {
       <div className="min-h-dvh bg-[var(--bg-primary)] flex flex-col">
         <ConnectionPill status={connectionStatus} />
         <div className="fixed top-4 left-4 z-50"><ThemeToggle size="sm" /></div>
-        {participantTeam && <TeamBadge teamName={participantTeam} />}
+        
         <div className="flex-1 flex items-center justify-center px-4 py-8">
           {revealedResults ? (
             <div className="w-full max-w-sm space-y-6">
@@ -842,7 +842,7 @@ export default function ParticipantSession() {
       <div className="min-h-dvh bg-[var(--bg-primary)] flex flex-col">
         <ConnectionPill status={connectionStatus} />
         <div className="fixed top-4 left-4 z-50"><ThemeToggle size="sm" /></div>
-        {participantTeam && <TeamBadge teamName={participantTeam} />}
+        
         <div className="flex-1 py-8 px-4">
           <div className="max-w-lg mx-auto space-y-6">
             <h1 className="text-3xl font-bold text-[var(--text-primary)] text-center">
@@ -874,7 +874,7 @@ export default function ParticipantSession() {
       <div className="min-h-dvh bg-[var(--bg-primary)] flex flex-col">
         <ConnectionPill status={connectionStatus} />
         <div className="fixed top-4 left-4 z-50"><ThemeToggle size="sm" /></div>
-        {participantTeam && <TeamBadge teamName={participantTeam} />}
+        
         {/* Timer at top when running */}
         {isRunning && (
           <div className="flex justify-center px-4 py-2 shrink-0">
@@ -939,7 +939,7 @@ export default function ParticipantSession() {
         {/* Connection pill - always visible in top-right */}
         <ConnectionPill status={connectionStatus} />
         <div className="fixed top-4 left-4 z-50"><ThemeToggle size="sm" /></div>
-        {participantTeam && <TeamBadge teamName={participantTeam} />}
+        
 
         {/* Minimal top bar - only timer when active, no header/nav */}
         {isRunning && (
