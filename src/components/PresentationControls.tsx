@@ -92,6 +92,7 @@ export function PresentationControls({
   const [linkCopied, setLinkCopied] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [notesHeight, setNotesHeight] = useState(192);
+  const [notesFontSize, setNotesFontSize] = useState(14); // px
   // Notes are always visible under active slide — no toggle needed
   const presentationWindowRef = useRef<Window | null>(null);
   const isDraggingNotesRef = useRef(false);
@@ -547,19 +548,38 @@ export function PresentationControls({
               {/* Presenter Notes - draggable panel below both columns */}
               {currentItem?.item_type === 'slide' && currentItem.slide_notes && (
                 <>
-                  {/* Drag handle */}
+                  {/* Drag handle + font size controls */}
                   <div
-                    className="mt-3 h-2 flex items-center justify-center cursor-row-resize group select-none"
+                    className="mt-3 h-6 flex items-center justify-between px-2 cursor-row-resize group select-none"
                     onMouseDown={handleNotesDragStart}
                   >
+                    <div className="flex items-center gap-1" onMouseDown={e => e.stopPropagation()}>
+                      <button
+                        onClick={() => setNotesFontSize(s => Math.max(10, s - 2))}
+                        className="px-1.5 py-0.5 text-xs font-bold text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors leading-none"
+                        title="Decrease font size"
+                      >
+                        A−
+                      </button>
+                      <span className="text-xs text-gray-400 w-7 text-center">{notesFontSize}px</span>
+                      <button
+                        onClick={() => setNotesFontSize(s => Math.min(32, s + 2))}
+                        className="px-1.5 py-0.5 text-sm font-bold text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors leading-none"
+                        title="Increase font size"
+                      >
+                        A+
+                      </button>
+                    </div>
                     <div className="w-12 h-1 bg-gray-300 group-hover:bg-indigo-400 rounded-full transition-colors" />
+                    <div className="w-16" {/* spacer to center the handle */} />
                   </div>
                   <div
                     className="overflow-y-auto p-4 bg-white rounded-lg border border-gray-200"
                     style={{ height: notesHeight }}
                   >
                     <div
-                      className="prose prose-sm max-w-none text-gray-800 leading-relaxed"
+                      className="prose max-w-none text-gray-800 leading-relaxed"
+                      style={{ fontSize: notesFontSize }}
                       dangerouslySetInnerHTML={{ __html: currentItem.slide_notes }}
                     />
                   </div>
