@@ -91,8 +91,12 @@ export function PresentationControls({
   const [qrExpanded, setQrExpanded] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [notesHeight, setNotesHeight] = useState(192);
   // Notes are always visible under active slide — no toggle needed
   const presentationWindowRef = useRef<Window | null>(null);
+  const isDraggingNotesRef = useRef(false);
+  const dragStartYRef = useRef(0);
+  const dragStartHeightRef = useRef(0);
 
   // Auto-hide next preview when presentation window closes
   useEffect(() => {
@@ -105,6 +109,33 @@ export function PresentationControls({
     }, 1000);
     return () => clearInterval(interval);
   }, [showNextPreview]);
+
+  // Notes panel drag-to-resize
+  function handleNotesDragStart(e: React.MouseEvent) {
+    isDraggingNotesRef.current = true;
+    dragStartYRef.current = e.clientY;
+    dragStartHeightRef.current = notesHeight;
+    e.preventDefault();
+  }
+
+  useEffect(() => {
+    function handleMouseMove(e: MouseEvent) {
+      if (!isDraggingNotesRef.current) return;
+      // Dragging up increases notes height
+      const delta = dragStartYRef.current - e.clientY;
+      const newHeight = Math.max(64, Math.min(600, dragStartHeightRef.current + delta));
+      setNotesHeight(newHeight);
+    }
+    function handleMouseUp() {
+      isDraggingNotesRef.current = false;
+    }
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
 
   // Wrap onActivateSequenceItem to capture navigation direction
   const handleActivateItem = useCallback((item: SessionItem, direction: 'forward' | 'backward') => {
@@ -513,14 +544,26 @@ export function PresentationControls({
                 </div>
               </div>
 
-              {/* Presenter Notes - full width below both columns */}
+              {/* Presenter Notes - draggable panel below both columns */}
               {currentItem?.item_type === 'slide' && currentItem.slide_notes && (
-                <div className="mt-3 p-4 bg-white rounded-lg border border-gray-200 max-h-48 overflow-y-auto">
-                  <div 
-                    className="prose prose-sm max-w-none text-gray-800 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: currentItem.slide_notes }}
-                  />
-                </div>
+                <>
+                  {/* Drag handle */}
+                  <div
+                    className="mt-3 h-2 flex items-center justify-center cursor-row-resize group select-none"
+                    onMouseDown={handleNotesDragStart}
+                  >
+                    <div className="w-12 h-1 bg-gray-300 group-hover:bg-indigo-400 rounded-full transition-colors" />
+                  </div>
+                  <div
+                    className="overflow-y-auto p-4 bg-white rounded-lg border border-gray-200"
+                    style={{ height: notesHeight }}
+                  >
+                    <div
+                      className="prose prose-sm max-w-none text-gray-800 leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: currentItem.slide_notes }}
+                    />
+                  </div>
+                </>
               )}
             </div>
           ) : (
@@ -1494,7 +1537,7 @@ function ProjectionPreview({ item, fullSize }: { item: SessionItem; fullSize?: b
 
   if (item.item_type === 'slide' && item.slide_image_path) {
     return (
-      <div className={`w-full h-full ${fullSize ? '' : 'scale-50'} origin-center`}>
+      <div className="w-full h-full">
         <SlideDisplay imagePath={item.slide_image_path} caption={item.slide_caption} />
       </div>
     );
