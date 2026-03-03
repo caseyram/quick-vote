@@ -12,7 +12,6 @@ import VoteAgreeDisagree from '../components/VoteAgreeDisagree';
 import VoteMultipleChoice from '../components/VoteMultipleChoice';
 import { BatchVotingCarousel } from '../components/BatchVotingCarousel';
 import { TeamPicker } from '../components/TeamPicker';
-import { TeamBadge } from '../components/TeamBadge';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { BarChart } from '../components/BarChart';
 import { fetchTemplates } from '../lib/template-api';
