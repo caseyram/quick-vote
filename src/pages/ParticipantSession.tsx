@@ -802,34 +802,10 @@ export default function ParticipantSession() {
         <div className="fixed top-4 left-4 z-50"><ThemeToggle size="sm" /></div>
         
         <div className="flex-1 flex items-center justify-center px-4 py-8">
-          {revealedResults ? (
-            <div className="w-full max-w-sm space-y-6">
-              <h2 className="text-xl font-bold text-[var(--text-primary)] text-center leading-snug">
-                {revealedResults.questionText}
-              </h2>
-              <BarChart
-                data={revealedResults.chartData}
-                totalVotes={revealedResults.totalVotes}
-                size="large"
-                theme={resolvedTheme}
-              />
-              {/* Accessible text summary for screen readers */}
-              <p
-                className="sr-only"
-                aria-live="polite"
-                aria-atomic="true"
-              >
-                {revealedResults.chartData
-                  .map((d) => `${d.label}: ${d.count} (${d.percentage}%)`)
-                  .join(' · ')}
-              </p>
-            </div>
-          ) : (
-            <div className="text-center space-y-4">
-              <h1 className="text-2xl font-bold text-[var(--text-primary)]">{session?.title ?? 'Session'}</h1>
-              <p className="text-[var(--text-secondary)] text-lg">{waitingMessage}</p>
-            </div>
-          )}
+          <div className="text-center space-y-4">
+            <h1 className="text-2xl font-bold text-[var(--text-primary)]">{session?.title ?? 'Session'}</h1>
+            <p className="text-[var(--text-secondary)] text-lg">{waitingMessage}</p>
+          </div>
         </div>
       </div>
     );
