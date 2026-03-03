@@ -60,20 +60,26 @@ export function BarChart({ data, totalVotes, size = 'default', theme = 'dark', b
     ? `repeat(${data.length}, minmax(0, ${isLarge ? '1fr' : '120px'}))`
     : 'none';
 
+  // Min pixel width per column so the chart scrolls horizontally on small screens
+  const minChartWidth = data.length > 0 ? data.length * (isLarge ? 100 : 72) : 0;
+
   return (
     <div className={isFill ? 'h-full flex flex-col' : ''}>
+      {/* Horizontal scroll wrapper for mobile */}
+      <div className={`${isFill ? 'flex-1 min-h-0 overflow-x-auto' : 'overflow-x-auto'}`}>
       <div
-        className={`grid justify-center ${isFill ? 'flex-1 min-h-0' : ''}`}
+        className={`grid justify-center ${isFill ? 'h-full' : ''}`}
         style={{
           gridTemplateColumns: colTemplate,
           gridTemplateRows: 'auto 1fr auto',
-          gap: `0 ${isLarge ? '2rem' : '1.5rem'}`,
+          gap: `0 ${isLarge ? '2rem' : '1rem'}`,
+          minWidth: minChartWidth,
           ...(isFill ? undefined : heightStyle),
         }}
       >
         {/* Row 1: counts */}
         {data.map((item) => (
-          <div key={`count-${item.label}`} className={`${countClass} text-center whitespace-nowrap mb-1`}>
+          <div key={`count-${item.label}`} className={`${countClass} text-center break-words mb-1`}>
             {item.count} ({item.percentage}%)
           </div>
         ))}
@@ -98,6 +104,7 @@ export function BarChart({ data, totalVotes, size = 'default', theme = 'dark', b
           </div>
         ))}
       </div>
+      </div>{/* end scroll wrapper */}
       {totalVotes !== undefined && (
         <div className={`${totalClass} text-center mt-3 shrink-0`}>
           Total: {totalVotes} votes

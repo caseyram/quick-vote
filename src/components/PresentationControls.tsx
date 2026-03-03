@@ -633,7 +633,21 @@ export function PresentationControls({
                   'bg-gray-400 animate-pulse'
                 }`} />
                 <span className="text-white/80 text-xs">
-                  {participantCount} connected
+                  {(() => {
+                    // Show submissions/connections for active item
+                    if (currentItem?.item_type === 'batch' && currentItem.batch_id) {
+                      const batchVotes = questions
+                        .filter(q => q.batch_id === currentItem.batch_id)
+                        .reduce((sum, q) => {
+                          const v = sessionVotes[q.id] ?? [];
+                          return sum + v.length;
+                        }, 0);
+                      const qCount = questions.filter(q => q.batch_id === currentItem.batch_id).length;
+                      const expected = participantCount * qCount;
+                      return `${batchVotes}/${expected} submissions`;
+                    }
+                    return `${participantCount} connected`;
+                  })()}
                 </span>
               </div>
 
