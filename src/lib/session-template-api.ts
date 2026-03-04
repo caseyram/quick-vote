@@ -222,6 +222,10 @@ export function serializeSession(
  * Creates batches, questions, and session_items from the blueprint.
  * Validates response template references.
  *
+ * Optimized: bulk inserts replace sequential per-row round trips.
+ * Round trips: (1) bulk batches → (2) bulk validate templates →
+ *              (3+4 parallel) bulk questions + bulk session_items
+ *
  * @param sessionId - Session to load template into
  * @param blueprint - SessionBlueprint to materialize
  * @returns Object with missingTemplateCount for UI warnings
@@ -230,98 +234,107 @@ export async function loadTemplateIntoSession(
   sessionId: string,
   blueprint: SessionBlueprint
 ): Promise<{ missingTemplateCount: number }> {
-  // Clone blueprint to prevent mutation
   const clonedBlueprint = structuredClone(blueprint);
   let missingTemplateCount = 0;
 
-  // Process each item in order
-  for (const item of clonedBlueprint.sessionItems) {
-    if (item.item_type === 'batch' && item.batch) {
-      // Create batch
-      const { data: newBatch, error: batchError } = await supabase
-        .from('batches')
-        .insert({
+  const batchItems = clonedBlueprint.sessionItems.filter(
+    (i) => i.item_type === 'batch' && i.batch
+  );
+  const slideItems = clonedBlueprint.sessionItems.filter(
+    (i) => i.item_type === 'slide' && i.slide
+  );
+
+  // ── Phase 1: Bulk insert all batches ─────────────────────────────────────
+  // position is unique per session, so we use it as the mapping key.
+  const batchIdByPosition = new Map<number, string>();
+
+  if (batchItems.length > 0) {
+    const { data: newBatches, error: batchError } = await supabase
+      .from('batches')
+      .insert(
+        batchItems.map((item) => ({
           session_id: sessionId,
-          name: item.batch.name,
+          name: item.batch!.name,
           position: item.position,
           status: 'pending',
-          cover_image_path: item.batch.cover_image_path ?? null,
-        })
-        .select()
-        .single();
+          cover_image_path: item.batch!.cover_image_path ?? null,
+        }))
+      )
+      .select();
 
-      if (batchError) throw batchError;
-
-      // Create questions for this batch
-      for (const questionBlueprint of item.batch.questions) {
-        let templateId = questionBlueprint.template_id;
-
-        // Validate template_id if set
-        if (templateId) {
-          const { data: templateExists, error: templateError } = await supabase
-            .from('response_templates')
-            .select('id')
-            .eq('id', templateId)
-            .maybeSingle();
-
-          if (templateError) throw templateError;
-
-          if (!templateExists) {
-            templateId = null;
-            missingTemplateCount++;
-          }
-        }
-
-        const { error: questionError } = await supabase
-          .from('questions')
-          .insert({
-            session_id: sessionId,
-            text: questionBlueprint.text,
-            type: questionBlueprint.type,
-            options: questionBlueprint.options,
-            anonymous: questionBlueprint.anonymous,
-            position: questionBlueprint.position,
-            status: 'pending',
-            batch_id: newBatch.id,
-            template_id: templateId,
-          })
-          .select()
-          .single();
-
-        if (questionError) throw questionError;
-      }
-
-      // Create session_item for batch
-      const { error: itemError } = await supabase
-        .from('session_items')
-        .insert({
-          session_id: sessionId,
-          item_type: 'batch',
-          position: item.position,
-          batch_id: newBatch.id,
-        })
-        .select()
-        .single();
-
-      if (itemError) throw itemError;
-    } else if (item.item_type === 'slide' && item.slide) {
-      // Create session_item for slide
-      const { error: slideError } = await supabase
-        .from('session_items')
-        .insert({
-          session_id: sessionId,
-          item_type: 'slide',
-          position: item.position,
-          slide_image_path: item.slide.image_path,
-          slide_caption: item.slide.caption,
-          slide_notes: item.slide.notes,
-        })
-        .select()
-        .single();
-
-      if (slideError) throw slideError;
+    if (batchError) throw batchError;
+    for (const batch of newBatches ?? []) {
+      batchIdByPosition.set(batch.position, batch.id);
     }
   }
+
+  // ── Phase 2: Validate all template IDs in one query ──────────────────────
+  const allTemplateIds = new Set<string>();
+  for (const item of batchItems) {
+    for (const q of item.batch!.questions) {
+      if (q.template_id) allTemplateIds.add(q.template_id);
+    }
+  }
+
+  const validTemplateIds = new Set<string>();
+  if (allTemplateIds.size > 0) {
+    const { data: validTemplates, error: templateError } = await supabase
+      .from('response_templates')
+      .select('id')
+      .in('id', [...allTemplateIds]);
+
+    if (templateError) throw templateError;
+    for (const t of validTemplates ?? []) validTemplateIds.add(t.id);
+    missingTemplateCount = allTemplateIds.size - validTemplateIds.size;
+  }
+
+  // ── Phase 3 + 4 (parallel): bulk questions + bulk session_items ──────────
+  const allQuestions = batchItems.flatMap((item) => {
+    const batchId = batchIdByPosition.get(item.position);
+    if (!batchId) return [];
+    return item.batch!.questions.map((q) => ({
+      session_id: sessionId,
+      text: q.text,
+      type: q.type,
+      options: q.options,
+      anonymous: q.anonymous,
+      position: q.position,
+      status: 'pending',
+      batch_id: batchId,
+      template_id: q.template_id && validTemplateIds.has(q.template_id) ? q.template_id : null,
+    }));
+  });
+
+  const allSessionItems = [
+    ...batchItems
+      .filter((item) => batchIdByPosition.has(item.position))
+      .map((item) => ({
+        session_id: sessionId,
+        item_type: 'batch' as const,
+        position: item.position,
+        batch_id: batchIdByPosition.get(item.position)!,
+      })),
+    ...slideItems.map((item) => ({
+      session_id: sessionId,
+      item_type: 'slide' as const,
+      position: item.position,
+      slide_image_path: item.slide!.image_path,
+      slide_caption: item.slide!.caption,
+      slide_notes: item.slide!.notes,
+    })),
+  ];
+
+  const [questionsResult, itemsResult] = await Promise.all([
+    allQuestions.length > 0
+      ? supabase.from('questions').insert(allQuestions)
+      : Promise.resolve({ error: null }),
+    allSessionItems.length > 0
+      ? supabase.from('session_items').insert(allSessionItems)
+      : Promise.resolve({ error: null }),
+  ]);
+
+  if (questionsResult.error) throw questionsResult.error;
+  if (itemsResult.error) throw itemsResult.error;
 
   return { missingTemplateCount };
 }
