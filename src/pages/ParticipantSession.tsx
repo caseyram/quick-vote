@@ -13,9 +13,7 @@ import VoteMultipleChoice from '../components/VoteMultipleChoice';
 import { BatchVotingCarousel } from '../components/BatchVotingCarousel';
 import { TeamPicker } from '../components/TeamPicker';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { BarChart } from '../components/BarChart';
 import { fetchTemplates } from '../lib/template-api';
-import { useTheme } from '../context/ThemeContext';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { Session, Question, SessionStatus } from '../types/database';
 
@@ -53,7 +51,6 @@ const questionTransition = {
 export default function ParticipantSession() {
   const { sessionId } = useParams();
   const { session, setSession, reset, setBatchQuestions, setActiveBatchId, batchQuestions } = useSessionStore();
-  const { resolvedTheme } = useTheme();
 
   const [view, setView] = useState<ParticipantView>('loading');
   const [activeQuestion, setActiveQuestion] = useState<Question | null>(null);
@@ -65,7 +62,7 @@ export default function ParticipantSession() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [waitingMessage, setWaitingMessage] = useState('Waiting for next question...');
   /** Results broadcast from admin when they reveal a question — shown in the waiting view. */
-  const [revealedResults, setRevealedResults] = useState<RevealedResultData | null>(null);
+  const [, setRevealedResults] = useState<RevealedResultData | null>(null);
 
   // Team state
   const [participantTeam, setParticipantTeam] = useState<string | null>(null);
