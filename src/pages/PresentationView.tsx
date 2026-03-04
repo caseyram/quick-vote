@@ -17,12 +17,12 @@ import { TeamQRGrid } from '../components/TeamQRGrid';
 import { usePresentationTheme } from '../context/PresentationThemeContext';
 
 export default function PresentationView() {
-  const { sessionId } = useParams();
+  const { adminToken } = useParams();
   const { theme, setTheme } = usePresentationTheme();
 
-  // Read the presenterKey from URL — only nav broadcasts with matching key are accepted.
-  // If no key in URL (e.g. direct load), accept all broadcasts for backward compat.
-  const presenterKey = new URLSearchParams(window.location.search).get('pk');
+  // realSessionId is resolved from adminToken after the initial session fetch.
+  // All channel subscriptions and DB queries use this value.
+  const [realSessionId, setRealSessionId] = useState<string | null>(null);
   const {
     activeSessionItemId,
     sessionItems,
@@ -55,7 +55,7 @@ export default function PresentationView() {
 
   // Load session data on mount
   useEffect(() => {
-    if (!sessionId) return;
+    if (!adminToken) return;
 
     let cancelled = false;
 
@@ -63,10 +63,12 @@ export default function PresentationView() {
       setLoading(true);
       setError(null);
 
+      // Fetch session by admin_token — this is the access gate.
+      // No one can load the presentation without the secret admin token.
       const { data: sessionData, error: sessionError } = await supabase
         .from('sessions')
         .select('*')
-        .eq('session_id', sessionId)
+        .eq('admin_token', adminToken)
         .single();
 
       if (cancelled) return;
@@ -79,12 +81,14 @@ export default function PresentationView() {
       }
 
       setSession(sessionData);
+      const sid = sessionData.session_id;
+      if (!cancelled) setRealSessionId(sid);
 
       // Fetch batches
       const { data: batchesData } = await supabase
         .from('batches')
         .select('*')
-        .eq('session_id', sessionId)
+        .eq('session_id', sid)
         .order('position', { ascending: true });
 
       if (batchesData && !cancelled) {
@@ -95,7 +99,7 @@ export default function PresentationView() {
       const { data: questionsData } = await supabase
         .from('questions')
         .select('*')
-        .eq('session_id', sessionId)
+        .eq('session_id', sid)
         .order('position', { ascending: true });
 
       if (questionsData && !cancelled) {
@@ -106,7 +110,7 @@ export default function PresentationView() {
       const { data: itemsData } = await supabase
         .from('session_items')
         .select('*')
-        .eq('session_id', sessionId)
+        .eq('session_id', sid)
         .order('position', { ascending: true });
 
       if (itemsData && !cancelled) {
@@ -120,7 +124,7 @@ export default function PresentationView() {
         const { data: activeBatch } = await supabase
           .from('batches')
           .select('*')
-          .eq('session_id', sessionId)
+          .eq('session_id', realSessionId!)
           .eq('status', 'active')
           .maybeSingle();
 
@@ -140,7 +144,7 @@ export default function PresentationView() {
           const { data: activeQ } = await supabase
             .from('questions')
             .select('*')
-            .eq('session_id', sessionId)
+            .eq('session_id', realSessionId!)
             .eq('status', 'active')
             .maybeSingle();
 
@@ -159,21 +163,19 @@ export default function PresentationView() {
     return () => {
       cancelled = true;
     };
-  }, [sessionId, setSession, setQuestions, setBatches, setLoading, setError]);
+  }, [adminToken, setSession, setQuestions, setBatches, setLoading, setError]);
 
   // Realtime channel setup
   const setupChannel = useCallback((channel: RealtimeChannel) => {
-    // Listen for slide activations — only accept from the linked admin (presenterKey guard)
+    // Listen for slide activations
     channel.on('broadcast', { event: 'slide_activated' }, ({ payload }: any) => {
-      if (presenterKey && payload.presenterKey && payload.presenterKey !== presenterKey) return;
       useSessionStore.getState().setActiveSessionItemId(payload.itemId);
       useSessionStore.getState().setNavigationDirection(payload.direction ?? 'forward');
       setActiveInlineQuestion(null); // Clear any inline question
     });
 
-    // Listen for batch activations — only accept from the linked admin (presenterKey guard)
+    // Listen for batch activations
     channel.on('broadcast', { event: 'batch_activated' }, async ({ payload }: any) => {
-      if (presenterKey && payload.presenterKey && payload.presenterKey !== presenterKey) return;
       setRevealedQuestions(new Set());
       setHighlightedReason(null);
       setSelectedQuestionId(null);
@@ -189,11 +191,11 @@ export default function PresentationView() {
 
       // If session_item not found locally (e.g. Go Live created a new batch),
       // re-fetch session_items, batches, and questions from DB
-      if (!batchItem && sessionId) {
+      if (!batchItem && realSessionId) {
         const [itemsRes, batchesRes, questionsRes] = await Promise.all([
-          supabase.from('session_items').select('*').eq('session_id', sessionId).order('position', { ascending: true }),
-          supabase.from('batches').select('*').eq('session_id', sessionId).order('position', { ascending: true }),
-          supabase.from('questions').select('*').eq('session_id', sessionId).order('position', { ascending: true }),
+          supabase.from('session_items').select('*').eq('session_id', realSessionId!).order('position', { ascending: true }),
+          supabase.from('batches').select('*').eq('session_id', realSessionId!).order('position', { ascending: true }),
+          supabase.from('questions').select('*').eq('session_id', realSessionId!).order('position', { ascending: true }),
         ]);
         if (itemsRes.data) useSessionStore.getState().setSessionItems(itemsRes.data);
         if (batchesRes.data) useSessionStore.getState().setBatches(batchesRes.data);
@@ -321,9 +323,9 @@ export default function PresentationView() {
   }, [setTheme]);
 
   const { connectionStatus } = useRealtimeChannel(
-    sessionId ? `session:${sessionId}` : '',
+    realSessionId ? `session:${realSessionId}` : '',
     setupChannel,
-    !!sessionId
+    !!realSessionId
   );
 
   // Refetch state on reconnect
@@ -331,13 +333,13 @@ export default function PresentationView() {
     if (
       prevConnectionStatus.current === 'reconnecting' &&
       connectionStatus === 'connected' &&
-      sessionId
+      realSessionId
     ) {
       // Re-fetch current session state to ensure sync
       supabase
         .from('sessions')
         .select('*')
-        .eq('session_id', sessionId)
+        .eq('session_id', realSessionId!)
         .single()
         .then(({ data }) => {
           if (data) {
@@ -346,7 +348,7 @@ export default function PresentationView() {
         });
     }
     prevConnectionStatus.current = connectionStatus;
-  }, [connectionStatus, sessionId, setSession]);
+  }, [connectionStatus, realSessionId, setSession]);
 
   // Subscribe to session status and teams from store
   const sessionStatus = useSessionStore((s) => s.session?.status);
@@ -354,13 +356,13 @@ export default function PresentationView() {
 
   // Poll votes every 3 seconds when session is active
   useEffect(() => {
-    if (!sessionId || sessionStatus !== 'active') return;
+    if (!realSessionId || sessionStatus !== 'active') return;
 
     async function pollVotes() {
       const { data } = await supabase
         .from('votes')
         .select('*')
-        .eq('session_id', sessionId);
+        .eq('session_id', realSessionId!);
 
       if (data) {
         const votesByQuestion: Record<string, Vote[]> = {};
@@ -394,7 +396,7 @@ export default function PresentationView() {
     const interval = setInterval(pollVotes, 3000);
 
     return () => clearInterval(interval);
-  }, [sessionId, sessionStatus]);
+  }, [realSessionId, sessionStatus]);
 
   // Set page title
   useEffect(() => {
@@ -491,7 +493,7 @@ export default function PresentationView() {
     }),
   };
 
-  const sessionUrl = sessionId ? `${window.location.origin}/session/${sessionId}` : '';
+  const sessionUrl = realSessionId ? `${window.location.origin}/session/${realSessionId}` : '';
 
   return (
     <div
@@ -625,7 +627,7 @@ export default function PresentationView() {
       {qrMode === 'fullscreen' && session?.teams && session.teams.length > 0 ? (
         <div className="fixed inset-0 z-[100]">
           <TeamQRGrid
-            sessionId={sessionId!}
+            sessionId={realSessionId!}
             teams={session.teams}
             onClose={() => {}}
             participantUrl={sessionUrl}

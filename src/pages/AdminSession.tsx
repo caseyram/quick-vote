@@ -54,17 +54,6 @@ export default function AdminSession() {
   const [teamInput, setTeamInput] = useState('');
   const [teamError, setTeamError] = useState<string | null>(null);
 
-  // Unique key for this admin tab — gates navigation broadcasts so only the
-  // admin who opened the presentation window can drive slide/batch changes.
-  const [presenterKey] = useState<string>(() => {
-    const storageKey = `pkey:${adminToken}`;
-    const existing = sessionStorage.getItem(storageKey);
-    if (existing) return existing;
-    const generated = crypto.randomUUID();
-    sessionStorage.setItem(storageKey, generated);
-    return generated;
-  });
-
   // Track session ID in a ref for the channel setup callback
   const sessionIdRef = useRef<string | null>(null);
 
@@ -762,7 +751,7 @@ export default function AdminSession() {
     channelRef.current?.send({
       type: 'broadcast',
       event: 'batch_activated',
-      payload: { batchId, questionIds, timerSeconds: timerDuration, presenterKey },
+      payload: { batchId, questionIds, timerSeconds: timerDuration },
     });
 
     // 6. Start countdown if timer is set
@@ -848,7 +837,7 @@ export default function AdminSession() {
       channelRef.current?.send({
         type: 'broadcast',
         event: 'slide_activated',
-        payload: { itemId: item.id, presenterKey },
+        payload: { itemId: item.id },
       });
     }
   }
@@ -1162,7 +1151,7 @@ export default function AdminSession() {
           countdownRemaining={countdownRemaining}
           countdownRunning={countdownRunning}
           onCloseVoting={handleCloseVotingInternal}
-          presenterKey={presenterKey}
+          adminToken={adminToken ?? ''}
         />
       )}
 

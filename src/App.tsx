@@ -27,7 +27,7 @@ const router = createBrowserRouter([
       { path: '/admin', element: <Navigate to="/" replace /> },
       { path: '/admin/review/:sessionId', element: <SessionReview /> },
       { path: '/admin/:adminToken', element: <AdminSession /> },
-      { path: '/presentation/:sessionId', element: <PresentationView /> },
+      { path: '/presentation/:adminToken', element: <PresentationView /> },
       { path: '/session/:sessionId', element: <ParticipantSession /> },
       { path: '/templates/new', element: <TemplateEditorPage /> },
       { path: '/templates/:id/edit', element: <TemplateEditorPage /> },
