@@ -6,7 +6,6 @@ import { useRealtimeChannel } from '../hooks/use-realtime-channel';
 import { useCountdown } from '../hooks/use-countdown';
 import { BatchCard } from '../components/BatchCard';
 import { SequenceManager } from '../components/SequenceManager';
-import { SessionQRCode } from '../components/QRCode';
 import SessionResults from '../components/SessionResults';
 import { ConnectionBanner } from '../components/ConnectionBanner';
 import { AdminControlBar } from '../components/AdminControlBar';
@@ -1179,9 +1178,6 @@ export default function AdminSession() {
           </div>
         </div>
       )}
-
-      {/* QR Code overlay — always visible (hideable) */}
-      <SessionQRCode url={participantUrl} visible />
 
       {/* Test FAB — visible when test mode enabled */}
       <DevTestFab
