@@ -105,7 +105,7 @@ export function BarChart({ data, totalVotes, size = 'default', theme = 'dark', b
       </div>{/* end scroll wrapper */}
       {totalVotes !== undefined && (
         <div className={`${totalClass} text-center mt-3 shrink-0`}>
-          Total: {totalVotes} votes
+          {totalVotes} {totalVotes === 1 ? 'response' : 'responses'}
         </div>
       )}
     </div>

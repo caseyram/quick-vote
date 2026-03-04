@@ -6,29 +6,51 @@ interface VoteProgressBarProps {
   participantCount: number;
 }
 
+/**
+ * Count participants who have submitted votes for ALL questions in the batch.
+ */
+function countCompletedParticipants(
+  batchQuestionIds: string[],
+  sessionVotes: Record<string, Vote[]>
+): number {
+  if (batchQuestionIds.length === 0) return 0;
+
+  // Build a map: participantId -> set of questionIds they've answered
+  const participantQuestions = new Map<string, Set<string>>();
+  for (const qId of batchQuestionIds) {
+    const votes = sessionVotes[qId] ?? [];
+    for (const vote of votes) {
+      let qs = participantQuestions.get(vote.participant_id);
+      if (!qs) {
+        qs = new Set();
+        participantQuestions.set(vote.participant_id, qs);
+      }
+      qs.add(qId);
+    }
+  }
+
+  // A participant is "done" when they've answered every question
+  const total = batchQuestionIds.length;
+  let completed = 0;
+  for (const qs of participantQuestions.values()) {
+    if (qs.size >= total) completed++;
+  }
+  return completed;
+}
+
+export { countCompletedParticipants };
+
 export function VoteProgressBar({
   batchQuestionIds,
   sessionVotes,
   participantCount,
 }: VoteProgressBarProps) {
-  // Calculate total votes across all batch questions
-  const totalVotes = batchQuestionIds.reduce(
-    (sum, qId) => sum + (sessionVotes[qId]?.length || 0),
-    0
-  );
-
-  // Calculate expected votes
-  const totalExpected = batchQuestionIds.length * participantCount;
+  const completed = countCompletedParticipants(batchQuestionIds, sessionVotes);
 
   // Guard against division by zero
-  const percent = totalExpected === 0 ? 0 : Math.min(100, (totalVotes / totalExpected) * 100);
+  const percent = participantCount === 0 ? 0 : Math.min(100, (completed / participantCount) * 100);
 
-  // Check if all questions have complete votes
-  const allComplete =
-    participantCount > 0 &&
-    batchQuestionIds.every(
-      (qId) => (sessionVotes[qId]?.length || 0) >= participantCount
-    );
+  const allComplete = participantCount > 0 && completed >= participantCount;
 
   // Bar color: green when complete, blue otherwise
   const barColor = allComplete ? 'bg-green-500' : 'bg-blue-500';
@@ -43,9 +65,9 @@ export function VoteProgressBar({
         />
       </div>
 
-      {/* Vote count */}
+      {/* Participant completion count */}
       <span className="text-xs text-gray-500 font-medium whitespace-nowrap">
-        {totalVotes}/{totalExpected}
+        {completed}/{participantCount} done
       </span>
     </div>
   );

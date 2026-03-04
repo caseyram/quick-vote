@@ -18,6 +18,7 @@ import { TeamQRGrid } from './TeamQRGrid';
 import { TeamFilterTabs } from './TeamFilterTabs';
 import { usePresentationTheme } from '../context/PresentationThemeContext';
 import { moderateVote } from '../lib/vote-api';
+import { countCompletedParticipants } from './VoteProgressBar';
 
 interface PresentationControlsProps {
   sessionId: string;
@@ -638,17 +639,13 @@ export function PresentationControls({
                 }`} />
                 <span className="text-white/80 text-xs">
                   {(() => {
-                    // Show submissions/connections for active item
+                    // Show completed participants / total for active batch
                     if (currentItem?.item_type === 'batch' && currentItem.batch_id) {
-                      const batchVotes = questions
+                      const batchQIds = questions
                         .filter(q => q.batch_id === currentItem.batch_id)
-                        .reduce((sum, q) => {
-                          const v = sessionVotes[q.id] ?? [];
-                          return sum + v.length;
-                        }, 0);
-                      const qCount = questions.filter(q => q.batch_id === currentItem.batch_id).length;
-                      const expected = participantCount * qCount;
-                      return `${batchVotes}/${expected} submissions`;
+                        .map(q => q.id);
+                      const completed = countCompletedParticipants(batchQIds, sessionVotes);
+                      return `${completed}/${participantCount} done`;
                     }
                     return `${participantCount} connected`;
                   })()}

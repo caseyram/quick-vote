@@ -20,14 +20,19 @@ describe('BarChart', () => {
     expect(screen.getByText('2 (40%)')).toBeDefined();
   });
 
-  it('renders total votes when provided', () => {
+  it('renders response count when provided', () => {
     render(<BarChart data={sampleData} totalVotes={5} />);
-    expect(screen.getByText('Total: 5 votes')).toBeDefined();
+    expect(screen.getByText('5 responses')).toBeDefined();
   });
 
-  it('does not render total when not provided', () => {
+  it('renders singular response for 1', () => {
+    render(<BarChart data={sampleData} totalVotes={1} />);
+    expect(screen.getByText('1 response')).toBeDefined();
+  });
+
+  it('does not render response count when not provided', () => {
     render(<BarChart data={sampleData} />);
-    expect(screen.queryByText(/Total:/)).toBeNull();
+    expect(screen.queryByText(/responses?/)).toBeNull();
   });
 
   it('renders with light theme', () => {
