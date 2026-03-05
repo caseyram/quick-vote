@@ -1083,6 +1083,9 @@ function BatchControlPanel({
     0,
   );
 
+  // Count participants who have submitted all questions in this batch
+  const completedSubmissions = countCompletedParticipants(batchQuestionIds, sessionVotes);
+
   // Flatten all reasons for playback and keyboard navigation
   const allReasons = Object.entries(reasonsByOption).flatMap(([, votes]) => votes);
 
@@ -1301,7 +1304,7 @@ function BatchControlPanel({
           ))}
         </div>
         <div className="ml-auto flex items-center gap-3">
-          <span className="text-sm text-gray-500">{totalBatchVotes} vote{totalBatchVotes !== 1 ? 's' : ''}</span>
+          <span className="text-sm text-gray-500">{completedSubmissions}/{participantCount} submitted</span>
           <button
             onClick={() => onRevealBatch(batchQuestionIds)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
