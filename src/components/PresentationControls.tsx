@@ -523,6 +523,7 @@ export function PresentationControls({
                 onReasonsPerPageChange={handleReasonsPerPage}
                 selectedTeam={selectedTeam}
                 channelRef={channelRef}
+                participantCount={participantCount}
               />
             </div>
           ) : showNextPreview ? (
@@ -942,6 +943,7 @@ function BatchControlPanel({
   onReasonsPerPageChange,
   selectedTeam,
   channelRef,
+  participantCount,
 }: {
   batchId: string;
   questions: Question[];
@@ -958,6 +960,7 @@ function BatchControlPanel({
   onReasonsPerPageChange: (count: 1 | 2 | 4) => void;
   selectedTeam: string | null;
   channelRef: React.RefObject<RealtimeChannel | null>;
+  participantCount: number;
 }) {
   // Moderation: track locally for optimistic UI; persist to DB in background
   const [moderatedVoteIds, setModeratedVoteIds] = useState<Set<string>>(() => {
@@ -1074,15 +1077,6 @@ function BatchControlPanel({
 
   const batchQuestionIds = batchQuestions.map((q) => q.id);
   const allRevealed = batchQuestionIds.every((id) => revealedQuestions.has(id));
-  const totalBatchVotes = batchQuestionIds.reduce(
-    (sum, id) => {
-      const votes = sessionVotes[id] || [];
-      const filteredVotes = selectedTeam ? votes.filter(v => v.team_id === selectedTeam) : votes;
-      return sum + filteredVotes.length;
-    },
-    0,
-  );
-
   // Count participants who have submitted all questions in this batch
   const completedSubmissions = countCompletedParticipants(batchQuestionIds, sessionVotes);
 
