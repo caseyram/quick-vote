@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router';
 import { nanoid } from 'nanoid';
 import { supabase } from '../lib/supabase';
 import { loadTemplateIntoSession } from '../lib/session-template-api';
@@ -9,14 +8,15 @@ interface CreateFromTemplateDialogProps {
   isOpen: boolean;
   template: SessionTemplate | null;
   onClose: () => void;
+  onCreated?: () => void;
 }
 
 export function CreateFromTemplateDialog({
   isOpen,
   template,
   onClose,
+  onCreated,
 }: CreateFromTemplateDialogProps) {
-  const navigate = useNavigate();
   const [sessionName, setSessionName] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,9 +74,9 @@ export function CreateFromTemplateDialog({
       // Load the template blueprint into the session
       await loadTemplateIntoSession(newSessionId, template!.blueprint);
 
-      // Navigate to the admin page
+      // Close modal and notify parent so sessions list refreshes
       onClose();
-      navigate(`/admin/${data.admin_token}`);
+      onCreated?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
       setCreating(false);

@@ -20,6 +20,7 @@ export default function Home() {
   const [deleteTemplateTarget, setDeleteTemplateTarget] = useState<{ id: string; name: string } | null>(null);
   const [deletingTemplate, setDeletingTemplate] = useState(false);
   const [launchTemplate, setLaunchTemplate] = useState<SessionTemplate | null>(null);
+  const [sessionsRefreshKey, setSessionsRefreshKey] = useState(0);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const stored = localStorage.getItem('qv-sidebar-width');
     return stored ? parseInt(stored, 10) : 280;
@@ -218,7 +219,7 @@ export default function Home() {
 
           {/* ── Right panel ─────────────────────────────────────── */}
           <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <PastSessions />
+            <PastSessions refreshKey={sessionsRefreshKey} />
           </main>
         </div>
       </div>
@@ -236,6 +237,7 @@ export default function Home() {
         isOpen={launchTemplate !== null}
         template={launchTemplate}
         onClose={() => setLaunchTemplate(null)}
+        onCreated={() => setSessionsRefreshKey((k) => k + 1)}
       />
     </AdminPasswordGate>
   );

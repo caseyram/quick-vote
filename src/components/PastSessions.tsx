@@ -78,8 +78,7 @@ function primaryActionLabel(status: string): string {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 /** Right-panel component: monthly-grouped session list with search + month jump. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function PastSessions(_props?: { theme?: 'dark' | 'light' }) {
+export function PastSessions({ refreshKey }: { refreshKey?: number }) {
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -137,7 +136,7 @@ export function PastSessions(_props?: { theme?: 'dark' | 'light' }) {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [refreshKey]);
 
   // ── Debounced search ───────────────────────────────────────────────────────
   useEffect(() => {
