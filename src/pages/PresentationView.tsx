@@ -356,7 +356,7 @@ export default function PresentationView() {
 
   // Poll votes every 3 seconds when session is active
   useEffect(() => {
-    if (!realSessionId || sessionStatus !== 'active') return;
+    if (!realSessionId || (sessionStatus !== 'active' && sessionStatus !== 'lobby')) return;
 
     async function pollVotes() {
       const { data } = await supabase
