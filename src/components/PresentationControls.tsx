@@ -479,7 +479,13 @@ export function PresentationControls({
             participantCount={participantCount}
           />
         </div>
-        <div className="p-4 border-t border-gray-200 shrink-0">
+        <div className="p-4 border-t border-gray-200 shrink-0 space-y-2">
+          <button
+            onClick={() => window.location.href = '/'}
+            className="w-full px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors text-sm font-medium"
+          >
+            ← Back to Home
+          </button>
           <button
             onClick={onEndSession}
             className="w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
