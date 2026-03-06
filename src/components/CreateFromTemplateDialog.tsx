@@ -60,6 +60,7 @@ export function CreateFromTemplateDialog({
         .insert({
           session_id: newSessionId,
           title: trimmed,
+          status: 'lobby',
           created_by: user.id,
         })
         .select('admin_token')
