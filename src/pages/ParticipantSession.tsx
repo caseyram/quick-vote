@@ -154,7 +154,7 @@ export default function ParticipantSession() {
       return;
     }
 
-    if (statusData.status === 'active') {
+    if (statusData.status === 'active' || statusData.status === 'lobby') {
       // First check for an active batch (participant may have disconnected during batch voting).
       // Use limit(1) instead of maybeSingle() so duplicate-active-batch DB state doesn't error.
       const { data: activeBatchRows, error: batchError } = await supabase
@@ -554,7 +554,7 @@ export default function ParticipantSession() {
       let question: Question | null = null;
       let hasBatchActive = false;
       let alreadyVoted = false;
-      if (sessionData.status === 'active') {
+      if (sessionData.status === 'active' || sessionData.status === 'lobby') {
         // First check for active batch. Use limit(1) to avoid maybeSingle() error
         // when multiple batches are incorrectly left active in the DB.
         const { data: activeBatchRows, error: batchErr } = await supabase
@@ -687,6 +687,27 @@ export default function ParticipantSession() {
       refetchState();
     }
   }, [connectionStatus, refetchState]);
+
+  // Periodic state sync — catches missed broadcasts (e.g. screen was inactive)
+  // Only runs when participant is in lobby or waiting, not during active voting
+  useEffect(() => {
+    if (view !== 'lobby' && view !== 'waiting') return;
+    const interval = setInterval(() => {
+      refetchState();
+    }, 10_000);
+    return () => clearInterval(interval);
+  }, [view, refetchState]);
+
+  // Re-sync when tab becomes visible again (catches missed broadcasts)
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === 'visible') {
+        refetchState();
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [refetchState]);
 
   // Cleanup on unmount
   useEffect(() => {
