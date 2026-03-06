@@ -111,23 +111,23 @@ export function PastSessions({ refreshKey }: { refreshKey?: number }) {
 
       const { data } = await supabase
         .from('sessions')
-        .select('*, questions(count), votes(participant_id)')
+        .select('*, session_items(count), votes(participant_id)')
         .order('created_at', { ascending: false });
 
       if (data) {
         const rows: SessionRow[] = data.map(
-          (row: Session & { questions?: Array<{ count: number }>; votes?: Array<{ participant_id: string }> }) => ({
+          (row: Session & { session_items?: Array<{ count: number }>; votes?: Array<{ participant_id: string }> }) => ({
             ...row,
             question_count:
-              Array.isArray(row.questions) && row.questions.length > 0
-                ? row.questions[0].count
+              Array.isArray(row.session_items) && row.session_items.length > 0
+                ? row.session_items[0].count
                 : 0,
             participant_count: new Set(
               (row.votes ?? [])
                 .filter((v) => v.participant_id !== row.created_by)
                 .map((v) => v.participant_id)
             ).size,
-            questions: undefined,
+            session_items: undefined,
             votes: undefined,
           })
         );
