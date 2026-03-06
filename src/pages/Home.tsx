@@ -4,8 +4,10 @@ import { AdminPasswordGate } from '../components/AdminPasswordGate';
 import { PastSessions } from '../components/PastSessions';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { CreateFromTemplateDialog } from '../components/CreateFromTemplateDialog';
 import { useSessionTemplateStore } from '../stores/session-template-store';
 import { fetchSessionTemplates, renameSessionTemplate, deleteSessionTemplate } from '../lib/session-template-api';
+import type { SessionTemplate } from '../types/database';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -17,6 +19,7 @@ export default function Home() {
   const [renameTemplateValue, setRenameTemplateValue] = useState('');
   const [deleteTemplateTarget, setDeleteTemplateTarget] = useState<{ id: string; name: string } | null>(null);
   const [deletingTemplate, setDeletingTemplate] = useState(false);
+  const [launchTemplate, setLaunchTemplate] = useState<SessionTemplate | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const stored = localStorage.getItem('qv-sidebar-width');
     return stored ? parseInt(stored, 10) : 280;
@@ -154,9 +157,7 @@ export default function Home() {
                         />
                       ) : (
                         <button
-                          onClick={() =>
-                            navigate(`/templates/${template.id}/edit?from=template`)
-                          }
+                          onClick={() => setLaunchTemplate(template)}
                           className="flex-1 text-left px-3 py-2 rounded-lg transition-colors hover:bg-[var(--bg-elevated)] min-w-0"
                         >
                           <div className="text-sm font-medium text-[var(--text-primary)] truncate">
@@ -168,6 +169,18 @@ export default function Home() {
                           </div>
                         </button>
                       )}
+                      {/* Edit template */}
+                      <button
+                        onClick={() =>
+                          navigate(`/templates/${template.id}/edit?from=template`)
+                        }
+                        className="p-1.5 rounded-md transition-colors text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] opacity-0 group-hover:opacity-100 shrink-0"
+                        title="Edit template"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        </svg>
+                      </button>
                       {/* Rename */}
                       <button
                         onClick={() => {
@@ -178,7 +191,7 @@ export default function Home() {
                         title="Rename template"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
                         </svg>
                       </button>
                       {/* Delete */}
@@ -218,6 +231,11 @@ export default function Home() {
         confirmLabel="Delete"
         confirmVariant="danger"
         loading={deletingTemplate}
+      />
+      <CreateFromTemplateDialog
+        isOpen={launchTemplate !== null}
+        template={launchTemplate}
+        onClose={() => setLaunchTemplate(null)}
       />
     </AdminPasswordGate>
   );
