@@ -31,6 +31,7 @@ interface SequenceManagerProps {
   onActivateItem?: (item: SessionItem, direction: 'forward' | 'backward') => void;
   sessionVotes?: Record<string, Vote[]>;
   participantCount?: number;
+  liveParticipantCount?: number;
 }
 
 export function SequenceManager({
@@ -43,6 +44,7 @@ export function SequenceManager({
   onActivateItem,
   sessionVotes,
   participantCount,
+  liveParticipantCount,
 }: SequenceManagerProps) {
   const { sessionItems, batches, questions } = useSessionStore();
   const [_activeId, setActiveId] = useState<string | null>(null);
@@ -187,6 +189,7 @@ export function SequenceManager({
                 }
                 sessionVotes={sessionVotes}
                 participantCount={participantCount}
+                liveParticipantCount={liveParticipantCount}
               />
             ))}
           </div>
@@ -248,6 +251,7 @@ export function SequenceManager({
                     }
                     sessionVotes={sessionVotes}
                     participantCount={participantCount}
+                    liveParticipantCount={liveParticipantCount}
                   />
                 ))}
               </div>

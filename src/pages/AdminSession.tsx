@@ -265,7 +265,7 @@ export default function AdminSession() {
 
   // Realtime channel — connect during draft too so broadcasts work on Go Live
   const presenceConfig = userId ? { userId, role: 'admin' as const } : undefined;
-  const { channelRef, connectionStatus, participantCount } = useRealtimeChannel(
+  const { channelRef, connectionStatus, participantCount, peakParticipantCount } = useRealtimeChannel(
     session?.session_id ? `session:${session.session_id}` : '',
     setupChannel,
     !!session?.session_id && !isEnded,
@@ -1139,7 +1139,8 @@ export default function AdminSession() {
         <PresentationControls
           sessionId={session.session_id}
           sessionTitle={session.title}
-          participantCount={participantCount}
+          participantCount={peakParticipantCount}
+          liveParticipantCount={participantCount}
           connectionStatus={connectionStatus}
           channelRef={channelRef}
           sessionVotes={sessionVotes}

@@ -4,6 +4,7 @@ interface VoteProgressBarProps {
   batchQuestionIds: string[];
   sessionVotes: Record<string, Vote[]>;
   participantCount: number;
+  liveParticipantCount?: number;
 }
 
 /**
@@ -44,6 +45,7 @@ export function VoteProgressBar({
   batchQuestionIds,
   sessionVotes,
   participantCount,
+  liveParticipantCount,
 }: VoteProgressBarProps) {
   const completed = countCompletedParticipants(batchQuestionIds, sessionVotes);
 
@@ -54,6 +56,8 @@ export function VoteProgressBar({
 
   // Bar color: green when complete, blue otherwise
   const barColor = allComplete ? 'bg-green-500' : 'bg-blue-500';
+
+  const showDropoff = liveParticipantCount !== undefined && liveParticipantCount < participantCount;
 
   return (
     <div className="flex items-center gap-2 mt-1">
@@ -68,6 +72,9 @@ export function VoteProgressBar({
       {/* Participant completion count */}
       <span className="text-xs text-gray-500 font-medium whitespace-nowrap">
         {completed}/{participantCount} done
+        {showDropoff && (
+          <span className="text-gray-400"> · {liveParticipantCount} connected</span>
+        )}
       </span>
     </div>
   );

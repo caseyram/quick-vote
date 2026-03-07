@@ -24,6 +24,7 @@ interface PresentationControlsProps {
   sessionId: string;
   sessionTitle: string;
   participantCount: number;
+  liveParticipantCount?: number;
   connectionStatus: ConnectionStatus;
   channelRef: React.RefObject<RealtimeChannel | null>;
   sessionVotes: Record<string, Vote[]>;
@@ -60,6 +61,7 @@ export function PresentationControls({
   sessionId,
   sessionTitle,
   participantCount,
+  liveParticipantCount,
   connectionStatus,
   channelRef,
   sessionVotes,
@@ -477,6 +479,7 @@ export function PresentationControls({
             onActivateItem={handleActivateItem}
             sessionVotes={sessionVotes}
             participantCount={participantCount}
+            liveParticipantCount={liveParticipantCount}
           />
         </div>
         <div className="p-4 border-t border-gray-200 shrink-0 space-y-2">
@@ -646,15 +649,16 @@ export function PresentationControls({
                 }`} />
                 <span className="text-white/80 text-xs">
                   {(() => {
+                    const live = liveParticipantCount ?? participantCount;
                     // Show completed participants / total for active batch
                     if (currentItem?.item_type === 'batch' && currentItem.batch_id) {
                       const batchQIds = questions
                         .filter(q => q.batch_id === currentItem.batch_id)
                         .map(q => q.id);
                       const completed = countCompletedParticipants(batchQIds, sessionVotes);
-                      return `${completed}/${participantCount} done`;
+                      return `${completed}/${participantCount} done · ${live} connected`;
                     }
-                    return `${participantCount} connected`;
+                    return `${live} connected${participantCount > live ? ` (${participantCount} peak)` : ''}`;
                   })()}
                 </span>
               </div>
@@ -885,7 +889,10 @@ export function PresentationControls({
 
           {/* Participant count */}
           <div className="pt-4 border-t border-gray-200">
-            <ParticipantCount count={participantCount} size="default" />
+            <ParticipantCount count={liveParticipantCount ?? participantCount} size="default" />
+            {participantCount > (liveParticipantCount ?? participantCount) && (
+              <p className="text-xs text-gray-400 mt-1">{participantCount} peak</p>
+            )}
           </div>
 
           {/* Keyboard shortcuts */}

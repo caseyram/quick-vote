@@ -17,6 +17,7 @@ interface SequenceItemCardProps {
   batchQuestionIds?: string[];
   sessionVotes?: Record<string, Vote[]>;
   participantCount?: number;
+  liveParticipantCount?: number;
 }
 
 export function SequenceItemCard({
@@ -32,6 +33,7 @@ export function SequenceItemCard({
   batchQuestionIds,
   sessionVotes,
   participantCount,
+  liveParticipantCount,
 }: SequenceItemCardProps) {
   const {
     attributes,
@@ -127,6 +129,7 @@ export function SequenceItemCard({
                   batchQuestionIds={batchQuestionIds}
                   sessionVotes={sessionVotes}
                   participantCount={participantCount}
+                  liveParticipantCount={liveParticipantCount}
                 />
               )}
           </button>

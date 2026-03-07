@@ -42,6 +42,7 @@ export function useRealtimeChannel(
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>('connecting');
   const [participantCount, setParticipantCount] = useState(0);
+  const [peakParticipantCount, setPeakParticipantCount] = useState(0);
   const leaveTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(
     new Map()
   );
@@ -70,6 +71,7 @@ export function useRealtimeChannel(
           }
         }
         setParticipantCount(count);
+        setPeakParticipantCount((prev) => Math.max(prev, count));
       });
 
       channel.on('presence', { event: 'leave' }, ({ key }) => {
@@ -131,5 +133,5 @@ export function useRealtimeChannel(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channelName, enabled, presenceConfig?.userId, presenceConfig?.role]);
 
-  return { channelRef, connectionStatus, participantCount };
+  return { channelRef, connectionStatus, participantCount, peakParticipantCount };
 }
