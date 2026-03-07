@@ -295,10 +295,10 @@ export default function AdminSession() {
         }
         setSessionVotes(voteMap);
       }
-    }, 10000);
+    }, activeBatchId ? 3000 : 10000);
 
     return () => clearInterval(interval);
-  }, [isActive, session?.session_id]);
+  }, [isActive, session?.session_id, activeBatchId]);
 
   // Page-level countdown - purely visual reminder, does NOT auto-close voting
   const handleCountdownComplete = useCallback(() => {
