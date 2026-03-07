@@ -8,6 +8,7 @@ import AdminSession from './pages/AdminSession';
 import ParticipantSession from './pages/ParticipantSession';
 import PresentationView from './pages/PresentationView';
 import TemplateEditorPage from './pages/TemplateEditorPage';
+import ResultsMonitor from './pages/ResultsMonitor';
 
 function RootLayout() {
   return (
@@ -29,6 +30,7 @@ const router = createBrowserRouter([
       { path: '/admin/:adminToken', element: <AdminSession /> },
       { path: '/presentation/:adminToken', element: <PresentationView /> },
       { path: '/session/:sessionId', element: <ParticipantSession /> },
+      { path: '/results/:sessionId', element: <ResultsMonitor /> },
       { path: '/templates/new', element: <TemplateEditorPage /> },
       { path: '/templates/:id/edit', element: <TemplateEditorPage /> },
     ],

@@ -95,6 +95,7 @@ export function PresentationControls({
   const [navigationDirection, setNavigationDirection] = useState<'forward' | 'backward' | null>(null);
   const [qrExpanded, setQrExpanded] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [monitorLinkCopied, setMonitorLinkCopied] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [notesHeight, setNotesHeight] = useState(192);
   const [notesFontSize, setNotesFontSize] = useState(14); // px
@@ -163,6 +164,7 @@ export function PresentationControls({
     : null;
 
   const participantUrl = `${window.location.origin}/session/${sessionId}`;
+  const monitorUrl = `${window.location.origin}/results/${sessionId}`;
 
   function handleOpenPresentation() {
     const url = `${window.location.origin}/presentation/${adminToken}`;
@@ -464,6 +466,23 @@ export function PresentationControls({
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
                 Copy Participant Link
               </>
+            )}
+          </button>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(monitorUrl);
+              setMonitorLinkCopied(true);
+              setTimeout(() => setMonitorLinkCopied(false), 2000);
+            }}
+            className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium text-sm flex items-center justify-center gap-2"
+          >
+            {monitorLinkCopied ? (
+              <>
+                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                Copied!
+              </>
+            ) : (
+              <>📊 Monitor Link</>
             )}
           </button>
         </div>

@@ -39,6 +39,7 @@ export default function AdminSession() {
     setActiveBatchId,
   } = useSessionStore();
   const [copied, setCopied] = useState(false);
+  const [monitorCopied, setMonitorCopied] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [transitioning, setTransitioning] = useState(false);
   const [userId, setUserId] = useState('');
@@ -502,6 +503,17 @@ export default function AdminSession() {
   const participantUrl = session
     ? `${window.location.origin}/session/${session.session_id}`
     : '';
+
+  const monitorUrl = session
+    ? `${window.location.origin}/results/${session.session_id}`
+    : '';
+
+  function handleCopyMonitorLink() {
+    navigator.clipboard.writeText(monitorUrl).then(() => {
+      setMonitorCopied(true);
+      setTimeout(() => setMonitorCopied(false), 2000);
+    });
+  }
 
   function handleCopyLink() {
     navigator.clipboard.writeText(participantUrl).then(() => {
@@ -970,6 +982,13 @@ export default function AdminSession() {
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
                 >
                   {copied ? 'Copied!' : 'Copy Link'}
+                </button>
+                <button
+                  onClick={handleCopyMonitorLink}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+                  title="Copy results monitor link (read-only view)"
+                >
+                  {monitorCopied ? 'Copied!' : '📊 Monitor Link'}
                 </button>
               </div>
             </div>
