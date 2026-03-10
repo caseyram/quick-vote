@@ -187,6 +187,13 @@ export default function ParticipantSession() {
           .order('position');
 
         if (batchQs && batchQs.length > 0) {
+          // If already showing this exact batch, just refresh questions and leave view alone
+          if (viewRef.current === 'batch-voting' && activeBatch.id === useSessionStore.getState().activeBatchId) {
+            setBatchQuestions(batchQs);
+            restoreTimerFromExpiration(statusData.timer_expires_at);
+            return;
+          }
+
           // Check if participant already voted on all batch questions
           const pid = participantIdRef.current;
           if (pid) {
@@ -682,6 +689,13 @@ export default function ParticipantSession() {
             .order('position');
 
           if (!cancelled && batchQs && batchQs.length > 0) {
+            // If already showing this exact batch, just refresh questions and leave view alone
+            if (viewRef.current === 'batch-voting' && activeBatch.id === useSessionStore.getState().activeBatchId) {
+              setBatchQuestions(batchQs);
+              restoreTimerFromExpiration(sessionData.timer_expires_at);
+              return;
+            }
+
             // Check if participant already voted on all batch questions
             const batchQIds = batchQs.map(q => q.id);
             const { data: batchVotes } = await supabase
@@ -690,7 +704,9 @@ export default function ParticipantSession() {
               .in('question_id', batchQIds)
               .eq('participant_id', uid);
 
-            if (batchVotes && batchVotes.length >= batchQs.length) {
+            const votedQIds = new Set(batchVotes?.map((v: { question_id: string }) => v.question_id) ?? []);
+            const allAnswered = batchQs.every((q: { id: string }) => votedQIds.has(q.id));
+            if (allAnswered) {
               // All voted — treat as already completed
               alreadyVoted = true;
             } else {
