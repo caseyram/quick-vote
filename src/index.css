@@ -5,6 +5,10 @@ html {
   scrollbar-gutter: stable;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 @theme {
   --color-surface-dark: oklch(0.145 0.015 264);
   --color-surface-elevated: oklch(0.205 0.015 264);
