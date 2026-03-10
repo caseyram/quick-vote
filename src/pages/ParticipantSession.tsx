@@ -19,6 +19,13 @@ import type { Session, Question, SessionStatus } from '../types/database';
 
 type ParticipantView = 'loading' | 'lobby' | 'voting' | 'waiting' | 'results' | 'error' | 'batch-voting';
 
+type PendingPostBatch =
+  | { type: 'waiting'; message: string }
+  | { type: 'voting'; questionId: string; timerSeconds: number | null }
+  | { type: 'batch'; batchId: string; questionIds: string[]; timerSeconds: number | null }
+  | { type: 'results' }
+  | { type: 'lobby' };
+
 /** Payload broadcast from admin when results are revealed for a question. */
 interface RevealedResultData {
   questionId: string;
@@ -73,6 +80,7 @@ export default function ParticipantSession() {
   const viewRef = useRef<ParticipantView>('loading');
   const activeQuestionRef = useRef<Question | null>(null);
   const participantIdRef = useRef<string | null>(null);
+  const pendingPostBatchRef = useRef<PendingPostBatch | null>(null);
   // Keep refs in sync with state
   useEffect(() => {
     viewRef.current = view;
@@ -189,7 +197,9 @@ export default function ParticipantSession() {
               .in('question_id', batchQIds)
               .eq('participant_id', pid);
 
-            if (existingVotes && existingVotes.length >= batchQs.length) {
+            const votedQuestionIds = new Set(existingVotes?.map((v) => v.question_id) ?? []);
+            const allAnswered = batchQs.every((q) => votedQuestionIds.has(q.id));
+            if (allAnswered) {
               setView('waiting');
               setWaitingMessage('Votes submitted! Waiting for results...');
               return;
@@ -249,15 +259,58 @@ export default function ParticipantSession() {
     setView('lobby');
   }, [sessionId, setSession, stopCountdown, setBatchQuestions, setActiveBatchId, restoreTimerFromExpiration]);
 
-  // Handle batch completion - clears batch state and returns to waiting
+  // Handle batch completion - clears batch state and applies pending transition if queued
   const handleBatchComplete = useCallback(() => {
-    // Clear batch state
     setBatchQuestions([]);
     setActiveBatchId(null);
-    // Transition to waiting screen
-    setView('waiting');
-    setWaitingMessage('Questions submitted! Waiting for results...');
-  }, [setBatchQuestions, setActiveBatchId]);
+
+    const pending = pendingPostBatchRef.current;
+    pendingPostBatchRef.current = null;
+
+    if (pending) {
+      if (pending.type === 'waiting') {
+        setView('waiting');
+        setWaitingMessage(pending.message);
+      } else if (pending.type === 'voting') {
+        const q = useSessionStore.getState().questions.find((question) => question.id === pending.questionId);
+        if (q) {
+          setActiveQuestion(q);
+          setView('voting');
+          if (pending.timerSeconds != null && pending.timerSeconds > 0) startCountdown(pending.timerSeconds * 1000);
+          else stopCountdown();
+        } else {
+          setView('waiting');
+          setWaitingMessage('Waiting for next question...');
+        }
+      } else if (pending.type === 'batch') {
+        supabase
+          .from('questions')
+          .select('*')
+          .in('id', pending.questionIds)
+          .order('position')
+          .then(({ data: nextBatchQs }) => {
+            if (nextBatchQs && nextBatchQs.length > 0) {
+              setBatchQuestions(nextBatchQs);
+              setActiveBatchId(pending.batchId);
+              setView('batch-voting');
+              if (pending.timerSeconds != null && pending.timerSeconds > 0) startCountdown(pending.timerSeconds * 1000);
+              else stopCountdown();
+            } else {
+              setView('waiting');
+              setWaitingMessage('Waiting for next question...');
+            }
+          });
+        return;
+      } else if (pending.type === 'results') {
+        setView('results');
+      } else if (pending.type === 'lobby') {
+        setView('lobby');
+      }
+    } else {
+      setView('waiting');
+      setWaitingMessage('Questions submitted! Waiting for results...');
+    }
+  }, [setBatchQuestions, setActiveBatchId, startCountdown, stopCountdown]);
 
   // Channel setup callback -- registers all Broadcast listeners
   const setupChannel = useCallback(
@@ -308,13 +361,23 @@ export default function ParticipantSession() {
 
             if (existing) {
               setRevealedResults(null);
-              setView('waiting');
-              setWaitingMessage('Vote submitted! Waiting for results...');
+              if (viewRef.current === 'batch-voting') {
+                pendingPostBatchRef.current = { type: 'waiting', message: 'Vote submitted! Waiting for results...' };
+              } else {
+                setView('waiting');
+                setWaitingMessage('Vote submitted! Waiting for results...');
+              }
               return;
             }
           }
 
           setRevealedResults(null);
+
+          if (viewRef.current === 'batch-voting') {
+            pendingPostBatchRef.current = { type: 'voting', questionId: data.id, timerSeconds };
+            return;
+          }
+
           setActiveQuestion(data);
           setView('voting');
           setWaitingMessage('Waiting for next question...');
@@ -332,6 +395,10 @@ export default function ParticipantSession() {
         const { questionId } = payload as { questionId: string };
         if (activeQuestionRef.current?.id === questionId || true) {
           stopCountdown();
+          if (viewRef.current === 'batch-voting') {
+            pendingPostBatchRef.current = { type: 'waiting', message: 'The host is reviewing results...' };
+            return;
+          }
           setView('waiting');
           setWaitingMessage('The host is reviewing results...');
         }
@@ -341,6 +408,10 @@ export default function ParticipantSession() {
       channel.on('broadcast', { event: 'results_revealed' }, ({ payload }) => {
         const { questionId: _questionId } = payload as { questionId: string };
         // Participants don't see charts per CONTEXT.md -- stay on waiting
+        if (viewRef.current === 'batch-voting') {
+          pendingPostBatchRef.current = { type: 'waiting', message: 'Results are being shown on the main screen' };
+          return;
+        }
         setView('waiting');
         setWaitingMessage('Results are being shown on the main screen');
       });
@@ -379,12 +450,28 @@ export default function ParticipantSession() {
 
       // 7. batch_activated: admin activated a batch of questions
       channel.on('broadcast', { event: 'batch_activated' }, async ({ payload }) => {
-        const { batchId, questionIds, timerSeconds } = payload as { batchId: string; questionIds: string[]; timerSeconds: number | null };
+        const { batchId, questionIds: payloadQuestionIds, timerSeconds } = payload as {
+          batchId: string;
+          questionIds?: string[];
+          timerSeconds: number | null;
+        };
 
-        // Validate non-empty
+        let questionIds = payloadQuestionIds;
+
+        // Fallback: if questionIds missing from payload, fetch from DB
         if (!questionIds || questionIds.length === 0) {
-          console.warn('Batch activated with no questions');
-          return;
+          const { data: fallbackQs } = await supabase
+            .from('questions')
+            .select('id')
+            .eq('batch_id', batchId)
+            .order('position');
+
+          if (!fallbackQs || fallbackQs.length === 0) {
+            console.warn('Batch activated with no questions');
+            return;
+          }
+
+          questionIds = fallbackQs.map((q) => q.id);
         }
 
         // Fetch questions by ID array, ordered by position
@@ -404,7 +491,9 @@ export default function ParticipantSession() {
               .in('question_id', questionIds)
               .eq('participant_id', pid);
 
-            if (existingVotes && existingVotes.length >= batchQs.length) {
+            const votedQuestionIds = new Set(existingVotes?.map((v) => v.question_id) ?? []);
+            const allAnswered = batchQs.every((q) => votedQuestionIds.has(q.id));
+            if (allAnswered) {
               // Already voted on all questions — skip to waiting
               setRevealedResults(null);
               setView('waiting');
@@ -414,6 +503,12 @@ export default function ParticipantSession() {
           }
 
           setRevealedResults(null);
+
+          if (viewRef.current === 'batch-voting') {
+            pendingPostBatchRef.current = { type: 'batch', batchId, questionIds, timerSeconds };
+            return;
+          }
+
           setBatchQuestions(batchQs);
           setActiveBatchId(batchId);
           setView('batch-voting');
@@ -429,6 +524,10 @@ export default function ParticipantSession() {
 
       // 8. batch_closed: admin closed the active batch
       channel.on('broadcast', { event: 'batch_closed' }, () => {
+        if (viewRef.current === 'batch-voting') {
+          pendingPostBatchRef.current = { type: 'waiting', message: 'Waiting for next question...' };
+          return;
+        }
         setBatchQuestions([]);
         setActiveBatchId(null);
         stopCountdown();
@@ -438,6 +537,10 @@ export default function ParticipantSession() {
 
       // 9. slide_activated: admin navigated to a content slide
       channel.on('broadcast', { event: 'slide_activated' }, () => {
+        if (viewRef.current === 'batch-voting') {
+          pendingPostBatchRef.current = { type: 'waiting', message: 'Waiting for next question...' };
+          return;
+        }
         // Clear any active voting state and revealed results
         stopCountdown();
         setActiveQuestion(null);

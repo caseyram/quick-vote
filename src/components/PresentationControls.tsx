@@ -197,10 +197,14 @@ export function PresentationControls({
           payload: { itemId: item.id, direction: null },
         });
       } else if (item.item_type === 'batch' && item.batch_id) {
+        const batchQIds = useSessionStore.getState().questions
+          .filter((q) => q.batch_id === item.batch_id)
+          .map((q) => q.id);
+
         channelRef.current?.send({
           type: 'broadcast',
           event: 'batch_activated',
-          payload: { batchId: item.batch_id },
+          payload: { batchId: item.batch_id, questionIds: batchQIds, timerSeconds: null },
         });
       }
     }, 3000);
