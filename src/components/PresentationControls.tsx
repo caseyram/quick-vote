@@ -442,7 +442,7 @@ export function PresentationControls({
 
   const isBatchActive = currentItem?.item_type === 'batch' && currentItem.batch_id;
   const activeBatch = isBatchActive
-    ? batches.find((b) => b.id === currentItem.batch_id)
+    ? (batches.find((b) => b.id === currentItem.batch_id) ?? null)
     : null;
 
   return (
