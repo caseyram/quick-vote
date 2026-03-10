@@ -48,6 +48,27 @@ export function BatchVotingCarousel({
   // Local state for pending votes - not persisted until Submit
   const [pendingVotes, setPendingVotes] = useState<Map<string, PendingVote>>(new Map());
 
+  // Restore pending draft votes from localStorage on mount
+  useEffect(() => {
+    const key = `qv:batch:${sessionId}:${participantId}`;
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const obj = JSON.parse(raw) as Record<string, PendingVote>;
+        setPendingVotes(prev => {
+          const next = new Map(prev);
+          for (const [qId, vote] of Object.entries(obj)) {
+            if (!next.has(qId)) next.set(qId, vote);
+          }
+          return next;
+        });
+      }
+    } catch {
+      // Ignore malformed draft payloads
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Pre-load existing votes on mount (handles re-activation with partial answers)
   useEffect(() => {
     async function loadExistingVotes() {
@@ -73,6 +94,21 @@ export function BatchVotingCarousel({
     }
     loadExistingVotes();
   }, [questions, participantId]);
+
+  // Persist pending votes in localStorage
+  useEffect(() => {
+    const key = `qv:batch:${sessionId}:${participantId}`;
+    if (pendingVotes.size === 0) {
+      localStorage.removeItem(key);
+      return;
+    }
+
+    const obj: Record<string, PendingVote> = {};
+    pendingVotes.forEach((v, k) => {
+      obj[k] = v;
+    });
+    localStorage.setItem(key, JSON.stringify(obj));
+  }, [pendingVotes, sessionId, participantId]);
 
   // Derive current question early so we can use it in memoized callbacks
   const currentQuestion = questions[currentIndex];
@@ -154,6 +190,7 @@ export function BatchVotingCarousel({
   const handleSubmitAll = async () => {
     if (pendingVotes.size === 0) {
       // No votes to submit - just complete
+      localStorage.removeItem(`qv:batch:${sessionId}:${participantId}`);
       onComplete();
       return;
     }
@@ -183,6 +220,8 @@ export function BatchVotingCarousel({
       if (error) {
         console.error('Failed to submit batch votes:', error);
         // Still complete on error - votes may have partially succeeded
+      } else {
+        localStorage.removeItem(`qv:batch:${sessionId}:${participantId}`);
       }
 
       onComplete();

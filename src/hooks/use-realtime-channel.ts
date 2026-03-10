@@ -63,11 +63,11 @@ export function useRealtimeChannel(
     if (presenceConfig) {
       channel.on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
-        // Count only participants, exclude admins
+        // Count only participants
         let count = 0;
         for (const presences of Object.values(state)) {
           for (const p of presences as { role?: string }[]) {
-            if (p.role !== 'admin') count++;
+            if (p.role === 'participant') count++;
           }
         }
         setParticipantCount(count);
@@ -78,11 +78,11 @@ export function useRealtimeChannel(
         const timer = setTimeout(() => {
           leaveTimers.current.delete(key);
           const state = channel.presenceState();
-          // Count only participants, exclude admins
+          // Count only participants
           let count = 0;
           for (const presences of Object.values(state)) {
             for (const p of presences as { role?: string }[]) {
-              if (p.role !== 'admin') count++;
+              if (p.role === 'participant') count++;
             }
           }
           setParticipantCount(count);

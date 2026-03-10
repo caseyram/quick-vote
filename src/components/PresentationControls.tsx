@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { ConnectionStatus } from '../hooks/use-realtime-channel';
-import type { Question, SessionItem, Vote } from '../types/database';
+import type { Batch, Question, SessionItem, Vote } from '../types/database';
 import { useSessionStore } from '../stores/session-store';
 import { useSequenceNavigation } from '../hooks/use-sequence-navigation';
 import { SequenceManager } from './SequenceManager';
@@ -19,6 +19,7 @@ import { TeamFilterTabs } from './TeamFilterTabs';
 import { usePresentationTheme } from '../context/PresentationThemeContext';
 import { moderateVote } from '../lib/vote-api';
 import { countCompletedParticipants } from './VoteProgressBar';
+import { getSlideImageUrl } from '../lib/slide-api';
 
 interface PresentationControlsProps {
   sessionId: string;
@@ -79,6 +80,7 @@ export function PresentationControls({
     activeSessionItemId,
     questions,
     session,
+    batches,
   } = useSessionStore();
   const { theme: presentationTheme, toggleTheme } = usePresentationTheme();
 
@@ -435,6 +437,9 @@ export function PresentationControls({
   }, [blackScreenActive, showShortcutHelp, currentItem]);
 
   const isBatchActive = currentItem?.item_type === 'batch' && currentItem.batch_id;
+  const activeBatch = isBatchActive
+    ? batches.find((b) => b.id === currentItem.batch_id)
+    : null;
 
   return (
     <div className="flex h-screen bg-white">
@@ -537,6 +542,7 @@ export function PresentationControls({
             <div className="h-full p-6 flex flex-col">
               <BatchControlPanel
                 batchId={currentItem.batch_id!}
+                activeBatch={activeBatch}
                 questions={questions}
                 sessionVotes={sessionVotes}
                 revealedQuestions={revealedQuestions}
@@ -961,6 +967,7 @@ export function PresentationControls({
 // Batch control panel component
 function BatchControlPanel({
   batchId,
+  activeBatch,
   questions,
   sessionVotes,
   revealedQuestions,
@@ -978,6 +985,7 @@ function BatchControlPanel({
   participantCount,
 }: {
   batchId: string;
+  activeBatch: Batch | null;
   questions: Question[];
   sessionVotes: Record<string, Vote[]>;
   revealedQuestions: Set<string>;
@@ -1004,6 +1012,7 @@ function BatchControlPanel({
     }
     return ids;
   });
+  const [slidePreviewOpen, setSlidePreviewOpen] = useState(false);
 
   function handleToggleModeration(e: React.MouseEvent, vote: Vote) {
     e.stopPropagation();
@@ -1027,9 +1036,15 @@ function BatchControlPanel({
     // Persist to DB in background
     moderateVote(vote.id, willBeModerated);
   }
+  const sessionItems = useSessionStore((s) => s.sessionItems);
   const batchQuestions = questions
     .filter((q) => q.batch_id === batchId)
     .sort((a, b) => a.position - b.position);
+  const coverSlideItem = activeBatch?.cover_image_path
+    ? sessionItems.find(
+        (item) => item.item_type === 'slide' && item.slide_image_path === activeBatch.cover_image_path
+      )
+    : null;
 
   if (batchQuestions.length === 0) {
     return (
@@ -1331,6 +1346,14 @@ function BatchControlPanel({
         </div>
         <div className="ml-auto flex items-center gap-3">
           <span className="text-sm text-gray-500">{completedSubmissions}/{participantCount} submitted</span>
+          {activeBatch?.cover_image_path && (
+            <button
+              onClick={() => setSlidePreviewOpen(true)}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            >
+              View Slide
+            </button>
+          )}
           <button
             onClick={() => onRevealBatch(batchQuestionIds)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -1591,6 +1614,51 @@ function BatchControlPanel({
           </div>
         )}
       </div>
+
+      {slidePreviewOpen && activeBatch?.cover_image_path && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-6"
+          onClick={() => setSlidePreviewOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Batch cover slide preview"
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+              <h4 className="text-base font-semibold text-gray-900">{activeBatch.name} — Cover Slide</h4>
+              <button
+                onClick={() => setSlidePreviewOpen(false)}
+                className="text-gray-500 hover:text-gray-700 text-sm font-medium"
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3">
+              <div className="lg:col-span-2 bg-black flex items-center justify-center p-4 min-h-[280px]">
+                <img
+                  src={getSlideImageUrl(activeBatch.cover_image_path)}
+                  alt={`${activeBatch.name} cover slide`}
+                  className="max-w-full max-h-[60vh] object-contain rounded"
+                />
+              </div>
+              <div className="border-t lg:border-t-0 lg:border-l border-gray-200 p-4 overflow-y-auto">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Slide Notes</p>
+                {coverSlideItem?.slide_notes ? (
+                  <div
+                    className="prose prose-sm max-w-none text-gray-800"
+                    dangerouslySetInnerHTML={{ __html: coverSlideItem.slide_notes }}
+                  />
+                ) : (
+                  <p className="text-sm text-gray-500">No notes for this slide.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

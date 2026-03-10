@@ -62,6 +62,7 @@ export function SequenceItemCard({
   const iconColor = isBatch ? 'text-blue-600' : 'text-purple-600';
 
   const handleCardClick = onClick;
+  const hasExpandAction = !!onExpandBatch;
 
   return (
     <div
@@ -105,34 +106,56 @@ export function SequenceItemCard({
       </div>
 
       {/* Content area */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 pointer-events-none">
         {isBatch && batch ? (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onExpandBatch?.(item.batch_id!);
-            }}
-            className="text-left w-full group"
-          >
-            <div className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-              {batch.name}
+          hasExpandAction ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onExpandBatch?.(item.batch_id!);
+              }}
+              className="text-left w-full group pointer-events-auto"
+            >
+              <div className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                {batch.name}
+              </div>
+              <div className="text-sm text-gray-500">
+                {questionCount ?? 0} {questionCount === 1 ? 'question' : 'questions'}
+              </div>
+              {/* Progress bar for active batches with vote data */}
+              {batchQuestionIds &&
+                sessionVotes &&
+                participantCount !== undefined &&
+                batch.status === 'active' && (
+                  <VoteProgressBar
+                    batchQuestionIds={batchQuestionIds}
+                    sessionVotes={sessionVotes}
+                    participantCount={participantCount}
+                    liveParticipantCount={liveParticipantCount}
+                  />
+                )}
+            </button>
+          ) : (
+            <div className="text-left w-full">
+              <div className="font-medium text-gray-900">
+                {batch.name}
+              </div>
+              <div className="text-sm text-gray-500">
+                {questionCount ?? 0} {questionCount === 1 ? 'question' : 'questions'}
+              </div>
+              {batchQuestionIds &&
+                sessionVotes &&
+                participantCount !== undefined &&
+                batch.status === 'active' && (
+                  <VoteProgressBar
+                    batchQuestionIds={batchQuestionIds}
+                    sessionVotes={sessionVotes}
+                    participantCount={participantCount}
+                    liveParticipantCount={liveParticipantCount}
+                  />
+                )}
             </div>
-            <div className="text-sm text-gray-500">
-              {questionCount ?? 0} {questionCount === 1 ? 'question' : 'questions'}
-            </div>
-            {/* Progress bar for active batches with vote data */}
-            {batchQuestionIds &&
-              sessionVotes &&
-              participantCount !== undefined &&
-              batch.status === 'active' && (
-                <VoteProgressBar
-                  batchQuestionIds={batchQuestionIds}
-                  sessionVotes={sessionVotes}
-                  participantCount={participantCount}
-                  liveParticipantCount={liveParticipantCount}
-                />
-              )}
-          </button>
+          )
         ) : isSlide ? (
           <div className="flex items-center gap-3">
             {item.slide_image_path && (

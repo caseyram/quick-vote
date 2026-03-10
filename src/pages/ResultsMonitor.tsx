@@ -23,10 +23,9 @@ export default function ResultsMonitor() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [sessionVotes, setSessionVotes] = useState<Record<string, Vote[]>>({});
-  const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
+  const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userId, setUserId] = useState('');
   const lastVoteCountRef = useRef(0);
 
   // Load initial data
@@ -38,15 +37,6 @@ export default function ResultsMonitor() {
     async function load() {
       setLoading(true);
       setError(null);
-
-      // Get or create anonymous user for presence
-      const { data: authData } = await supabase.auth.getUser();
-      if (authData?.user?.id) {
-        setUserId(authData.user.id);
-      } else {
-        const { data: anonData } = await supabase.auth.signInAnonymously();
-        if (anonData?.user?.id) setUserId(anonData.user.id);
-      }
 
       const { data: sessionData, error: sessionErr } = await supabase
         .from('sessions')
@@ -132,7 +122,7 @@ export default function ResultsMonitor() {
     // Read-only view — no additional listeners needed
   }, []);
 
-  const presenceConfig = userId ? { userId, role: 'participant' as const } : undefined;
+  const presenceConfig = undefined;
   const { connectionStatus, participantCount } = useRealtimeChannel(
     sessionId ? `session:${sessionId}` : '',
     setupChannel,
@@ -149,12 +139,7 @@ export default function ResultsMonitor() {
   const unbatchedQuestions = questions.filter((q) => !q.batch_id);
 
   function toggleQuestion(questionId: string) {
-    setExpandedQuestions((prev) => {
-      const next = new Set(prev);
-      if (next.has(questionId)) next.delete(questionId);
-      else next.add(questionId);
-      return next;
-    });
+    setExpandedQuestion((prev) => (prev === questionId ? null : questionId));
   }
 
   function buildChartData(question: Question) {
@@ -250,7 +235,7 @@ export default function ResultsMonitor() {
             </div>
             <div className="divide-y divide-gray-100">
               {batchQuestions.map((question) => {
-                const isExpanded = expandedQuestions.has(question.id);
+                const isExpanded = expandedQuestion === question.id;
                 const voteCount = (sessionVotes[question.id] ?? []).length;
                 return (
                   <div key={question.id}>
@@ -307,7 +292,7 @@ export default function ResultsMonitor() {
             </div>
             <div className="divide-y divide-gray-100">
               {unbatchedQuestions.map((question) => {
-                const isExpanded = expandedQuestions.has(question.id);
+                const isExpanded = expandedQuestion === question.id;
                 const voteCount = (sessionVotes[question.id] ?? []).length;
                 return (
                   <div key={question.id}>

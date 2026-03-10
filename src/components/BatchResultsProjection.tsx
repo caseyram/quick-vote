@@ -58,6 +58,9 @@ export function BatchResultsProjection({
     : null;
 
   const activePageReasonIds = new Set<string>();
+  const questionIndex = currentQuestion ? batchQuestions.findIndex((q) => q.id === currentQuestion.id) : -1;
+  const questionNumber = questionIndex + 1;
+  const questionTotal = batchQuestions.length;
 
   useEffect(() => {
     if (!highlightedReason?.reasonId || !scrollContainerRef.current) return;
@@ -159,7 +162,14 @@ export function BatchResultsProjection({
     <div className="flex h-full p-8 gap-8 min-h-0">
       <div className="flex-1 flex flex-col items-center justify-center min-h-0">
         <div className="text-center shrink-0 mb-8 w-full">
-          <h2 className="text-3xl font-bold text-[var(--pres-text)]">{currentQuestion.text}</h2>
+          <h2 className="text-3xl font-bold text-[var(--pres-text)]">
+            {questionTotal > 1 && (
+              <span className="text-[var(--pres-text-secondary)] font-normal mr-2 text-2xl">
+                ({questionNumber} of {questionTotal})
+              </span>
+            )}
+            {currentQuestion.text}
+          </h2>
           {teamFilter && <p className="text-sm text-[var(--pres-text-secondary)] mt-1">Showing: {teamFilter}</p>}
         </div>
 
