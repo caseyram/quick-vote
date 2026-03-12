@@ -18,7 +18,7 @@ import { TeamQRGrid } from './TeamQRGrid';
 import { TeamFilterTabs } from './TeamFilterTabs';
 import { usePresentationTheme } from '../context/PresentationThemeContext';
 import { moderateVote } from '../lib/vote-api';
-import { countCompletedParticipants } from './VoteProgressBar';
+import { countCompletedParticipants, countUniqueVoters } from './VoteProgressBar';
 import { getSlideImageUrl } from '../lib/slide-api';
 
 interface PresentationControlsProps {
@@ -679,13 +679,15 @@ export function PresentationControls({
                 <span className="text-white/80 text-xs">
                   {(() => {
                     const live = liveParticipantCount ?? participantCount;
+                    const voters = countUniqueVoters(sessionVotes);
+                    const denom = voters > 0 ? voters : participantCount;
                     // Show completed participants / total for active batch
                     if (currentItem?.item_type === 'batch' && currentItem.batch_id) {
                       const batchQIds = questions
                         .filter(q => q.batch_id === currentItem.batch_id)
                         .map(q => q.id);
                       const completed = countCompletedParticipants(batchQIds, sessionVotes);
-                      return `${completed}/${participantCount} done · ${live} connected`;
+                      return `${completed}/${denom} done · ${live} connected`;
                     }
                     return `${live} connected${participantCount > live ? ` (${participantCount} peak)` : ''}`;
                   })()}
@@ -1130,6 +1132,9 @@ function BatchControlPanel({
   const allRevealed = batchQuestionIds.every((id) => revealedQuestions.has(id));
   // Count participants who have submitted all questions in this batch
   const completedSubmissions = countCompletedParticipants(batchQuestionIds, sessionVotes);
+  // Use unique voters as denominator (more accurate than presence peak)
+  const uniqueVoters = countUniqueVoters(sessionVotes);
+  const voterDenominator = uniqueVoters > 0 ? uniqueVoters : participantCount;
 
   // Flatten all reasons for playback and keyboard navigation
   const allReasons = Object.entries(reasonsByOption).flatMap(([, votes]) => votes);
@@ -1349,7 +1354,7 @@ function BatchControlPanel({
           ))}
         </div>
         <div className="ml-auto flex items-center gap-3">
-          <span className="text-sm text-gray-500">{completedSubmissions}/{participantCount} submitted</span>
+          <span className="text-sm text-gray-500">{completedSubmissions}/{voterDenominator} submitted</span>
           {activeBatch?.cover_image_path && (
             <button
               onClick={() => setSlidePreviewOpen(true)}
