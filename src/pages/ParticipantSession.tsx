@@ -81,6 +81,10 @@ export default function ParticipantSession() {
   const activeQuestionRef = useRef<Question | null>(null);
   const participantIdRef = useRef<string | null>(null);
   const pendingPostBatchRef = useRef<PendingPostBatch | null>(null);
+  // Tracks the batch ID most recently submitted by this participant. Used in refetchState
+  // to guard against the post-submit reconnect race (upsert in flight → DB check finds no
+  // votes → incorrectly re-enters batch-voting view with an empty carousel).
+  const justSubmittedBatchIdRef = useRef<string | null>(null);
   // Keep refs in sync with state
   useEffect(() => {
     viewRef.current = view;
@@ -194,7 +198,17 @@ export default function ParticipantSession() {
             return;
           }
 
-          // Check if participant already voted on all batch questions
+          // Check if participant already voted on all batch questions.
+          // First: local guard — if this batch was just submitted, stay in waiting without
+          // hitting the DB. Prevents the post-submit reconnect race where the upsert is
+          // still in flight and the DB vote check finds nothing, incorrectly re-entering
+          // the batch carousel with an empty/cleared localStorage draft.
+          if (justSubmittedBatchIdRef.current === activeBatch.id) {
+            setView('waiting');
+            setWaitingMessage('Votes submitted! Waiting for results...');
+            return;
+          }
+
           const pid = participantIdRef.current;
           if (pid) {
             const batchQIds = batchQs.map(q => q.id);
@@ -284,6 +298,12 @@ export default function ParticipantSession() {
 
   // Handle batch completion - clears batch state and applies pending transition if queued
   const handleBatchComplete = useCallback(() => {
+    // Record which batch was just submitted so refetchState can skip the DB vote check
+    // during the post-submit reconnect race (upsert may still be in flight).
+    const completedBatchId = useSessionStore.getState().activeBatchId;
+    if (completedBatchId) {
+      justSubmittedBatchIdRef.current = completedBatchId;
+    }
     setBatchQuestions([]);
     setActiveBatchId(null);
 
@@ -478,6 +498,8 @@ export default function ParticipantSession() {
           questionIds?: string[];
           timerSeconds: number | null;
         };
+        // New batch activated — clear post-submit guard so refetchState doesn't suppress it
+        justSubmittedBatchIdRef.current = null;
 
         let questionIds = payloadQuestionIds;
 
