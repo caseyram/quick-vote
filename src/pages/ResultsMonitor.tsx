@@ -17,6 +17,57 @@ interface BatchGroup {
   questions: Question[];
 }
 
+function QuestionExpandedContent({
+  question,
+  votes,
+  chartData,
+  totalVotes,
+}: {
+  question: Question;
+  votes: Vote[];
+  chartData: { label: string; count: number; percentage: number; color: string }[];
+  totalVotes: number;
+}) {
+  const comments = votes.filter((v) => v.reason && v.reason.trim().length > 0);
+
+  return (
+    <div className="px-4 pb-4 space-y-4">
+      {totalVotes === 0 ? (
+        <p className="text-sm text-gray-400 text-center py-4">No votes yet</p>
+      ) : (
+        <div className="h-64">
+          <BarChart data={chartData} totalVotes={totalVotes} size="default" theme="light" />
+        </div>
+      )}
+      {comments.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            Comments ({comments.length})
+          </p>
+          <ul className="space-y-2">
+            {comments.map((v) => (
+              <li key={v.id} className="bg-gray-50 rounded-lg px-3 py-2">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm text-gray-800 flex-1">{v.reason}</p>
+                  <span className="text-xs text-gray-400 shrink-0 mt-0.5">
+                    {question.anonymous || !v.display_name ? 'Anonymous' : v.display_name}
+                    {' · '}
+                    <span className={`font-medium ${
+                      v.value === 'Agree' ? 'text-green-600' :
+                      v.value === 'Disagree' ? 'text-red-500' :
+                      'text-yellow-600'
+                    }`}>{v.value}</span>
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ResultsMonitor() {
   const { sessionId } = useParams();
   const [session, setSession] = useState<Session | null>(null);
@@ -259,20 +310,12 @@ export default function ResultsMonitor() {
                       </span>
                     </button>
                     {isExpanded && (
-                      <div className="px-4 pb-4">
-                        {voteCount === 0 ? (
-                          <p className="text-sm text-gray-400 text-center py-4">No votes yet</p>
-                        ) : (
-                          <div className="h-64">
-                            <BarChart
-                              data={buildChartData(question).chartData}
-                              totalVotes={buildChartData(question).totalVotes}
-                              size="default"
-                              theme="light"
-                            />
-                          </div>
-                        )}
-                      </div>
+                      <QuestionExpandedContent
+                        question={question}
+                        votes={sessionVotes[question.id] ?? []}
+                        chartData={buildChartData(question).chartData}
+                        totalVotes={buildChartData(question).totalVotes}
+                      />
                     )}
                   </div>
                 );
@@ -316,20 +359,12 @@ export default function ResultsMonitor() {
                       </span>
                     </button>
                     {isExpanded && (
-                      <div className="px-4 pb-4">
-                        {voteCount === 0 ? (
-                          <p className="text-sm text-gray-400 text-center py-4">No votes yet</p>
-                        ) : (
-                          <div className="h-64">
-                            <BarChart
-                              data={buildChartData(question).chartData}
-                              totalVotes={buildChartData(question).totalVotes}
-                              size="default"
-                              theme="light"
-                            />
-                          </div>
-                        )}
-                      </div>
+                      <QuestionExpandedContent
+                        question={question}
+                        votes={sessionVotes[question.id] ?? []}
+                        chartData={buildChartData(question).chartData}
+                        totalVotes={buildChartData(question).totalVotes}
+                      />
                     )}
                   </div>
                 );
