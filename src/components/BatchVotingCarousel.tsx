@@ -47,29 +47,21 @@ export function BatchVotingCarousel({
   // 1 = forward (next), -1 = backward (previous) — drives slide direction
   const directionRef = useRef(1);
 
-  // Local state for pending votes - not persisted until Submit
-  const [pendingVotes, setPendingVotes] = useState<Map<string, PendingVote>>(new Map());
-
-  // Restore pending draft votes from localStorage on mount
-  useEffect(() => {
+  // Local state for pending votes — initialized synchronously from localStorage
+  // so Q1 gets the correct initialSelection on the very first render.
+  const [pendingVotes, setPendingVotes] = useState<Map<string, PendingVote>>(() => {
     const key = `qv:batch:${sessionId}:${participantId}`;
     try {
       const raw = localStorage.getItem(key);
       if (raw) {
         const obj = JSON.parse(raw) as Record<string, PendingVote>;
-        setPendingVotes(prev => {
-          const next = new Map(prev);
-          for (const [qId, vote] of Object.entries(obj)) {
-            if (!next.has(qId)) next.set(qId, vote);
-          }
-          return next;
-        });
+        return new Map(Object.entries(obj));
       }
     } catch {
       // Ignore malformed draft payloads
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return new Map();
+  });
 
   // Pre-load existing votes on mount (handles re-activation with partial answers)
   useEffect(() => {

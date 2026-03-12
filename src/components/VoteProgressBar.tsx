@@ -8,7 +8,9 @@ interface VoteProgressBarProps {
 }
 
 /**
- * Count participants who have submitted votes for ALL questions in the batch.
+ * Count participants who have submitted the batch — meaning they have at least
+ * one vote for any question in the batch. Partial submissions count because
+ * once a participant hits Submit they cannot return to answer skipped questions.
  */
 function countCompletedParticipants(
   batchQuestionIds: string[],
@@ -16,27 +18,13 @@ function countCompletedParticipants(
 ): number {
   if (batchQuestionIds.length === 0) return 0;
 
-  // Build a map: participantId -> set of questionIds they've answered
-  const participantQuestions = new Map<string, Set<string>>();
+  const submitted = new Set<string>();
   for (const qId of batchQuestionIds) {
-    const votes = sessionVotes[qId] ?? [];
-    for (const vote of votes) {
-      let qs = participantQuestions.get(vote.participant_id);
-      if (!qs) {
-        qs = new Set();
-        participantQuestions.set(vote.participant_id, qs);
-      }
-      qs.add(qId);
+    for (const vote of sessionVotes[qId] ?? []) {
+      submitted.add(vote.participant_id);
     }
   }
-
-  // A participant is "done" when they've answered every question
-  const total = batchQuestionIds.length;
-  let completed = 0;
-  for (const qs of participantQuestions.values()) {
-    if (qs.size >= total) completed++;
-  }
-  return completed;
+  return submitted.size;
 }
 
 /**
