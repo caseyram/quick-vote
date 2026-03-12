@@ -63,6 +63,11 @@ export function BatchVotingCarousel({
     return new Map();
   });
 
+  // Gate rendering until DB vote hydration is complete. If localStorage already
+  // had data (in-progress draft), we can skip the wait and render immediately.
+  const hasLocalDraft = pendingVotes.size > 0;
+  const [dbHydrated, setDbHydrated] = useState(hasLocalDraft);
+
   // Pre-load existing votes on mount (handles re-activation with partial answers)
   useEffect(() => {
     async function loadExistingVotes() {
@@ -85,6 +90,8 @@ export function BatchVotingCarousel({
           return next;
         });
       }
+      // Mark hydrated so vote components render with correct initialSelection
+      setDbHydrated(true);
     }
     loadExistingVotes();
   }, [questions, participantId]);
@@ -258,6 +265,11 @@ export function BatchVotingCarousel({
       {/* Question area with slide transitions */}
       <div className="flex-1 lg:flex lg:items-center lg:justify-center lg:p-8">
         <div className="w-full lg:max-w-2xl lg:rounded-2xl lg:bg-[var(--bg-surface-overlay)] lg:overflow-hidden">
+          {!dbHydrated ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="w-6 h-6 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+            </div>
+          ) : (
           <AnimatePresence mode="wait" initial={false} custom={directionRef.current}>
             <motion.div
               key={currentQuestion.id}
@@ -295,6 +307,7 @@ export function BatchVotingCarousel({
               )}
             </motion.div>
           </AnimatePresence>
+          )}
         </div>
       </div>
 
