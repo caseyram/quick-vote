@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, useAnimate } from 'motion/react';
 import { supabase } from '../lib/supabase';
 import VoteAgreeDisagree from './VoteAgreeDisagree';
@@ -20,11 +20,11 @@ interface PendingVote {
   reason?: string;
 }
 
-// Slide transition variants matching ParticipantSession
+// Direction-aware slide variants: custom=1 for forward, custom=-1 for back
 const slideVariants = {
-  enter: { x: '100%', opacity: 0 },
+  enter: (direction: number) => ({ x: direction > 0 ? '100%' : '-100%', opacity: 0 }),
   center: { x: 0, opacity: 1 },
-  exit: { x: '-100%', opacity: 0 },
+  exit: (direction: number) => ({ x: direction > 0 ? '-100%' : '100%', opacity: 0 }),
 };
 
 const slideTransition = {
@@ -44,6 +44,8 @@ export function BatchVotingCarousel({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [progressRef, animateProgress] = useAnimate();
+  // 1 = forward (next), -1 = backward (previous) — drives slide direction
+  const directionRef = useRef(1);
 
   // Local state for pending votes - not persisted until Submit
   const [pendingVotes, setPendingVotes] = useState<Map<string, PendingVote>>(new Map());
@@ -155,8 +157,10 @@ export function BatchVotingCarousel({
       }
 
       if (event.key === 'ArrowRight') {
+        directionRef.current = 1;
         setCurrentIndex(prev => Math.min(prev + 1, questions.length - 1));
       } else if (event.key === 'ArrowLeft') {
+        directionRef.current = -1;
         setCurrentIndex(prev => Math.max(prev - 1, 0));
       }
     }
@@ -176,12 +180,14 @@ export function BatchVotingCarousel({
 
   const handlePrevious = () => {
     if (currentIndex > 0) {
+      directionRef.current = -1;
       setCurrentIndex(prev => prev - 1);
     }
   };
 
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
+      directionRef.current = 1;
       setCurrentIndex(prev => prev + 1);
     }
   };
@@ -260,9 +266,10 @@ export function BatchVotingCarousel({
       {/* Question area with slide transitions */}
       <div className="flex-1 lg:flex lg:items-center lg:justify-center lg:p-8">
         <div className="w-full lg:max-w-2xl lg:rounded-2xl lg:bg-[var(--bg-surface-overlay)] lg:overflow-hidden">
-          <AnimatePresence mode="wait" initial={false}>
+          <AnimatePresence mode="wait" initial={false} custom={directionRef.current}>
             <motion.div
               key={currentQuestion.id}
+              custom={directionRef.current}
               variants={slideVariants}
               initial="enter"
               animate="center"
