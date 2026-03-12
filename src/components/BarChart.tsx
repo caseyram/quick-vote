@@ -67,7 +67,7 @@ export function BarChart({ data, totalVotes, size = 'default', theme = 'dark', b
       {/* Horizontal scroll wrapper — prevents compression on narrow screens */}
       <div className={`${isFill ? 'flex-1 min-h-0 ' : ''}overflow-x-auto`}>
       <div
-        className={`grid justify-center ${isFill ? 'h-full' : ''}`}
+        className={`grid justify-center min-w-max ${isFill ? 'h-full' : ''}`}
         style={{
           gridTemplateColumns: colTemplate,
           gridTemplateRows: 'auto 1fr auto',
