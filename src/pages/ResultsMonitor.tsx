@@ -64,13 +64,13 @@ function QuestionExpandedContent({
       ) : (
         <div className={`flex gap-4 ${hasReasons ? 'items-start' : ''}`}>
           {/* Chart */}
-          <div className={`${hasReasons ? 'flex-1 min-w-0' : 'w-full'} h-56`}>
+          <div className={`${hasReasons ? 'flex-1 min-w-0' : 'w-full'} min-h-48`}>
             <BarChart data={chartData} totalVotes={totalVotes} size="default" theme="light" />
           </div>
 
           {/* Reasons side panel */}
           {hasReasons && (
-            <div className="w-72 shrink-0 border border-gray-200 rounded-lg bg-gray-50 flex flex-col max-h-56 overflow-hidden">
+            <div className="w-72 shrink-0 border border-gray-200 rounded-lg bg-gray-50 flex flex-col overflow-hidden">
               <div className="px-3 py-2 border-b border-gray-200 shrink-0">
                 <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Comments</p>
               </div>
