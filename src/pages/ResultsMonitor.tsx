@@ -17,6 +17,15 @@ interface BatchGroup {
   questions: Question[];
 }
 
+const REASON_COLORS: Record<string, string> = {
+  Agree: '#22c55e',
+  Sometimes: '#eab308',
+  Disagree: '#ef4444',
+};
+function getReasonColor(value: string, index: number) {
+  return REASON_COLORS[value] ?? ['#6366f1', '#f59e0b', '#10b981', '#3b82f6', '#ec4899'][index % 5];
+}
+
 function QuestionExpandedContent({
   question,
   votes,
@@ -28,40 +37,70 @@ function QuestionExpandedContent({
   chartData: { label: string; count: number; percentage: number; color: string }[];
   totalVotes: number;
 }) {
-  const comments = votes.filter((v) => v.reason && v.reason.trim().length > 0);
+  // Group reasons by option, preserving option order
+  const optionOrder = question.type === 'agree_disagree'
+    ? ['Agree', 'Sometimes', 'Disagree']
+    : (question.options ?? []);
+  const canonicalMap: Record<string, string> = { agree: 'Agree', sometimes: 'Sometimes', disagree: 'Disagree' };
+  const reasonsByOption: Record<string, Vote[]> = {};
+  for (const opt of optionOrder) reasonsByOption[opt] = [];
+  for (const v of votes) {
+    if (!v.reason?.trim()) continue;
+    const key = question.type === 'agree_disagree'
+      ? (canonicalMap[v.value.toLowerCase()] ?? v.value)
+      : v.value;
+    if (!reasonsByOption[key]) reasonsByOption[key] = [];
+    reasonsByOption[key].push(v);
+  }
+  for (const key of Object.keys(reasonsByOption)) {
+    if (reasonsByOption[key].length === 0) delete reasonsByOption[key];
+  }
+  const hasReasons = Object.keys(reasonsByOption).length > 0;
 
   return (
-    <div className="px-4 pb-4 space-y-4">
+    <div className="px-4 pb-4">
       {totalVotes === 0 ? (
         <p className="text-sm text-gray-400 text-center py-4">No votes yet</p>
       ) : (
-        <div className="h-64">
-          <BarChart data={chartData} totalVotes={totalVotes} size="default" theme="light" />
-        </div>
-      )}
-      {comments.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            Comments ({comments.length})
-          </p>
-          <ul className="space-y-2">
-            {comments.map((v) => (
-              <li key={v.id} className="bg-gray-50 rounded-lg px-3 py-2">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm text-gray-800 flex-1">{v.reason}</p>
-                  <span className="text-xs text-gray-400 shrink-0 mt-0.5">
-                    {question.anonymous || !v.display_name ? 'Anonymous' : v.display_name}
-                    {' · '}
-                    <span className={`font-medium ${
-                      v.value === 'Agree' ? 'text-green-600' :
-                      v.value === 'Disagree' ? 'text-red-500' :
-                      'text-yellow-600'
-                    }`}>{v.value}</span>
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
+        <div className={`flex gap-4 ${hasReasons ? 'items-start' : ''}`}>
+          {/* Chart */}
+          <div className={`${hasReasons ? 'flex-1 min-w-0' : 'w-full'} h-56`}>
+            <BarChart data={chartData} totalVotes={totalVotes} size="default" theme="light" />
+          </div>
+
+          {/* Reasons side panel */}
+          {hasReasons && (
+            <div className="w-72 shrink-0 border border-gray-200 rounded-lg bg-gray-50 flex flex-col max-h-56 overflow-hidden">
+              <div className="px-3 py-2 border-b border-gray-200 shrink-0">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Comments</p>
+              </div>
+              <div className="overflow-y-auto flex-1 p-2 space-y-3">
+                {Object.entries(reasonsByOption).map(([option, optVotes], i) => (
+                  <div key={option}>
+                    <div
+                      className="text-xs font-semibold text-gray-600 mb-1.5 px-2 py-0.5 rounded inline-block"
+                      style={{
+                        backgroundColor: getReasonColor(option, i) + '20',
+                        borderLeft: `3px solid ${getReasonColor(option, i)}`,
+                      }}
+                    >
+                      {option}
+                    </div>
+                    <div className="space-y-1.5">
+                      {optVotes.map((v) => (
+                        <div key={v.id} className="bg-white rounded-md px-2.5 py-2 border border-gray-100">
+                          <p className="text-xs text-gray-800 leading-relaxed">{v.reason}</p>
+                          {!question.anonymous && v.display_name && (
+                            <p className="text-xs text-gray-400 mt-1">— {v.display_name}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
