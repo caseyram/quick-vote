@@ -235,15 +235,31 @@ export default function ParticipantSession() {
       }
 
       if (qData) {
-        // Check if participant already voted on this question
-        const { data: existingVote } = await supabase
-          .from('votes')
-          .select('id')
-          .eq('question_id', qData.id)
-          .eq('participant_id', participantIdRef.current)
-          .maybeSingle();
+        // Check if participant already voted on this question.
+        // First check local store — catches the post-submit reconnect race where the
+        // channel briefly drops right after voting and refetchState runs before (or
+        // concurrently with) the upsert response. Without this guard, the DB check
+        // can return no vote (upsert still in flight) and incorrectly flip view back
+        // to 'voting', making the question reappear after submitting.
+        const { currentVote, submitting } = useSessionStore.getState();
+        const alreadyVotedLocally =
+          submitting || currentVote?.question_id === qData.id;
 
-        if (existingVote) {
+        let existingVote: { id: string } | null = null;
+        if (!alreadyVotedLocally) {
+          const pid = participantIdRef.current;
+          if (pid) {
+            const { data } = await supabase
+              .from('votes')
+              .select('id')
+              .eq('question_id', qData.id)
+              .eq('participant_id', pid)
+              .maybeSingle();
+            existingVote = data;
+          }
+        }
+
+        if (alreadyVotedLocally || existingVote) {
           setView('waiting');
           setWaitingMessage('Vote submitted! Waiting for results...');
         } else {
