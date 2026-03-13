@@ -398,9 +398,13 @@ export default function PresentationView() {
     return () => clearInterval(interval);
   }, [realSessionId, sessionStatus]);
 
-  // Set page title
+  // Set page title + suppress scrollbar gutter (prevents right-side gap in presentation)
   useEffect(() => {
     document.title = 'QuickVote Presentation';
+    document.documentElement.style.scrollbarGutter = 'auto';
+    return () => {
+      document.documentElement.style.scrollbarGutter = '';
+    };
   }, []);
 
   // Hide fullscreen hint after 5 seconds
