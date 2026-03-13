@@ -398,12 +398,16 @@ export default function PresentationView() {
     return () => clearInterval(interval);
   }, [realSessionId, sessionStatus]);
 
-  // Set page title + suppress scrollbar gutter (prevents right-side gap in presentation)
+  // Set page title + force black background on html/body to hide any scrollbar gutter gap
   useEffect(() => {
     document.title = 'QuickVote Presentation';
     document.documentElement.style.scrollbarGutter = 'auto';
+    document.documentElement.style.backgroundColor = 'black';
+    document.body.style.backgroundColor = 'black';
     return () => {
       document.documentElement.style.scrollbarGutter = '';
+      document.documentElement.style.backgroundColor = '';
+      document.body.style.backgroundColor = '';
     };
   }, []);
 
