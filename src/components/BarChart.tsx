@@ -45,7 +45,7 @@ export function BarChart({ data, totalVotes, size = 'default', theme = 'dark', b
     : `text-sm font-medium ${isLight ? 'text-gray-800' : 'text-white'}`;
 
   const labelClass = isLarge
-    ? `text-lg font-semibold ${isLight ? 'text-gray-600' : 'text-white/80'}`
+    ? `text-base font-semibold leading-tight ${isLight ? 'text-gray-600' : 'text-white/80'}`
     : `text-sm ${isLight ? 'text-gray-600' : 'text-white/70'}`;
 
   const totalClass = isLarge
@@ -56,22 +56,25 @@ export function BarChart({ data, totalVotes, size = 'default', theme = 'dark', b
     ? { height: '100%' }
     : { height: isLarge ? 400 : 300 };
 
-  // Minimum px per column — enforces horizontal scroll on mobile rather than compression
-  const minColPx = isLarge ? 80 : 72;
+  // For presentation (large/fill): always fit within viewport — equal columns, no scroll
+  // For default (admin): allow scroll on narrow screens
+  const minColPx = isLarge ? 0 : 72;
   const colTemplate = data.length > 0
-    ? `repeat(${data.length}, minmax(${minColPx}px, ${isLarge ? '1fr' : '120px'}))`
+    ? isLarge
+      ? `repeat(${data.length}, 1fr)`
+      : `repeat(${data.length}, minmax(${minColPx}px, 120px))`
     : 'none';
 
   return (
     <div className={isFill ? 'h-full flex flex-col' : ''}>
-      {/* Horizontal scroll wrapper — prevents compression on narrow screens */}
-      <div className={`${isFill ? 'flex-1 min-h-0 ' : ''}overflow-x-auto`}>
+      {/* Scroll wrapper — only scrolls in non-large (admin) mode */}
+      <div className={`${isFill ? 'flex-1 min-h-0 ' : ''}${isLarge ? '' : 'overflow-x-auto'}`}>
       <div
-        className={`grid justify-center min-w-max ${isFill ? 'h-full' : ''}`}
+        className={`grid justify-center ${isLarge ? 'w-full' : 'min-w-max'} ${isFill ? 'h-full' : ''}`}
         style={{
           gridTemplateColumns: colTemplate,
           gridTemplateRows: 'auto 1fr auto',
-          gap: `0 ${isLarge ? '1.5rem' : '1rem'}`,
+          gap: `0 ${isLarge ? '0.75rem' : '1rem'}`,
           ...(isFill ? undefined : heightStyle),
         }}
       >
