@@ -201,7 +201,6 @@ function renderChart(bars: BarDatum[], totalVotes: number): string {
   const TOP_LABEL_H = 40;   // space above bars for count + percentage
   const BOTTOM_LABEL_H = 60; // space below bars for option label
   const BAR_AREA_H = VB_H - TOP_LABEL_H - BOTTOM_LABEL_H;
-  const BAR_AREA_TOP = TOP_LABEL_H;
   const BAR_AREA_BOTTOM = TOP_LABEL_H + BAR_AREA_H;
 
   const colWidth = (VB_W - PADDING_X * 2) / bars.length;
