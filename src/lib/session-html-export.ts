@@ -177,8 +177,8 @@ function renderQuestionCard(
     ? '<p class="no-votes">No votes recorded</p>'
     : renderChart(q.bars, q.totalVotes)}
   ${totalReasons > 0 ? `
-  <details class="reasons">
-    <summary>Show Reasons (${totalReasons})</summary>
+  <div class="reasons">
+    <p class="reasons-heading">Reasons (${totalReasons})</p>
     <div class="reasons-grid">
       ${q.reasonsByColumn.map(col => `
         <div class="reasons-col">
@@ -189,7 +189,7 @@ function renderQuestionCard(
         </div>
       `).join('')}
     </div>
-  </details>` : ''}
+  </div>` : ''}
 </section>`;
 }
 
@@ -293,7 +293,7 @@ export function escapeHtml(input: string): string {
 const STYLES = `
 *,*::before,*::after{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f9fafb;color:#111827;line-height:1.5}
-.page{max-width:768px;margin:0 auto;padding:32px 16px}
+.page{max-width:1200px;margin:0 auto;padding:32px 24px}
 .page-header h1{margin:0 0 4px;font-size:28px;font-weight:700;color:#111827}
 .page-header .subtitle{margin:0;color:#6b7280;font-size:14px}
 .nav-bar{display:flex;align-items:center;justify-content:center;gap:16px;margin:24px 0 16px;color:#6b7280;font-size:14px}
@@ -312,24 +312,19 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Hel
 .q-text{margin:0;font-weight:500;color:#111827}
 .no-votes{margin:8px 0 0;color:#9ca3af;font-size:14px;padding-left:28px}
 .chart-wrap{padding:8px 0 0}
-.chart-wrap svg{display:block;width:100%;height:auto;max-height:340px}
+.chart-wrap svg{display:block;width:100%;height:auto;max-height:360px}
 .total{margin:4px 0 0;text-align:center;color:#6b7280;font-size:12px}
-.reasons{margin-top:16px}
-.reasons summary{cursor:pointer;font-size:14px;font-weight:500;color:#4f46e5;list-style:none;padding:4px 0}
-.reasons summary::-webkit-details-marker{display:none}
-.reasons summary::after{content:" \\25BC";font-size:10px}
-.reasons[open] summary::after{content:" \\25B2"}
-.reasons-grid{display:flex;gap:16px;margin-top:8px;flex-wrap:wrap}
-.reasons-col{flex:1 1 0;min-width:120px}
-.reasons-col-label{margin:0 0 6px;font-size:12px;font-weight:600;text-align:center}
-.reason{background:#f9fafb;border-left:3px solid #ccc;border-radius:4px;padding:6px 10px;margin-bottom:6px;font-size:14px;color:#374151;word-wrap:break-word;overflow-wrap:anywhere}
+.reasons{margin-top:20px;border-top:1px solid #e5e7eb;padding-top:14px}
+.reasons-heading{margin:0 0 10px;font-size:13px;font-weight:600;color:#4b5563;text-transform:uppercase;letter-spacing:0.04em}
+.reasons-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.reasons-col{min-width:0}
+.reasons-col-label{margin:0 0 8px;font-size:13px;font-weight:600;text-align:center}
+.reason{background:#f9fafb;border-left:3px solid #ccc;border-radius:4px;padding:8px 12px;margin-bottom:6px;font-size:14px;color:#374151;line-height:1.45;word-wrap:break-word;overflow-wrap:anywhere}
 .empty{text-align:center;color:#6b7280;padding:48px 0}
 @media print {
   body{background:#fff}
   .nav-bar{display:none}
   .question-card[hidden]{display:block !important}
-  .reasons[open] .reasons-grid,.reasons:not([open]) .reasons-grid{display:flex}
-  .reasons:not([open])>summary{display:none}
 }
 `;
 
