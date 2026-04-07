@@ -5,9 +5,11 @@ import { supabase } from '../lib/supabase';
 import {
   exportSession,
   downloadCSV,
+  downloadHTML,
   sessionToCSV,
   generateExportFilename,
 } from '../lib/session-export';
+import { sessionToHTML } from '../lib/session-html-export';
 import { saveSessionTemplate } from '../lib/session-template-api';
 import { ConfirmDialog } from './ConfirmDialog';
 import type { Session, Question, Batch, SessionItem, SessionBlueprint, SessionBlueprintItem } from '../types/database';
@@ -281,6 +283,17 @@ export function PastSessions({ refreshKey }: { refreshKey?: number }) {
     }
   }
 
+  async function handleExportHTML(session: SessionRow) {
+    setExporting(session.session_id);
+    try {
+      const data = await exportSession(session.session_id);
+      const html = sessionToHTML(data);
+      downloadHTML(html, generateExportFilename(session.title, 'html'));
+    } finally {
+      setExporting(null);
+    }
+  }
+
   function startRename(session: SessionRow) {
     setRenamingId(session.id);
     setRenameValue(session.title);
@@ -530,6 +543,14 @@ export function PastSessions({ refreshKey }: { refreshKey?: number }) {
                           className="px-2 py-1 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded-md transition-colors disabled:opacity-40"
                         >
                           CSV
+                        </button>
+
+                        <button
+                          onClick={() => handleExportHTML(s)}
+                          disabled={exporting === s.session_id}
+                          className="px-2 py-1 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded-md transition-colors disabled:opacity-40"
+                        >
+                          HTML
                         </button>
 
                         <button

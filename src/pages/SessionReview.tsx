@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router';
 import { supabase } from '../lib/supabase';
 import { aggregateVotes, buildConsistentBarData, type VoteCount } from '../lib/vote-aggregation';
 import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../components/BarChart';
-import { exportSession, downloadJSON, generateExportFilename } from '../lib/session-export';
+import { exportSession, downloadJSON, downloadHTML, generateExportFilename } from '../lib/session-export';
+import { sessionToHTML } from '../lib/session-html-export';
 import { useReadReasons } from '../hooks/use-read-reasons';
 import { useKeyboardNavigation } from '../hooks/use-keyboard-navigation';
 import type { Session, Batch, Question, Vote } from '../types/database';
@@ -42,6 +43,7 @@ export default function SessionReview() {
   const [questionsByBatch, setQuestionsByBatch] = useState<Map<string | null, QuestionWithVotes[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [exportingHtml, setExportingHtml] = useState(false);
 
   // Refs for scrolling to questions
   const questionRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -122,6 +124,19 @@ export default function SessionReview() {
       downloadJSON(data, filename);
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function handleExportHTML() {
+    if (!sessionId || !session) return;
+    setExportingHtml(true);
+    try {
+      const data = await exportSession(sessionId);
+      const html = sessionToHTML(data);
+      const filename = generateExportFilename(session.title, 'html');
+      downloadHTML(html, filename);
+    } finally {
+      setExportingHtml(false);
     }
   }
 
@@ -255,13 +270,22 @@ export default function SessionReview() {
             </button>
             <h1 className="text-2xl font-bold text-gray-900">{session.title}</h1>
           </div>
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-300 disabled:cursor-not-allowed rounded-lg transition-colors"
-          >
-            {exporting ? 'Exporting...' : 'Export'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportHTML}
+              disabled={exportingHtml}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-300 disabled:cursor-not-allowed rounded-lg transition-colors"
+            >
+              {exportingHtml ? 'Exporting...' : 'Export HTML'}
+            </button>
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-300 disabled:cursor-not-allowed rounded-lg transition-colors"
+            >
+              {exporting ? 'Exporting...' : 'Export JSON'}
+            </button>
+          </div>
         </div>
 
         {/* Question position indicator */}

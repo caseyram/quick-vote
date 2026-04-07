@@ -365,6 +365,14 @@ export function downloadCSV(content: string, filename: string): void {
 }
 
 /**
+ * Downloads a string as a self-contained HTML file.
+ */
+export function downloadHTML(content: string, filename: string): void {
+  const blob = new Blob([content], { type: 'text/html;charset=utf-8;' });
+  downloadBlob(blob, filename);
+}
+
+/**
  * Generates a safe filename for session export.
  * Removes special characters and adds date stamp.
  *
