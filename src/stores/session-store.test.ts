@@ -32,6 +32,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     created_by: 'user-1',
     created_at: new Date().toISOString(),
     default_template_id: null,
+    current_session_item_id: null,
     teams: [],
     ...overrides,
   };

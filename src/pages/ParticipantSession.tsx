@@ -148,6 +148,7 @@ export default function ParticipantSession() {
       admin_token: '',
       created_by: '',
       teams: statusData.teams || [],
+      current_session_item_id: null,
     };
     setSession(sessionForStore);
 
@@ -654,6 +655,7 @@ export default function ParticipantSession() {
         admin_token: '',
         created_by: '',
         teams: sessionData.teams || [],
+        current_session_item_id: null,
       };
       setSession(sessionForStore);
 

@@ -37,13 +37,14 @@ export default function AdminSession() {
     reset,
     activeBatchId,
     setActiveBatchId,
+    votesByQuestion,
+    setAllVotes,
   } = useSessionStore();
   const [copied, setCopied] = useState(false);
   const [monitorCopied, setMonitorCopied] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [transitioning, setTransitioning] = useState(false);
   const [userId, setUserId] = useState('');
-  const [sessionVotes, setSessionVotes] = useState<Record<string, Vote[]>>({});
   const [quickQuestionLoading, setQuickQuestionLoading] = useState(false);
   const [_addingQuestionToBatchId, _setAddingQuestionToBatchId] = useState<string | null>(null);
   const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
@@ -148,14 +149,7 @@ export default function AdminSession() {
           .eq('session_id', sessionData.session_id);
 
         if (votesData) {
-          const voteMap: Record<string, Vote[]> = {};
-          for (const vote of votesData) {
-            if (!voteMap[vote.question_id]) {
-              voteMap[vote.question_id] = [];
-            }
-            voteMap[vote.question_id].push(vote);
-          }
-          setSessionVotes(voteMap);
+          setAllVotes(votesData);
         }
       }
 
@@ -200,7 +194,7 @@ export default function AdminSession() {
       }
     );
 
-    // Listen for vote changes (INSERT/UPDATE) via Postgres Changes
+    // Listen for vote changes (INSERT/UPDATE/DELETE) via Postgres Changes
     channel.on(
       'postgres_changes' as any,
       {
@@ -210,25 +204,17 @@ export default function AdminSession() {
         filter: `session_id=eq.${sid}`,
       },
       (payload: any) => {
-        const newVote = payload.new as Vote;
-        if (!newVote) return;
-
-        setSessionVotes((prev) => {
-          const qId = newVote.question_id;
-          const existing = prev[qId] ?? [];
-
-          if (payload.eventType === 'INSERT') {
-            const alreadyExists = existing.some((v) => v.id === newVote.id);
-            if (alreadyExists) return prev;
-            return { ...prev, [qId]: [...existing, newVote] };
-          } else if (payload.eventType === 'UPDATE') {
-            return {
-              ...prev,
-              [qId]: existing.map((v) => (v.id === newVote.id ? newVote : v)),
-            };
+        if (payload.eventType === 'DELETE') {
+          const old = payload.old;
+          if (old?.id && old?.question_id) {
+            useSessionStore.getState().removeVote(old.id, old.question_id);
           }
-          return prev;
-        });
+        } else {
+          const vote = payload.new as Vote;
+          if (vote) {
+            useSessionStore.getState().upsertVote(vote);
+          }
+        }
       }
     );
 
@@ -273,33 +259,8 @@ export default function AdminSession() {
     presenceConfig
   );
 
-  // Poll votes every 10s while session is active (fallback for Postgres Changes).
-  // Only updates state when vote count actually changes to avoid unnecessary re-renders.
-  const lastVoteCountRef = useRef(0);
-  useEffect(() => {
-    if (!isActive || !session?.session_id) return;
-
-    const interval = setInterval(async () => {
-      const { data: votesData } = await supabase
-        .from('votes')
-        .select('*')
-        .eq('session_id', session.session_id);
-
-      if (votesData && votesData.length !== lastVoteCountRef.current) {
-        lastVoteCountRef.current = votesData.length;
-        const voteMap: Record<string, Vote[]> = {};
-        for (const vote of votesData) {
-          if (!voteMap[vote.question_id]) {
-            voteMap[vote.question_id] = [];
-          }
-          voteMap[vote.question_id].push(vote);
-        }
-        setSessionVotes(voteMap);
-      }
-    }, activeBatchId ? 3000 : 10000);
-
-    return () => clearInterval(interval);
-  }, [isActive, session?.session_id, activeBatchId]);
+  // Votes are now driven by CDC via the Zustand store (upsertVote).
+  // No polling needed — see setupChannel above.
 
   // Page-level countdown - purely visual reminder, does NOT auto-close voting
   const handleCountdownComplete = useCallback(() => {
@@ -821,6 +782,17 @@ export default function AdminSession() {
     useSessionStore.getState().setActiveSessionItemId(item.id);
     useSessionStore.getState().setNavigationDirection(direction);
 
+    // Persist the durable navigation pointer (CDC source of truth for presenter)
+    if (session) {
+      supabase
+        .from('sessions')
+        .update({ current_session_item_id: item.id })
+        .eq('id', session.id)
+        .then(({ error: err }) => {
+          if (err) console.error('Failed to write current_session_item_id:', err);
+        });
+    }
+
     if (item.item_type === 'batch' && item.batch_id) {
       // Activate batch (no timer for sequence navigation)
       await handleActivateBatch(item.batch_id, null);
@@ -1162,7 +1134,7 @@ export default function AdminSession() {
           liveParticipantCount={participantCount}
           connectionStatus={connectionStatus}
           channelRef={channelRef}
-          sessionVotes={sessionVotes}
+          sessionVotes={votesByQuestion}
           onActivateSequenceItem={handleActivateSequenceItem}
           onEndSession={handleEndSession}
           onQuickQuestion={handleQuickQuestion}

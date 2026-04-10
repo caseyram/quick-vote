@@ -27,8 +27,11 @@ export interface PresenceConfig {
  *
  * @param channelName - Unique channel topic (e.g. `session:${sessionId}`)
  * @param setup - Callback to configure Broadcast / Postgres Changes listeners
- *   on the channel. Must be wrapped in `useCallback` by the caller
- *   (intentionally excluded from deps to avoid reconnect cycles).
+ *   on the channel. **IMPORTANT: Must be wrapped in `useCallback` by the
+ *   caller** — `setup` is intentionally excluded from the effect's dependency
+ *   array to avoid reconnect cycles. If `setup`'s identity changes between
+ *   renders, the new listeners will NOT be registered on the existing channel.
+ *   Use refs inside the callback for values that change (e.g. session ID).
  * @param enabled - Whether to subscribe. Pass `false` to defer connection.
  * @param presenceConfig - Optional presence tracking config (userId + role).
  */

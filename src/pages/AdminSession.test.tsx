@@ -19,6 +19,7 @@ function makeSession(overrides: Partial<Session> = {}): Session {
     created_by: 'user1',
     created_at: '2025-01-01T00:00:00Z',
     default_template_id: null,
+    current_session_item_id: null,
     teams: [],
     ...overrides,
   };
@@ -203,6 +204,11 @@ function defaultStoreState(overrides: Record<string, any> = {}) {
     setActiveBatchId: mockSetActiveBatchId,
     batchQuestions: [],
     setBatchQuestions: mockSetBatchQuestions,
+    votesByQuestion: {},
+    setAllVotes: vi.fn(),
+    upsertVote: vi.fn(),
+    removeVote: vi.fn(),
+    clearVotes: vi.fn(),
     ...overrides,
   };
 }

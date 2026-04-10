@@ -39,6 +39,13 @@ interface SessionState {
   setQuestionVotes: (votes: Vote[]) => void;
   setSubmitting: (submitting: boolean) => void;
 
+  // Session-wide vote state (single source of truth for admin, presenter, monitor)
+  votesByQuestion: Record<string, Vote[]>;
+  setAllVotes: (votes: Vote[]) => void;
+  upsertVote: (vote: Vote) => void;
+  removeVote: (voteId: string, questionId: string) => void;
+  clearVotes: () => void;
+
   // Realtime state
   participantCount: number;
   connectionStatus: ConnectionStatus;
@@ -141,6 +148,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
       currentVote: null,
       questionVotes: [],
       submitting: false,
+      votesByQuestion: {},
       participantCount: 0,
       connectionStatus: 'connecting',
       activeQuestionId: null,
@@ -159,6 +167,38 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   setCurrentVote: (vote) => set({ currentVote: vote }),
   setQuestionVotes: (votes) => set({ questionVotes: votes }),
   setSubmitting: (submitting) => set({ submitting }),
+
+  // Session-wide vote state
+  votesByQuestion: {},
+  setAllVotes: (votes) => {
+    const map: Record<string, Vote[]> = {};
+    for (const vote of votes) {
+      if (!map[vote.question_id]) map[vote.question_id] = [];
+      map[vote.question_id].push(vote);
+    }
+    set({ votesByQuestion: map });
+  },
+  upsertVote: (vote) =>
+    set((state) => {
+      const qId = vote.question_id;
+      const existing = state.votesByQuestion[qId] ?? [];
+      const idx = existing.findIndex((v) => v.id === vote.id);
+      const updated = idx >= 0
+        ? existing.map((v) => (v.id === vote.id ? vote : v))
+        : [...existing, vote];
+      return { votesByQuestion: { ...state.votesByQuestion, [qId]: updated } };
+    }),
+  removeVote: (voteId, questionId) =>
+    set((state) => {
+      const existing = state.votesByQuestion[questionId] ?? [];
+      return {
+        votesByQuestion: {
+          ...state.votesByQuestion,
+          [questionId]: existing.filter((v) => v.id !== voteId),
+        },
+      };
+    }),
+  clearVotes: () => set({ votesByQuestion: {} }),
 
   // Realtime state
   participantCount: 0,

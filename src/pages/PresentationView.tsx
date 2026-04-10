@@ -40,7 +40,7 @@ export default function PresentationView() {
   const [linkCopied, setLinkCopied] = useState(false);
   const [blackScreenActive, setBlackScreenActive] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
-  const [sessionVotes, setSessionVotes] = useState<Record<string, Vote[]>>({});
+  const sessionVotes = useSessionStore((s) => s.votesByQuestion);
   const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(new Set());
   const [moderatedVoteIds, setModeratedVoteIds] = useState<Set<string>>(new Set());
   const [highlightedReason, setHighlightedReason] = useState<{ questionId: string; reasonId: string } | null>(null);
@@ -52,6 +52,9 @@ export default function PresentationView() {
   const [batchVotingActive, setBatchVotingActive] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const prevConnectionStatus = useRef<ConnectionStatus>('connecting');
+  // Refs for CDC filters (read inside useCallback without deps)
+  const sessionRowIdRef = useRef<string | null>(null);    // UUID pk for sessions table filter
+  const sessionTextIdRef = useRef<string | null>(null);   // session_id text for other tables
 
   // Load session data on mount
   useEffect(() => {
@@ -82,6 +85,8 @@ export default function PresentationView() {
 
       setSession(sessionData);
       const sid = sessionData.session_id;
+      sessionRowIdRef.current = sessionData.id;
+      sessionTextIdRef.current = sid;
       if (!cancelled) setRealSessionId(sid);
 
       // Fetch batches
@@ -117,41 +122,50 @@ export default function PresentationView() {
         useSessionStore.getState().setSessionItems(itemsData);
       }
 
-      // Sync active state from DB so projection picks up current item on mount
-      // (handles case where projection opens after admin already activated something)
+      // Sync active state from DB using the durable navigation pointer
+      if (!cancelled && sessionData.current_session_item_id) {
+        const activeItem = itemsData?.find(
+          (item: any) => item.id === sessionData.current_session_item_id
+        );
+        if (activeItem) {
+          useSessionStore.getState().setActiveSessionItemId(activeItem.id);
+          if (activeItem.item_type === 'batch' && activeItem.batch_id) {
+            useSessionStore.getState().setActiveBatchId(activeItem.batch_id);
+            setBatchVotingActive(true);
+          }
+        }
+      }
+
+      // Check for active inline question (Go Live quick question)
       if (!cancelled) {
-        // Check for active batch
-        const { data: activeBatch } = await supabase
-          .from('batches')
+        const { data: activeQ } = await supabase
+          .from('questions')
           .select('*')
-          .eq('session_id', realSessionId!)
+          .eq('session_id', sid)
           .eq('status', 'active')
           .maybeSingle();
 
-        if (activeBatch && !cancelled) {
-          useSessionStore.getState().setActiveBatchId(activeBatch.id);
-          setBatchVotingActive(true);
-          const batchItem = itemsData?.find(
-            (item: any) => item.item_type === 'batch' && item.batch_id === activeBatch.id
-          );
-          if (batchItem) {
-            useSessionStore.getState().setActiveSessionItemId(batchItem.id);
-          }
+        if (activeQ && !cancelled) {
+          setActiveInlineQuestion(activeQ);
+          setInlineVotingClosed(false);
         }
+      }
 
-        // Check for active inline question (Go Live quick question)
-        if (!activeBatch) {
-          const { data: activeQ } = await supabase
-            .from('questions')
-            .select('*')
-            .eq('session_id', realSessionId!)
-            .eq('status', 'active')
-            .maybeSingle();
+      // Load existing votes into the centralized store
+      if (!cancelled) {
+        const { data: votesData } = await supabase
+          .from('votes')
+          .select('*')
+          .eq('session_id', sid);
 
-          if (activeQ && !cancelled) {
-            setActiveInlineQuestion(activeQ);
-            setInlineVotingClosed(false);
-          }
+        if (votesData) {
+          useSessionStore.getState().setAllVotes(votesData);
+          // Sync moderated IDs from DB
+          const dbModeratedIds = new Set<string>();
+          votesData.forEach((vote: Vote) => {
+            if (vote.moderated_at) dbModeratedIds.add(vote.id);
+          });
+          setModeratedVoteIds(dbModeratedIds);
         }
       }
 
@@ -174,40 +188,22 @@ export default function PresentationView() {
       setActiveInlineQuestion(null); // Clear any inline question
     });
 
-    // Listen for batch activations
-    channel.on('broadcast', { event: 'batch_activated' }, async ({ payload }: any) => {
+    // Listen for batch activations (fast hint — CDC on sessions.current_session_item_id
+    // is the reliable source of truth; this broadcast just resets transient UI state)
+    channel.on('broadcast', { event: 'batch_activated' }, ({ payload }: any) => {
       setRevealedQuestions(new Set());
       setHighlightedReason(null);
       setSelectedQuestionId(null);
-      setActiveInlineQuestion(null); // Clear any inline question
+      setActiveInlineQuestion(null);
       setBatchVotingActive(true);
 
       useSessionStore.getState().setActiveBatchId(payload.batchId);
-      // Find the corresponding session_item for this batch
+      // Try to resolve the session_item locally — if Go Live just created it,
+      // the session_items CDC event will deliver the row shortly.
       const items = useSessionStore.getState().sessionItems;
-      let batchItem = items.find(
+      const batchItem = items.find(
         (item) => item.item_type === 'batch' && item.batch_id === payload.batchId
       );
-
-      // If session_item not found locally (e.g. Go Live created a new batch),
-      // re-fetch session_items, batches, and questions from DB
-      if (!batchItem && realSessionId) {
-        const [itemsRes, batchesRes, questionsRes] = await Promise.all([
-          supabase.from('session_items').select('*').eq('session_id', realSessionId!).order('position', { ascending: true }),
-          supabase.from('batches').select('*').eq('session_id', realSessionId!).order('position', { ascending: true }),
-          supabase.from('questions').select('*').eq('session_id', realSessionId!).order('position', { ascending: true }),
-        ]);
-        if (itemsRes.data) useSessionStore.getState().setSessionItems(itemsRes.data);
-        if (batchesRes.data) useSessionStore.getState().setBatches(batchesRes.data);
-        if (questionsRes.data) useSessionStore.getState().setQuestions(questionsRes.data);
-
-        // Re-search for the session_item
-        const freshItems = useSessionStore.getState().sessionItems;
-        batchItem = freshItems.find(
-          (item) => item.item_type === 'batch' && item.batch_id === payload.batchId
-        );
-      }
-
       if (batchItem) {
         useSessionStore.getState().setActiveSessionItemId(batchItem.id);
       }
@@ -320,6 +316,103 @@ export default function PresentationView() {
     });
 
     channelRef.current = channel;
+
+    // ── Postgres Changes (CDC) — reliable source of truth ────────────────
+    const rowId = sessionRowIdRef.current;
+    const textId = sessionTextIdRef.current;
+    if (!textId) return;
+
+    // Navigation: sessions.current_session_item_id changes
+    if (rowId) {
+      channel.on(
+        'postgres_changes' as any,
+        { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `id=eq.${rowId}` },
+        (payload: any) => {
+          const row = payload.new;
+          if (!row) return;
+
+          // Apply navigation pointer
+          if (row.current_session_item_id) {
+            const items = useSessionStore.getState().sessionItems;
+            const item = items.find((i) => i.id === row.current_session_item_id);
+            if (item) {
+              useSessionStore.getState().setActiveSessionItemId(item.id);
+              if (item.item_type === 'batch' && item.batch_id) {
+                useSessionStore.getState().setActiveBatchId(item.batch_id);
+              }
+            }
+          }
+
+          // Pick up status transitions
+          const currentSession = useSessionStore.getState().session;
+          if (currentSession && row.status !== currentSession.status) {
+            useSessionStore.getState().setSession({ ...currentSession, status: row.status });
+          }
+        }
+      );
+    }
+
+    // Session items — new items from Go Live
+    channel.on(
+      'postgres_changes' as any,
+      { event: '*', schema: 'public', table: 'session_items', filter: `session_id=eq.${textId}` },
+      (payload: any) => {
+        if (payload.eventType === 'INSERT' && payload.new) {
+          useSessionStore.getState().addSessionItem(payload.new);
+        } else if (payload.eventType === 'DELETE' && payload.old?.id) {
+          useSessionStore.getState().removeSessionItem(payload.old.id);
+        }
+      }
+    );
+
+    // Batches — status changes
+    channel.on(
+      'postgres_changes' as any,
+      { event: '*', schema: 'public', table: 'batches', filter: `session_id=eq.${textId}` },
+      (payload: any) => {
+        if (payload.eventType === 'INSERT' && payload.new) {
+          useSessionStore.getState().addBatch(payload.new);
+        } else if (payload.eventType === 'UPDATE' && payload.new) {
+          useSessionStore.getState().updateBatch(payload.new.id, payload.new);
+        } else if (payload.eventType === 'DELETE' && payload.old?.id) {
+          useSessionStore.getState().removeBatch(payload.old.id);
+        }
+      }
+    );
+
+    // Questions — status changes (active → closed → revealed)
+    channel.on(
+      'postgres_changes' as any,
+      { event: 'UPDATE', schema: 'public', table: 'questions', filter: `session_id=eq.${textId}` },
+      (payload: any) => {
+        if (payload.new) {
+          useSessionStore.getState().updateQuestion(payload.new.id, payload.new);
+        }
+      }
+    );
+
+    // Votes — replaces 3-second polling
+    channel.on(
+      'postgres_changes' as any,
+      { event: '*', schema: 'public', table: 'votes', filter: `session_id=eq.${textId}` },
+      (payload: any) => {
+        if (payload.eventType === 'DELETE') {
+          const old = payload.old;
+          if (old?.id && old?.question_id) {
+            useSessionStore.getState().removeVote(old.id, old.question_id);
+          }
+        } else {
+          const vote = payload.new as Vote;
+          if (vote) {
+            useSessionStore.getState().upsertVote(vote);
+            // Track moderated status
+            if (vote.moderated_at) {
+              setModeratedVoteIds((prev) => new Set(prev).add(vote.id));
+            }
+          }
+        }
+      }
+    );
   }, [setTheme]);
 
   const { connectionStatus } = useRealtimeChannel(
@@ -328,75 +421,57 @@ export default function PresentationView() {
     !!realSessionId
   );
 
-  // Refetch state on reconnect
+  // Full state resync on reconnect
   useEffect(() => {
     if (
       prevConnectionStatus.current === 'reconnecting' &&
       connectionStatus === 'connected' &&
       realSessionId
     ) {
-      // Re-fetch current session state to ensure sync
-      supabase
-        .from('sessions')
-        .select('*')
-        .eq('session_id', realSessionId!)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            setSession(data);
+      (async () => {
+        const [sessionRes, itemsRes, batchesRes, questionsRes, votesRes] = await Promise.all([
+          supabase.from('sessions').select('*').eq('session_id', realSessionId).single(),
+          supabase.from('session_items').select('*').eq('session_id', realSessionId).order('position'),
+          supabase.from('batches').select('*').eq('session_id', realSessionId).order('position'),
+          supabase.from('questions').select('*').eq('session_id', realSessionId).order('position'),
+          supabase.from('votes').select('*').eq('session_id', realSessionId),
+        ]);
+
+        if (sessionRes.data) setSession(sessionRes.data);
+        if (itemsRes.data) useSessionStore.getState().setSessionItems(itemsRes.data);
+        if (batchesRes.data) setBatches(batchesRes.data);
+        if (questionsRes.data) setQuestions(questionsRes.data);
+        if (votesRes.data) useSessionStore.getState().setAllVotes(votesRes.data);
+
+        // Restore navigation from the durable pointer
+        if (sessionRes.data?.current_session_item_id && itemsRes.data) {
+          const activeItem = itemsRes.data.find(
+            (i) => i.id === sessionRes.data!.current_session_item_id
+          );
+          if (activeItem) {
+            useSessionStore.getState().setActiveSessionItemId(activeItem.id);
+            if (activeItem.item_type === 'batch' && activeItem.batch_id) {
+              useSessionStore.getState().setActiveBatchId(activeItem.batch_id);
+            }
           }
-        });
+        }
+
+        // Sync moderated IDs
+        if (votesRes.data) {
+          const modIds = new Set<string>();
+          votesRes.data.forEach((v) => { if (v.moderated_at) modIds.add(v.id); });
+          setModeratedVoteIds(modIds);
+        }
+      })();
     }
     prevConnectionStatus.current = connectionStatus;
-  }, [connectionStatus, realSessionId, setSession]);
+  }, [connectionStatus, realSessionId, setSession, setBatches, setQuestions]);
 
-  // Subscribe to session status and teams from store
-  const sessionStatus = useSessionStore((s) => s.session?.status);
+  // Subscribe to session from store
   const session = useSessionStore((s) => s.session);
 
-  // Poll votes every 3 seconds when session is active
-  useEffect(() => {
-    if (!realSessionId || (sessionStatus !== 'active' && sessionStatus !== 'lobby')) return;
-
-    async function pollVotes() {
-      const { data } = await supabase
-        .from('votes')
-        .select('*')
-        .eq('session_id', realSessionId!);
-
-      if (data) {
-        const votesByQuestion: Record<string, Vote[]> = {};
-        data.forEach((vote) => {
-          if (!votesByQuestion[vote.question_id]) {
-            votesByQuestion[vote.question_id] = [];
-          }
-          votesByQuestion[vote.question_id].push(vote);
-        });
-        setSessionVotes(votesByQuestion);
-
-        // Sync moderated IDs from DB (handles page reload case)
-        const dbModeratedIds = new Set<string>();
-        data.forEach((vote) => {
-          if (vote.moderated_at) dbModeratedIds.add(vote.id);
-        });
-        setModeratedVoteIds((prev) => {
-          // Merge: keep broadcast-applied removes, add any DB-sourced moderations
-          // Strategy: rebuild from DB truth on each poll (broadcast updates are immediate)
-          const next = new Set(prev);
-          for (const id of dbModeratedIds) next.add(id);
-          return next;
-        });
-      }
-    }
-
-    // Initial poll
-    pollVotes();
-
-    // Poll every 3 seconds
-    const interval = setInterval(pollVotes, 3000);
-
-    return () => clearInterval(interval);
-  }, [realSessionId, sessionStatus]);
+  // Votes are now driven by CDC via the Zustand store (upsertVote).
+  // No polling needed — see setupChannel CDC subscriptions above.
 
   // Set page title + force black background on html/body to hide any scrollbar gutter gap
   useEffect(() => {

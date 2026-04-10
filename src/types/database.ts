@@ -26,6 +26,7 @@ export interface Session {
   created_at: string;
   default_template_id: string | null;
   teams: string[];
+  current_session_item_id: string | null;
 }
 
 export interface Question {

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router';
 import { supabase } from '../lib/supabase';
 import { useRealtimeChannel } from '../hooks/use-realtime-channel';
@@ -116,7 +116,6 @@ export default function ResultsMonitor() {
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const lastVoteCountRef = useRef(0);
 
   // Load initial data
   useEffect(() => {
@@ -167,7 +166,6 @@ export default function ResultsMonitor() {
         .eq('session_id', sessionId);
 
       if (!cancelled && votesData) {
-        lastVoteCountRef.current = votesData.length;
         const voteMap: Record<string, Vote[]> = {};
         for (const vote of votesData) {
           if (!voteMap[vote.question_id]) voteMap[vote.question_id] = [];
@@ -183,34 +181,79 @@ export default function ResultsMonitor() {
     return () => { cancelled = true; };
   }, [sessionId]);
 
-  // Poll votes every 3s
-  useEffect(() => {
-    if (!sessionId || !session) return;
-
-    const interval = setInterval(async () => {
-      const { data: votesData } = await supabase
-        .from('votes')
-        .select('*')
-        .eq('session_id', sessionId);
-
-      if (votesData && votesData.length !== lastVoteCountRef.current) {
-        lastVoteCountRef.current = votesData.length;
-        const voteMap: Record<string, Vote[]> = {};
-        for (const vote of votesData) {
-          if (!voteMap[vote.question_id]) voteMap[vote.question_id] = [];
-          voteMap[vote.question_id].push(vote);
-        }
-        setSessionVotes(voteMap);
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [sessionId, session]);
-
-  // Realtime channel for presence
-  const setupChannel = useCallback((_channel: RealtimeChannel) => {
-    // Read-only view — no additional listeners needed
+  // Helper to upsert a single vote into local state
+  const upsertVote = useCallback((vote: Vote) => {
+    setSessionVotes((prev) => {
+      const qId = vote.question_id;
+      const existing = prev[qId] ?? [];
+      const idx = existing.findIndex((v) => v.id === vote.id);
+      const updated = idx >= 0
+        ? existing.map((v) => (v.id === vote.id ? vote : v))
+        : [...existing, vote];
+      return { ...prev, [qId]: updated };
+    });
   }, []);
+
+  // Realtime channel — CDC subscriptions for live updates
+  const setupChannel = useCallback((channel: RealtimeChannel) => {
+    if (!sessionId) return;
+
+    // Votes — replaces 3-second polling
+    channel.on(
+      'postgres_changes' as any,
+      { event: '*', schema: 'public', table: 'votes', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        if (payload.eventType === 'DELETE') {
+          const old = payload.old;
+          if (old?.id && old?.question_id) {
+            setSessionVotes((prev) => {
+              const existing = prev[old.question_id] ?? [];
+              return { ...prev, [old.question_id]: existing.filter((v: Vote) => v.id !== old.id) };
+            });
+          }
+        } else if (payload.new) {
+          upsertVote(payload.new as Vote);
+        }
+      }
+    );
+
+    // Questions — status changes
+    channel.on(
+      'postgres_changes' as any,
+      { event: '*', schema: 'public', table: 'questions', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        if (payload.eventType === 'INSERT' && payload.new) {
+          setQuestions((prev) => [...prev, payload.new].sort((a, b) => a.position - b.position));
+        } else if (payload.eventType === 'UPDATE' && payload.new) {
+          setQuestions((prev) => prev.map((q) => q.id === payload.new.id ? payload.new : q));
+        }
+      }
+    );
+
+    // Batches — status changes
+    channel.on(
+      'postgres_changes' as any,
+      { event: '*', schema: 'public', table: 'batches', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        if (payload.eventType === 'INSERT' && payload.new) {
+          setBatches((prev) => [...prev, payload.new].sort((a, b) => a.position - b.position));
+        } else if (payload.eventType === 'UPDATE' && payload.new) {
+          setBatches((prev) => prev.map((b) => b.id === payload.new.id ? payload.new : b));
+        } else if (payload.eventType === 'DELETE' && payload.old?.id) {
+          setBatches((prev) => prev.filter((b) => b.id !== payload.old.id));
+        }
+      }
+    );
+
+    // Session — status changes
+    channel.on(
+      'postgres_changes' as any,
+      { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `session_id=eq.${sessionId}` },
+      (payload: any) => {
+        if (payload.new) setSession(payload.new);
+      }
+    );
+  }, [sessionId, upsertVote]);
 
   const presenceConfig = undefined;
   const { connectionStatus, participantCount } = useRealtimeChannel(
