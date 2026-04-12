@@ -983,7 +983,7 @@ function BatchControlPanel({
   onRevealBatch,
   onRevealQuestion: _onRevealQuestion,
   onHighlightReason,
-  hasSeparateProjection,
+  hasSeparateProjection: _hasSeparateProjection,
   reasonsPerPage,
   onReasonsPerPageChange,
   selectedTeam,
@@ -1371,9 +1371,7 @@ function BatchControlPanel({
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
-            {allRevealed
-              ? (hasSeparateProjection ? 'Revealed to Audience' : 'Results Shown')
-              : (hasSeparateProjection ? 'Reveal to Audience' : 'Show Results')}
+            {allRevealed ? 'Revealed to Audience' : 'Reveal to Audience'}
           </button>
         </div>
       </div>
@@ -1452,11 +1450,11 @@ function BatchControlPanel({
           )}
 
           <div className="flex-1 bg-gray-50 rounded-lg p-4 flex items-center justify-center min-h-0">
-            {!hasSeparateProjection && !allRevealed ? (
+            {questionVotes.length === 0 ? (
               <div className="text-center">
                 <p className="text-gray-400 text-lg mb-2">Waiting for responses...</p>
-                <p className="text-gray-500 text-3xl font-bold">{questionVotes.length}</p>
-                <p className="text-gray-400 text-sm mt-1">vote{questionVotes.length !== 1 ? 's' : ''} received</p>
+                <p className="text-gray-500 text-3xl font-bold">0</p>
+                <p className="text-gray-400 text-sm mt-1">votes received</p>
               </div>
             ) : (
               <div className="w-full">
@@ -1472,7 +1470,7 @@ function BatchControlPanel({
         </div>
 
         {/* Reasons panel (scrollable, right side) — only when results are shown */}
-        {(hasSeparateProjection || allRevealed) && Object.keys(reasonsByOption).length > 0 && (
+        {Object.keys(reasonsByOption).length > 0 && (
           <div className="w-80 shrink-0 flex flex-col min-h-0 border rounded-lg bg-white">
             <div className="flex items-center justify-between p-3 pb-2 shrink-0 border-b border-gray-100">
               <h4 className="text-sm font-semibold text-gray-700">Reasons</h4>
