@@ -113,7 +113,7 @@ export function PastSessions({ refreshKey }: { refreshKey?: number }) {
 
       const { data } = await supabase
         .from('sessions')
-        .select('*, session_items(count), votes(participant_id)')
+        .select('*, session_items!session_items_session_id_fkey(count), votes(participant_id)')
         .order('created_at', { ascending: false });
 
       if (data) {
