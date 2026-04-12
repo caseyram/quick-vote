@@ -470,8 +470,31 @@ export default function PresentationView() {
   // Subscribe to session from store
   const session = useSessionStore((s) => s.session);
 
-  // Votes are now driven by CDC via the Zustand store (upsertVote).
-  // No polling needed — see setupChannel CDC subscriptions above.
+  // CDC drives vote updates via upsertVote (see setupChannel above).
+  // Safety-net poll catches anything CDC misses.
+  const sessionStatus = useSessionStore((s) => s.session?.status);
+  useEffect(() => {
+    if (!realSessionId || (sessionStatus !== 'active' && sessionStatus !== 'lobby')) return;
+
+    const poll = async () => {
+      const { data } = await supabase
+        .from('votes')
+        .select('*')
+        .eq('session_id', realSessionId);
+
+      if (data) {
+        useSessionStore.getState().setAllVotes(data);
+        // Sync moderated IDs
+        const modIds = new Set<string>();
+        data.forEach((v: Vote) => { if (v.moderated_at) modIds.add(v.id); });
+        setModeratedVoteIds(modIds);
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 10000);
+    return () => clearInterval(interval);
+  }, [realSessionId, sessionStatus]);
 
   // Set page title + force black background on html/body to hide any scrollbar gutter gap
   useEffect(() => {

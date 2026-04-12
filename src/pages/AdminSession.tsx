@@ -259,8 +259,28 @@ export default function AdminSession() {
     presenceConfig
   );
 
-  // Votes are now driven by CDC via the Zustand store (upsertVote).
-  // No polling needed — see setupChannel above.
+  // CDC drives vote updates via upsertVote (see setupChannel above).
+  // Safety-net poll catches anything CDC misses (e.g. reconnects, plan limits).
+  useEffect(() => {
+    if (!isActive || !session?.session_id) return;
+
+    const poll = async () => {
+      const { data } = await supabase
+        .from('votes')
+        .select('*')
+        .eq('session_id', session.session_id);
+
+      if (data) {
+        useSessionStore.getState().setAllVotes(data);
+      }
+    };
+
+    // Immediate fetch when session becomes active (covers draft→active transition)
+    poll();
+
+    const interval = setInterval(poll, 10000);
+    return () => clearInterval(interval);
+  }, [isActive, session?.session_id]);
 
   // Page-level countdown - purely visual reminder, does NOT auto-close voting
   const handleCountdownComplete = useCallback(() => {
