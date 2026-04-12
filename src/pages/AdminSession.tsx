@@ -278,7 +278,7 @@ export default function AdminSession() {
     // Immediate fetch when session becomes active (covers draft→active transition)
     poll();
 
-    const interval = setInterval(poll, 10000);
+    const interval = setInterval(poll, 1000);
     return () => clearInterval(interval);
   }, [isActive, session?.session_id]);
 
