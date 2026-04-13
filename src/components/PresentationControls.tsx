@@ -311,38 +311,45 @@ export function PresentationControls({
 
   function handleRevealBatch(questionIds: string[]) {
     const allRevealed = questionIds.every((id) => revealedQuestions.has(id));
+    const willReveal = !allRevealed;
     setRevealedQuestions((prev) => {
       const next = new Set(prev);
-      questionIds.forEach((id) => (allRevealed ? next.delete(id) : next.add(id)));
+      questionIds.forEach((id) => (willReveal ? next.add(id) : next.delete(id)));
       return next;
     });
 
-    questionIds.forEach((questionId) => {
-      channelRef.current?.send({
-        type: 'broadcast',
-        event: 'result_reveal',
-        payload: { questionId, revealed: !allRevealed },
-      });
-    });
-
-    // Sync the currently viewed question to the projection
-    if (!allRevealed && questionIds.length > 0) {
-      // Determine which question the admin is viewing based on batch question index
+    if (willReveal && questionIds.length > 0) {
+      // Determine which question the admin is viewing
       const batchQuestions = questions
         .filter((q) => questionIds.includes(q.id))
         .sort((a, b) => a.position - b.position);
       const currentQ = batchQuestions[currentBatchQuestionIndex] || batchQuestions[0];
+
+      // Single broadcast: reveal all questions + select the current one
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'result_reveal',
+        payload: {
+          questionIds,
+          revealed: true,
+          selectedQuestionId: currentQ?.id ?? null,
+          resetHighlight: true,
+        },
+      });
+
+      // Push results to participant waiting view
       if (currentQ) {
-        channelRef.current?.send({
-          type: 'broadcast',
-          event: 'question_selected',
-          payload: { questionId: currentQ.id },
-        });
-        // Push results for the currently-selected question to participant waiting view
         broadcastParticipantResults(currentQ.id, true);
       }
-    } else if (allRevealed) {
-      // Un-reveal: dismiss results on participant view (use first question id as signal)
+    } else {
+      // Un-reveal all in one broadcast
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'result_reveal',
+        payload: { questionIds, revealed: false },
+      });
+
+      // Dismiss results on participant view
       const firstId = questionIds[0];
       if (firstId) {
         channelRef.current?.send({
@@ -357,15 +364,11 @@ export function PresentationControls({
   function handleSelectQuestion(questionId: string, index: number) {
     setCurrentBatchQuestionIndex(index);
     setHighlightedReasonId('');
+    // Single broadcast: select question + reset highlight
     channelRef.current?.send({
       type: 'broadcast',
       event: 'question_selected',
-      payload: { questionId },
-    });
-    channelRef.current?.send({
-      type: 'broadcast',
-      event: 'reason_highlight',
-      payload: { questionId, reasonId: '' },
+      payload: { questionId, resetHighlight: true },
     });
     // Update participant results when switching to a question that's already revealed
     if (revealedQuestions.has(questionId)) {

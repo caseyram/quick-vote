@@ -260,17 +260,23 @@ export default function PresentationView() {
       setBlackScreenActive(payload.active);
     });
 
-    // Listen for result reveal
+    // Listen for result reveal (single question or batched questionIds)
     channel.on('broadcast', { event: 'result_reveal' }, ({ payload }: any) => {
       setRevealedQuestions((prev) => {
         const next = new Set(prev);
-        if (payload.revealed) {
-          next.add(payload.questionId);
-        } else {
-          next.delete(payload.questionId);
+        const ids: string[] = payload.questionIds ?? [payload.questionId];
+        for (const id of ids) {
+          if (payload.revealed) next.add(id); else next.delete(id);
         }
         return next;
       });
+      // Batched payload may include selectedQuestionId and reason reset
+      if (payload.selectedQuestionId !== undefined) {
+        setSelectedQuestionId(payload.selectedQuestionId);
+      }
+      if (payload.resetHighlight) {
+        setHighlightedReason(null);
+      }
     });
 
     // Listen for reason highlight
@@ -280,9 +286,12 @@ export default function PresentationView() {
       );
     });
 
-    // Listen for question tab selection from admin
+    // Listen for question tab selection (may include reason reset)
     channel.on('broadcast', { event: 'question_selected' }, ({ payload }: any) => {
       setSelectedQuestionId(payload.questionId);
+      if (payload.resetHighlight) {
+        setHighlightedReason(null);
+      }
     });
 
     // Listen for reasons-per-page setting from admin
