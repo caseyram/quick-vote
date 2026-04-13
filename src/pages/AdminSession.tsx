@@ -734,19 +734,20 @@ export default function AdminSession() {
     setActiveBatchId(batchId);
     useSessionStore.getState().updateBatch(batchId, { status: 'active' });
 
-    // 4. Get question IDs for this batch (read from store to avoid stale closure)
-    const latestQuestions = useSessionStore.getState().questions;
-    const batchQuestions = latestQuestions.filter((q) => q.batch_id === batchId);
-    const questionIds = batchQuestions.map((q) => q.id);
+    // 4. Broadcast to participants (only when called directly with a timer,
+    //    not from handleActivateSequenceItem which broadcasts first)
+    if (timerDuration !== null) {
+      const latestQuestions = useSessionStore.getState().questions;
+      const batchQuestions = latestQuestions.filter((q) => q.batch_id === batchId);
+      const questionIds = batchQuestions.map((q) => q.id);
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'batch_activated',
+        payload: { batchId, questionIds, timerSeconds: timerDuration },
+      });
+    }
 
-    // 5. Broadcast to participants (include timer)
-    channelRef.current?.send({
-      type: 'broadcast',
-      event: 'batch_activated',
-      payload: { batchId, questionIds, timerSeconds: timerDuration },
-    });
-
-    // 6. Start countdown if timer is set
+    // 5. Start countdown if timer is set
     if (timerDuration) {
       await setTimerExpiration(timerDuration);
       startCountdown(timerDuration * 1000);
@@ -798,11 +799,30 @@ export default function AdminSession() {
   }
 
   async function handleActivateSequenceItem(item: SessionItem, direction: 'forward' | 'backward') {
-    // Set active item and direction in store
+    // Set active item and direction in store (instant local update)
     useSessionStore.getState().setActiveSessionItemId(item.id);
     useSessionStore.getState().setNavigationDirection(direction);
 
-    // Persist the durable navigation pointer (CDC source of truth for presenter)
+    // ── Broadcast FIRST for instant presenter response ──
+    // The broadcast is fire-and-forget (~50ms). DB writes follow in the
+    // background; CDC on current_session_item_id serves as the durable backstop.
+    if (item.item_type === 'batch' && item.batch_id) {
+      const latestQuestions = useSessionStore.getState().questions;
+      const questionIds = latestQuestions.filter((q) => q.batch_id === item.batch_id).map((q) => q.id);
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'batch_activated',
+        payload: { batchId: item.batch_id, questionIds, timerSeconds: null },
+      });
+    } else if (item.item_type === 'slide') {
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'slide_activated',
+        payload: { itemId: item.id, direction },
+      });
+    }
+
+    // ── Persist durable pointer (fires CDC for presenter backup) ──
     if (session) {
       supabase
         .from('sessions')
@@ -813,16 +833,14 @@ export default function AdminSession() {
         });
     }
 
+    // ── DB cleanup (no longer blocks the broadcast) ──
     if (item.item_type === 'batch' && item.batch_id) {
-      // Activate batch (no timer for sequence navigation)
       await handleActivateBatch(item.batch_id, null);
     } else if (item.item_type === 'slide') {
-      // Clear any active batch first
       if (activeBatchId) {
         await handleCloseBatch(activeBatchId);
       }
 
-      // Close any active individual question
       await supabase
         .from('questions')
         .update({ status: 'closed' as const })
@@ -835,13 +853,6 @@ export default function AdminSession() {
         }
       }
       stopCountdown();
-
-      // Broadcast slide activation to participants
-      channelRef.current?.send({
-        type: 'broadcast',
-        event: 'slide_activated',
-        payload: { itemId: item.id },
-      });
     }
   }
 
