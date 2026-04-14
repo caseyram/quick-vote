@@ -15,6 +15,7 @@ import { BarChart, AGREE_DISAGREE_COLORS, MULTI_CHOICE_COLORS } from '../compone
 import { aggregateVotes, buildConsistentBarData } from '../lib/vote-aggregation';
 import { TeamQRGrid } from '../components/TeamQRGrid';
 import { usePresentationTheme } from '../context/PresentationThemeContext';
+import { rtLog } from '../lib/realtime-debug';
 
 export default function PresentationView() {
   const { adminToken } = useParams();
@@ -183,6 +184,7 @@ export default function PresentationView() {
   const setupChannel = useCallback((channel: RealtimeChannel) => {
     // Listen for slide activations
     channel.on('broadcast', { event: 'slide_activated' }, ({ payload }: any) => {
+      rtLog('broadcast:slide_activated', payload);
       useSessionStore.getState().setActiveSessionItemId(payload.itemId);
       useSessionStore.getState().setNavigationDirection(payload.direction ?? 'forward');
       setActiveInlineQuestion(null); // Clear any inline question
@@ -191,6 +193,7 @@ export default function PresentationView() {
     // Listen for batch activations (fast hint — CDC on sessions.current_session_item_id
     // is the reliable source of truth; this broadcast just resets transient UI state)
     channel.on('broadcast', { event: 'batch_activated' }, ({ payload }: any) => {
+      rtLog('broadcast:batch_activated', payload);
       setRevealedQuestions(new Set());
       setHighlightedReason(null);
       setSelectedQuestionId(null);
@@ -211,6 +214,7 @@ export default function PresentationView() {
 
     // Listen for batch closed - voting ended
     channel.on('broadcast', { event: 'batch_closed' }, () => {
+      rtLog('broadcast:batch_closed');
       setBatchVotingActive(false);
     });
 
@@ -262,6 +266,7 @@ export default function PresentationView() {
 
     // Listen for result reveal (single question or batched questionIds)
     channel.on('broadcast', { event: 'result_reveal' }, ({ payload }: any) => {
+      rtLog('broadcast:result_reveal', payload);
       setRevealedQuestions((prev) => {
         const next = new Set(prev);
         const ids: string[] = payload.questionIds ?? [payload.questionId];
@@ -281,6 +286,7 @@ export default function PresentationView() {
 
     // Listen for reason highlight
     channel.on('broadcast', { event: 'reason_highlight' }, ({ payload }: any) => {
+      rtLog('broadcast:reason_highlight', payload);
       setHighlightedReason(
         payload.reasonId ? { questionId: payload.questionId, reasonId: payload.reasonId } : null
       );
@@ -288,6 +294,7 @@ export default function PresentationView() {
 
     // Listen for question tab selection (may include reason reset)
     channel.on('broadcast', { event: 'question_selected' }, ({ payload }: any) => {
+      rtLog('broadcast:question_selected', payload);
       setSelectedQuestionId(payload.questionId);
       if (payload.resetHighlight) {
         setHighlightedReason(null);
@@ -339,6 +346,7 @@ export default function PresentationView() {
         (payload: any) => {
           const row = payload.new;
           if (!row) return;
+          rtLog('cdc:sessions', { current_session_item_id: row.current_session_item_id, status: row.status });
 
           // Apply navigation pointer
           if (row.current_session_item_id) {
@@ -366,6 +374,7 @@ export default function PresentationView() {
       'postgres_changes' as any,
       { event: '*', schema: 'public', table: 'session_items', filter: `session_id=eq.${textId}` },
       (payload: any) => {
+        rtLog('cdc:session_items', payload.eventType, payload.new?.id);
         if (payload.eventType === 'INSERT' && payload.new) {
           useSessionStore.getState().addSessionItem(payload.new);
         } else if (payload.eventType === 'DELETE' && payload.old?.id) {
@@ -379,6 +388,7 @@ export default function PresentationView() {
       'postgres_changes' as any,
       { event: '*', schema: 'public', table: 'batches', filter: `session_id=eq.${textId}` },
       (payload: any) => {
+        rtLog('cdc:batches', payload.eventType, payload.new?.id);
         if (payload.eventType === 'INSERT' && payload.new) {
           useSessionStore.getState().addBatch(payload.new);
         } else if (payload.eventType === 'UPDATE' && payload.new) {
@@ -394,17 +404,19 @@ export default function PresentationView() {
       'postgres_changes' as any,
       { event: 'UPDATE', schema: 'public', table: 'questions', filter: `session_id=eq.${textId}` },
       (payload: any) => {
+        rtLog('cdc:questions', payload.new?.id, payload.new?.status);
         if (payload.new) {
           useSessionStore.getState().updateQuestion(payload.new.id, payload.new);
         }
       }
     );
 
-    // Votes — replaces 3-second polling
+    // Votes — CDC replaces polling
     channel.on(
       'postgres_changes' as any,
       { event: '*', schema: 'public', table: 'votes', filter: `session_id=eq.${textId}` },
       (payload: any) => {
+        rtLog('cdc:votes', payload.eventType, payload.new?.id);
         if (payload.eventType === 'DELETE') {
           const old = payload.old;
           if (old?.id && old?.question_id) {

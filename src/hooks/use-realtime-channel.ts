@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { rtLog } from '../lib/realtime-debug';
 
 export type ConnectionStatus =
   | 'connecting'
@@ -107,6 +108,7 @@ export function useRealtimeChannel(
 
     // Subscribe and track connection status
     channel.subscribe((status, err) => {
+      rtLog('channel', channelName, status, err ?? '');
       if (status === 'SUBSCRIBED') {
         setConnectionStatus('connected');
         // Track presence after subscribe completes (not buffered)
