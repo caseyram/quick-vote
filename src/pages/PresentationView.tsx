@@ -491,10 +491,30 @@ export default function PresentationView() {
   // Subscribe to session from store
   const session = useSessionStore((s) => s.session);
 
-  // Votes are loaded on mount and kept current via CDC (upsertVote in
-  // setupChannel) + full resync on reconnect. No polling needed here —
-  // the admin view has a 1s poll for live moderation; the presentation
-  // view only displays charts when the admin reveals them.
+  // CDC drives vote updates via upsertVote. Safety-net poll catches
+  // anything CDC misses (CDC may not deliver on all Supabase plans).
+  const sessionStatus = useSessionStore((s) => s.session?.status);
+  useEffect(() => {
+    if (!realSessionId || (sessionStatus !== 'active' && sessionStatus !== 'lobby')) return;
+
+    const poll = async () => {
+      const { data } = await supabase
+        .from('votes')
+        .select('id, question_id, value, reason, participant_id, session_id, display_name, team_id, locked_in, created_at, updated_at, moderated_at, moderated_by')
+        .eq('session_id', realSessionId);
+
+      if (data) {
+        useSessionStore.getState().setAllVotes(data as Vote[]);
+        const modIds = new Set<string>();
+        data.forEach((v) => { if (v.moderated_at) modIds.add(v.id); });
+        setModeratedVoteIds(modIds);
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 5000);
+    return () => clearInterval(interval);
+  }, [realSessionId, sessionStatus]);
 
   // Set page title + force black background on html/body to hide any scrollbar gutter gap
   useEffect(() => {
