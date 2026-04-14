@@ -263,29 +263,8 @@ export default function ResultsMonitor() {
     presenceConfig,
   );
 
-  // Safety-net vote poll (CDC is primary, this catches misses)
-  useEffect(() => {
-    if (!sessionId || !session) return;
-
-    const poll = async () => {
-      const { data: votesData } = await supabase
-        .from('votes')
-        .select('*')
-        .eq('session_id', sessionId);
-
-      if (votesData) {
-        const voteMap: Record<string, Vote[]> = {};
-        for (const vote of votesData) {
-          if (!voteMap[vote.question_id]) voteMap[vote.question_id] = [];
-          voteMap[vote.question_id].push(vote);
-        }
-        setSessionVotes(voteMap);
-      }
-    };
-
-    const interval = setInterval(poll, 10000);
-    return () => clearInterval(interval);
-  }, [sessionId, session]);
+  // Votes are loaded on mount and kept current via CDC (upsertVote in
+  // setupChannel) + initial fetch. No polling needed.
 
   // Group questions by batch
   const batchGroups: BatchGroup[] = batches.map((batch) => ({
