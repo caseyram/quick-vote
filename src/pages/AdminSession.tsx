@@ -822,37 +822,37 @@ export default function AdminSession() {
       });
     }
 
-    // ── Persist durable pointer (fires CDC for presenter backup) ──
-    if (session) {
-      supabase
-        .from('sessions')
-        .update({ current_session_item_id: item.id })
-        .eq('id', session.id)
-        .then(({ error: err }) => {
-          if (err) console.error('Failed to write current_session_item_id:', err);
-        });
-    }
+    // ── Persist durable pointer + DB cleanup in parallel ──
+    // The pointer write must complete (not fire-and-forget) so that any
+    // presenter/participant refresh reads the correct current item.
+    const pointerWrite = session
+      ? supabase.from('sessions').update({ current_session_item_id: item.id }).eq('id', session.id)
+          .then(({ error: err }) => { if (err) console.error('Failed to write current_session_item_id:', err); })
+      : Promise.resolve();
 
-    // ── DB cleanup (no longer blocks the broadcast) ──
     if (item.item_type === 'batch' && item.batch_id) {
-      await handleActivateBatch(item.batch_id, null);
+      await Promise.all([pointerWrite, handleActivateBatch(item.batch_id, null)]);
     } else if (item.item_type === 'slide') {
-      if (activeBatchId) {
-        await handleCloseBatch(activeBatchId);
-      }
-
-      await supabase
-        .from('questions')
-        .update({ status: 'closed' as const })
-        .eq('session_id', session!.session_id)
-        .eq('status', 'active');
-
-      for (const q of questions) {
-        if (q.status === 'active') {
-          updateQuestion(q.id, { status: 'closed' });
+      const slideCleanup = async () => {
+        if (activeBatchId) {
+          await handleCloseBatch(activeBatchId);
         }
-      }
-      stopCountdown();
+        await supabase
+          .from('questions')
+          .update({ status: 'closed' as const })
+          .eq('session_id', session!.session_id)
+          .eq('status', 'active');
+
+        for (const q of questions) {
+          if (q.status === 'active') {
+            updateQuestion(q.id, { status: 'closed' });
+          }
+        }
+        stopCountdown();
+      };
+      await Promise.all([pointerWrite, slideCleanup()]);
+    } else {
+      await pointerWrite;
     }
   }
 

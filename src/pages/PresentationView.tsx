@@ -135,6 +135,20 @@ export default function PresentationView() {
             setBatchVotingActive(true);
           }
         }
+      } else if (!cancelled && !sessionData.current_session_item_id) {
+        // Fallback: pointer not yet written (session just started).
+        // Check for an active batch by status.
+        const activeBatch = batchesData?.find((b: any) => b.status === 'active');
+        if (activeBatch) {
+          useSessionStore.getState().setActiveBatchId(activeBatch.id);
+          setBatchVotingActive(true);
+          const batchItem = itemsData?.find(
+            (item: any) => item.item_type === 'batch' && item.batch_id === activeBatch.id
+          );
+          if (batchItem) {
+            useSessionStore.getState().setActiveSessionItemId(batchItem.id);
+          }
+        }
       }
 
       // Restore revealed questions from DB (questions with status='revealed')
