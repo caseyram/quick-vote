@@ -275,12 +275,25 @@ export default function PresentationView() {
         }
         return next;
       });
-      // Batched payload may include selectedQuestionId and reason reset
       if (payload.selectedQuestionId !== undefined) {
         setSelectedQuestionId(payload.selectedQuestionId);
       }
       if (payload.resetHighlight) {
         setHighlightedReason(null);
+      }
+      // Fetch fresh votes immediately so charts are current on reveal
+      if (payload.revealed) {
+        const sid = sessionTextIdRef.current;
+        if (sid) {
+          supabase.from('votes').select('*').eq('session_id', sid).then(({ data }) => {
+            if (data) {
+              useSessionStore.getState().setAllVotes(data);
+              const modIds = new Set<string>();
+              data.forEach((v: any) => { if (v.moderated_at) modIds.add(v.id); });
+              setModeratedVoteIds(modIds);
+            }
+          });
+        }
       }
     });
 
