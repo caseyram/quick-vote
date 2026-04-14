@@ -137,6 +137,19 @@ export default function PresentationView() {
         }
       }
 
+      // Restore revealed questions from DB (questions with status='revealed')
+      if (!cancelled && questionsData) {
+        const revealed = new Set<string>();
+        for (const q of questionsData) {
+          if (q.status === 'revealed') revealed.add(q.id);
+        }
+        if (revealed.size > 0) {
+          setRevealedQuestions(revealed);
+          // If we have a revealed batch, mark voting as no longer active
+          setBatchVotingActive(false);
+        }
+      }
+
       // Check for active inline question (Go Live quick question)
       if (!cancelled) {
         const { data: activeQ } = await supabase
@@ -488,6 +501,15 @@ export default function PresentationView() {
               useSessionStore.getState().setActiveBatchId(activeItem.batch_id);
             }
           }
+        }
+
+        // Restore revealed questions
+        if (questionsRes.data) {
+          const revealed = new Set<string>();
+          for (const q of questionsRes.data) {
+            if ((q as any).status === 'revealed') revealed.add(q.id);
+          }
+          setRevealedQuestions(revealed);
         }
 
         // Sync moderated IDs

@@ -5,6 +5,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { ConnectionStatus } from '../hooks/use-realtime-channel';
 import type { Batch, Question, SessionItem, Vote } from '../types/database';
 import { useSessionStore } from '../stores/session-store';
+import { supabase } from '../lib/supabase';
 import { useSequenceNavigation } from '../hooks/use-sequence-navigation';
 import { SequenceManager } from './SequenceManager';
 import { SlideDisplay } from './SlideDisplay';
@@ -87,7 +88,14 @@ export function PresentationControls({
   const [qrMode, setQrMode] = useState<QRMode>('hidden');
   const [blackScreenActive, setBlackScreenActive] = useState(false);
   const [showShortcutHelp, setShowShortcutHelp] = useState(false);
-  const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(new Set());
+  const [revealedQuestions, setRevealedQuestions] = useState<Set<string>>(() => {
+    // Initialize from DB: questions with status='revealed' are already revealed
+    const revealed = new Set<string>();
+    for (const q of questions) {
+      if (q.status === 'revealed') revealed.add(q.id);
+    }
+    return revealed;
+  });
   const [highlightedReasonId, setHighlightedReasonId] = useState<string | null>(null);
   const [currentBatchQuestionIndex, setCurrentBatchQuestionIndex] = useState(0);
   const [reasonsPerPage, setReasonsPerPage] = useState<1 | 2 | 4>(1);
@@ -299,13 +307,17 @@ export function PresentationControls({
       return next;
     });
 
+    // Persist reveal status to DB (makes it durable across refreshes)
+    const newStatus = willBeRevealed ? 'revealed' : 'closed';
+    supabase.from('questions').update({ status: newStatus }).eq('id', questionId)
+      .then(() => { useSessionStore.getState().updateQuestion(questionId, { status: newStatus as any }); });
+
     channelRef.current?.send({
       type: 'broadcast',
       event: 'result_reveal',
       payload: { questionId, revealed: willBeRevealed },
     });
 
-    // Push aggregated results to participant waiting view
     broadcastParticipantResults(questionId, willBeRevealed);
   }
 
@@ -317,6 +329,17 @@ export function PresentationControls({
       questionIds.forEach((id) => (willReveal ? next.add(id) : next.delete(id)));
       return next;
     });
+
+    // Persist reveal status to DB
+    const newStatus = willReveal ? 'revealed' : 'closed';
+    if (questionIds.length > 0) {
+      supabase.from('questions').update({ status: newStatus }).in('id', questionIds)
+        .then(() => {
+          for (const id of questionIds) {
+            useSessionStore.getState().updateQuestion(id, { status: newStatus as any });
+          }
+        });
+    }
 
     if (willReveal && questionIds.length > 0) {
       // Determine which question the admin is viewing
