@@ -86,6 +86,7 @@ export interface SessionTemplate {
   name: string;
   blueprint: SessionBlueprint;
   item_count: number;
+  archived: boolean;
   created_at: string;
   updated_at: string;
 }

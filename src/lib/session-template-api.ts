@@ -114,6 +114,34 @@ export async function deleteSessionTemplate(id: string): Promise<void> {
 
 
 /**
+ * Archive a session template (hides from main list, shown in collapsed section).
+ */
+export async function archiveSessionTemplate(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('session_templates')
+    .update({ archived: true })
+    .eq('id', id);
+
+  if (error) throw error;
+
+  useSessionTemplateStore.getState().updateTemplate(id, { archived: true });
+}
+
+/**
+ * Unarchive a session template (restores to main list).
+ */
+export async function unarchiveSessionTemplate(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('session_templates')
+    .update({ archived: false })
+    .eq('id', id);
+
+  if (error) throw error;
+
+  useSessionTemplateStore.getState().updateTemplate(id, { archived: false });
+}
+
+/**
  * Find a session template by exact name.
  */
 export async function findSessionTemplateByName(name: string): Promise<SessionTemplate | null> {
